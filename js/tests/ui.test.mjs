@@ -259,3 +259,33 @@ test('the training run shows a coach and gates what you can do', () => {
   assert.ok(!map['end-turn'].disabled);
 });
 
+test('the End Turn button glows when there are no moves left', () => {
+  UI.init(cardDefs, missions, 42);
+  let state = UI.getState();
+  state.hand = [];
+  state.interactionsLeft = 0;
+  state.resources = { stealth: 0, fighting: 0 };
+  UI.setState(state);
+  assert.ok(map['end-turn']._classes.has('glow'));
+
+  state = UI.getState();
+  state.hand = state.hand.length ? state.hand : [];
+  state.interactionsLeft = 1;
+  UI.setState(state);
+  assert.ok(!map['end-turn']._classes.has('glow'));
+});
+
+test('cards you can afford light up in the line', () => {
+  UI.init(cardDefs, missions, 42);
+  let state = UI.getState();
+  state.resources = { stealth: 5, fighting: 5 };
+  UI.setState(state);
+  const line = map['line'].children;
+  const lit = line.filter((slot) => slot.className.includes('can-interact'));
+  assert.ok(lit.length > 0, 'at least one obstacle should be payable');
+
+  state = UI.getState();
+  state.resources = { stealth: 0, fighting: 0 };
+  UI.setState(state);
+  assert.ok(map['line'].children.every((slot) => !slot.className.includes('can-interact')));
+});

@@ -562,3 +562,22 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .rules .flowchart { margin: 0 0 14px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: #f4f6f9; }
 .rules .flowchart img { width: 100%; height: auto; display: block; }
 .rules .flowchart figcaption { font-family: var(--font-mono); font-size: 11px; color: #334155; margin-top: 8px; }
+
+#end-turn.glow, #mission-check.glow {
+  background: var(--amber);
+  color: #0b1420;
+  border-color: var(--amber);
+  animation: actionGlow 1.6s ease-in-out infinite;
+}
+#mission-check.glow { background: var(--stealth); border-color: var(--stealth); color: #06101c; }
+@keyframes actionGlow {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(230, 179, 107, .25); }
+  50% { box-shadow: 0 0 20px 5px rgba(230, 179, 107, .75); }
+}
+
+.slot.can-interact { border-color: var(--safe); box-shadow: 0 0 0 2px rgba(63, 179, 127, .5), 0 6px 16px rgba(0, 0, 0, .45); }
+.slot.can-interact:hover { box-shadow: 0 0 0 3px rgba(63, 179, 127, .85), 0 12px 26px rgba(0, 0, 0, .55); }
+.slot.can-interact .slot-meta { color: var(--safe); }
+.slot.face-down .slot-meta, .slot:not(.can-interact) .slot-meta { color: var(--muted); }
+.slot.tut-disarm, .slot.tut-knock { animation: targetPulse 1.5s ease-in-out infinite; }
+@keyframes targetPulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(230, 179, 107, .4); } 50% { box-shadow: 0 0 0 4px rgba(230, 179, 107, .85); } }
