@@ -5,6 +5,8 @@
 const Sound = (function () {
   let context = null;
   let muted = true;
+  let musicOn = false;
+  let ambient = null;
 
   function ensureContext() {
     if (context) return context;
@@ -52,6 +54,57 @@ const Sound = (function () {
     source.stop(start + duration);
   }
 
+  function startAmbient() {
+    const ctx = ensureContext();
+    if (!ctx || ambient) return;
+    const drone = ctx.createOscillator();
+    const drone2 = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    const pulse = ctx.createOscillator();
+    const pulseGain = ctx.createGain();
+    const tension = ctx.createOscillator();
+    const tensionGain = ctx.createGain();
+
+    drone.type = 'sine'; drone.frequency.value = 55;
+    drone2.type = 'sine'; drone2.frequency.value = 82.5;
+    tension.type = 'sawtooth'; tension.frequency.value = 196;
+    filter.type = 'lowpass'; filter.frequency.value = 320; filter.Q.value = 0.7;
+    gain.gain.value = 0.05;
+    tensionGain.gain.value = 0.0;
+    pulse.type = 'sine'; pulse.frequency.value = 0.12;
+    pulseGain.gain.value = 0.03;
+
+    pulse.connect(pulseGain);
+    pulseGain.connect(gain.gain);
+    drone.connect(filter);
+    drone2.connect(filter);
+    tension.connect(tensionGain);
+    tensionGain.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    drone.start(); drone2.start(); pulse.start(); tension.start();
+    ambient = { drone: drone, tension: tension, tensionGain: tensionGain, pulse: pulse, gain: gain };
+  }
+
+  function stopAmbient() {
+    if (!ambient) return;
+    try {
+      ambient.drone.stop();
+      ambient.tension.stop();
+      ambient.pulse.stop();
+    } catch (err) { /* already stopped */ }
+    ambient = null;
+  }
+
+  function setTension(level) {
+    if (!ambient || !context) return;
+    const value = Math.max(0, Math.min(50, level || 0));
+    ambient.tensionGain.gain.setTargetAtTime(0.002 + value * 0.0014, context.currentTime, 1.5);
+    ambient.pulse.frequency.setTargetAtTime(0.12 + value * 0.012, context.currentTime, 2);
+  }
+
   function play(name, intensity) {
     if (muted) return;
     if (name === 'play') {
@@ -77,12 +130,23 @@ const Sound = (function () {
       const ctx = ensureContext();
       if (ctx && ctx.state === 'suspended' && ctx.resume) ctx.resume();
     }
+    if (muted) stopAmbient();
+    else if (musicOn) startAmbient();
     return !muted;
+  }
+
+  function toggleMusic() {
+    musicOn = !musicOn;
+    if (musicOn && !muted) startAmbient();
+    else stopAmbient();
+    return musicOn;
   }
 
   return {
     play: play,
     toggle: toggle,
+    toggleMusic: toggleMusic,
+    setTension: setTension,
     isMuted: function () { return muted; }
   };
 })();

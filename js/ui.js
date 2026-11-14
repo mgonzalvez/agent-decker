@@ -67,12 +67,27 @@ const UI = (function () {
     cards.forEach(function (card) { box.appendChild(thumb(card, zone)); });
   }
 
+  function plan() {
+    return typeof Tutorial !== 'undefined' ? Tutorial.plan(state, registry, missions) : null;
+  }
+
+  function allowed(key) {
+    const p = plan();
+    return !p || !!p.allowed[key];
+  }
+
   function renderLine() {
     const line = document.getElementById('line');
     line.innerHTML = '';
+    const p = plan();
+    const mark = p && p.highlight ? p.highlight : {};
     state.line.forEach(function (card) {
       const def = defOf(card);
-      const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : ''));
+      let extra = '';
+      if (mark.disarm === card.uid) extra += ' tut-disarm';
+      if (mark.knockOut === card.uid) extra += ' tut-knock';
+      if (mark.exiting === card.uid) extra += ' tut-exit';
+      const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
       slot.type = 'button';
       const img = el('img');
       img.src = def.art[0];
@@ -107,6 +122,7 @@ const UI = (function () {
       const button = el('button', 'play-btn');
       button.type = 'button';
       button.textContent = 'Play';
+      button.disabled = !allowed('play');
       button.addEventListener('click', function () { playCard(card); });
       fig.appendChild(button);
       hand.appendChild(fig);
@@ -122,6 +138,28 @@ const UI = (function () {
     return Object.keys(counts).map(function (name) { return name + ' ×' + counts[name]; }).join(' · ') || 'empty';
   }
 
+  function renderCoach() {
+    const coach = document.getElementById('coach');
+    if (!coach) return;
+    const p = plan();
+    if (!p) {
+      coach.hidden = true;
+      return;
+    }
+    coach.hidden = false;
+    document.getElementById('coach-title').textContent = p.title;
+    document.getElementById('coach-text').textContent = p.text;
+    if (p.id === 'finished' && !document.getElementById('coach-campaign')) {
+      const button = el('button', 'play-btn');
+      button.id = 'coach-campaign';
+      button.type = 'button';
+      button.textContent = 'Start the campaign';
+      button.addEventListener('click', function () { start(state.seed); });
+      const actions = document.querySelector('.coach-actions');
+      if (actions) actions.appendChild(button);
+    }
+  }
+
   function render() {
     const mission = missions[state.missionIndex];
     document.querySelector('#mission-banner .mission-name').textContent = mission.name + ' (' + mission.letter + ')';
@@ -132,6 +170,11 @@ const UI = (function () {
     alarmValue.classList.toggle('hot', state.alarm >= 40);
     const fill = document.getElementById('alarm-fill');
     if (fill) fill.style.width = Math.min(100, (state.alarm / 50) * 100) + '%';
+    const check = document.getElementById('mission-check');
+    if (check) check.disabled = !allowed('missionCheck');
+    const end = document.getElementById('end-turn');
+    if (end) end.disabled = !allowed('endTurn');
+
     document.getElementById('token-tens').textContent = Math.floor(state.alarm / 10) * 10;
     document.getElementById('token-ones').textContent = state.alarm % 10;
     document.getElementById('seed').textContent = 'seed: ' + state.seed;
@@ -153,6 +196,7 @@ const UI = (function () {
     document.getElementById('player-deck-breakdown').textContent =
       'Your deck (' + state.deck.length + ' in the draw pile): ' + breakdown(state.deck);
 
+    renderCoach();
     renderLine();
     renderHand();
     fillArea('play-area-cards', state.playArea, 'play');
@@ -225,6 +269,7 @@ const UI = (function () {
     if (typeof Sound !== 'undefined') {
       if (sound) Sound.play(sound);
       if (state.alarm > previousAlarm) Sound.play('alarm', state.alarm);
+      if (Sound.setTension) Sound.setTension(state.alarm);
       if (state.gameOver && state.gameOver !== 'campaignComplete') Sound.play('gameOver');
     }
 
@@ -346,7 +391,7 @@ const UI = (function () {
     }
     const check = Engine.canInteract(state, registry, card);
     const choices = [];
-    if (check.ok) {
+    if (check.ok && allowed('interact')) {
       choices.push({ label: 'Disarm (to ' + (def.keep ? 'Equip Area' : 'Play Area') + ')', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry), def.name + ' disarmed', 'disarm'); } });
       choices.push({ label: 'Knock Out (face down, no alarm)', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry), def.name + ' knocked out', 'knockOut'); } });
       if (check.items && check.items.length) {
@@ -375,6 +420,22 @@ const UI = (function () {
 
   function endTurn() {
     apply(Actions.endTurn(state, registry), 'Turn over');
+  }
+
+  function startTraining() {
+    state = AgentDecker.createInitialState(Object.keys(registry).map(function (id) { return registry[id]; }), missions, 76);
+    state.tutorial = true;
+    if (typeof window !== 'undefined') window.gameState = state;
+    if (typeof Save !== 'undefined') Save.clearGame();
+    render();
+    setSaveNote('training run · seed 76');
+  }
+
+  function exitTraining() {
+    if (!state) return;
+    state.tutorial = false;
+    render();
+    setSaveNote('training off — playing the real campaign');
   }
 
   function start(seed) {
@@ -433,15 +494,23 @@ const UI = (function () {
   }
 
   function howToPlay() {
-    openOverlay(
-      'How to play a turn',
-      '1) Play cards from your hand — each one generates Stealth or Fighting and lands in the Play Area. ' +
-      '2) Click a card in the line to interact: Disarm (take it; items with the KEEP icon go straight to the Equip Area) or Knock Out (leave it face down, it raises no alarm). One interaction per turn. ' +
-      '3) Equipped items are on the table, not in your hand: "once per turn" items (Map, Guard Uniform, Prisoner) give their resource automatically, and Siren lets you draw one extra card per item equipped (max 3). Spend Keycard/Chloroform/E.M.P. to interact without paying its cost. ' + +
-      '3) Mission Check — if you can pay the whole goal this turn, the mission is complete. ' +
-      '4) End Turn — the line scrolls right, the exiting card raises the alarm, the line refills, your hand and Play Area are discarded, and you draw a fresh hand. Unspent resources evaporate.',
-      []
-    );
+    const body = el('div', 'rules');
+    const figure = el('figure', 'flowchart');
+    const img = el('img');
+    img.src = 'docs/AgentDecker_turn_flowchart.svg';
+    img.alt = 'Turn flowchart: 1 Use cards, 2 Mission check, 3 Line scroll, 4 Card refresh';
+    figure.appendChild(img);
+    figure.appendChild(el('figcaption', null, 'The turn, in order. Keep this open while you play.'));
+    body.appendChild(figure);
+    body.appendChild(el('p', 'modal-text',
+      '1) Use cards — play cards from your hand to generate Stealth or Fighting, then pay an obstacle\u2019s cost to Disarm it (it comes to you) or Knock it Out (face down, no alarm). One interaction per turn. ' +
+      '2) Mission Check — if you can pay the whole goal this turn, the mission is complete. ' +
+      '3) Line Scroll — the rightmost card exits the line and raises the alarm by its value; everything slides right and the line refills. ' +
+      '4) Card Refresh — discard your hand and Play Area, draw a fresh hand. Unspent resources evaporate.'));
+    body.appendChild(el('p', 'modal-text',
+      'Items with a KEEP icon stay on the table in the Equip Area and give their bonus every turn. Alarm reaches 50 and the complex locks down; your score is the alarm at the end of each mission, added up — lower is better.'));
+    body.appendChild(el('p', 'modal-text', 'Agent Decker by Manuel Correia (gamesbymanuel.com), CC BY-NC 4.0. This implementation is unofficial and free.'));
+    openOverlay('How to play a turn', body, []);
   }
 
   document.addEventListener('keydown', function (event) {
@@ -451,10 +520,18 @@ const UI = (function () {
   document.getElementById('mission-check').addEventListener('click', missionCheck);
   document.getElementById('end-turn').addEventListener('click', endTurn);
   document.getElementById('how-to-play').addEventListener('click', howToPlay);
+  if (document.getElementById('training-run')) document.getElementById('training-run').addEventListener('click', startTraining);
+  if (document.getElementById('coach-exit')) document.getElementById('coach-exit').addEventListener('click', exitTraining);
+  if (document.getElementById('coach-how')) document.getElementById('coach-how').addEventListener('click', howToPlay);
   document.getElementById('modal-close').addEventListener('click', closeOverlay);
   document.getElementById('new-game').addEventListener('click', function () { start(); });
   if (document.getElementById('about')) document.getElementById('about').addEventListener('click', about);
   if (document.getElementById('sound-toggle')) document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+  if (document.getElementById('music-toggle')) document.getElementById('music-toggle').addEventListener('click', function () {
+    const on = Sound.toggleMusic();
+    document.getElementById('music-toggle').textContent = on ? 'Music: on' : 'Music: off';
+    if (state) Sound.setTension(state.alarm);
+  });
   if (document.getElementById('replay-seed')) document.getElementById('replay-seed').addEventListener('click', function () { start(state.seed); });
 
   return {
@@ -462,6 +539,8 @@ const UI = (function () {
     getState: function () { return state; },
     setState: function (s) { return apply(s, 'state restored'); },
     start: start,
+    startTraining: startTraining,
+    exitTraining: exitTraining,
     endTurn: endTurn,
     missionCheck: missionCheck
   };

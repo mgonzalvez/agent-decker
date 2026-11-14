@@ -48,6 +48,7 @@ A **static web player for Agent Decker**, a solo deckbuilding game by Manuel Cor
 │   ├── engine.js            # PURE rules (no DOM, injectable RNG)
 │   ├── actions.js           # player input → engine
 │   ├── ui.js                # board rendering, modals, animations
+│   ├── tutorial.js          # state-driven coach for the Training Run
 │   ├── save.js              # localStorage save/continue, score log
 │   └── main.js
 ├── assets/cards/            # art crops from the full-art PDF
@@ -69,7 +70,7 @@ A **static web player for Agent Decker**, a solo deckbuilding game by Manuel Cor
 
 M1 transcribe card DB → M2 static board → M3 one full turn → M4 effect handlers → M5 campaign → M6 polish (save, replay, a11y) → M7 GitHub Pages ship.
 
-**Current status: M1–M6 complete** — card DB (`js/data/cards.json`, 38 definitions / 54 cards) and `js/data/missions.json`; static board (`index.html`, `css/styles.css`, `js/state.js`, `js/ui.js`, `js/main.js`) plus the turn loop (`js/engine.js`, `js/actions.js`): play cards, pay costs, Disarm/Knock Out, Line Scroll, Card Refresh, Mission Check/progression, alarm & game-over. Every card effect is transcribed into `cards.json` and has an engine handler; choice-driven effects (Recall, Plan Ahead, Just The Thing, Foresight, Distraction) prompt in the UI. Campaign progression, both loss states and the end-of-campaign score screen are in (`js/tests/campaign.test.mjs`). Tests: `node --test js/tests/*.test.mjs` (56 passing). M6 is in: `js/save.js` (resume + score log in localStorage), `js/audio.js` (synthesized SFX, muted by default), keyboard-accessible cards, Escape-to-close, aria-live alarm/log, About screen with credit + best scores, Replay-this-seed. Next: M7 — git repo + README + GitHub Pages.
+**Current status: M1–M6 complete** — card DB (`js/data/cards.json`, 38 definitions / 54 cards) and `js/data/missions.json`; static board (`index.html`, `css/styles.css`, `js/state.js`, `js/ui.js`, `js/main.js`) plus the turn loop (`js/engine.js`, `js/actions.js`): play cards, pay costs, Disarm/Knock Out, Line Scroll, Card Refresh, Mission Check/progression, alarm & game-over. Every card effect is transcribed into `cards.json` and has an engine handler; choice-driven effects (Recall, Plan Ahead, Just The Thing, Foresight, Distraction) prompt in the UI. Campaign progression, both loss states and the end-of-campaign score screen are in (`js/tests/campaign.test.mjs`). Tests: `node --test js/tests/*.test.mjs` (56 passing). M6 is in: `js/save.js` (resume + score log in localStorage), `js/audio.js` (synthesized SFX, muted by default), keyboard-accessible cards, Escape-to-close, aria-live alarm/log, About screen with credit + best scores, Replay-this-seed. **M7 shipped**: repo + README + CI + GitHub Pages live at https://mgonzalvez.github.io/agent-decker/. Polish pass in progress: P1 self-hosted OFL fonts + dossier theme/FX (`assets/fonts/`), P2 the Training Run (`js/tutorial.js`, seed 76, coach panel gates each action), ambient Web Audio drone tied to the alarm, mobile mini-card line, and the turn flowchart embedded in How to Play. Remaining: more FX polish and a full mobile QA pass on a real device.
 
 ## Constraints
 

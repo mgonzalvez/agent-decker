@@ -384,11 +384,32 @@ button { font: inherit; }
   .hand { grid-template-columns: repeat(4, 118px); }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
+  :root { --card-w: 104px; }
+  .board { padding: 14px; gap: 14px; }
+  .topbar { padding: 10px 12px; gap: 10px; }
+  .brand-title { font-size: 20px; }
+  .mission-banner, .alarm { flex: 1 1 100%; }
+  .controls { flex: 1 1 100%; flex-wrap: wrap; }
+  .controls button { min-height: 40px; }
+  .coach { margin-bottom: 12px; }
+  .line-zone { grid-template-columns: 1fr; gap: 10px; }
+  .stack { flex-direction: row; gap: 10px; align-items: center; }
+  .stack .card-back { width: 48px; }
+  .line {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 10px;
+    scroll-snap-type: x proximity;
+  }
+  .slot { scroll-snap-align: center; }
+  .slot-meta { font-size: 10px; }
   .hand-zone { grid-template-columns: 1fr; }
-  .line { grid-template-columns: repeat(3, var(--card-w)); }
-  .hand { grid-template-columns: repeat(2, 130px); }
+  .hand { grid-template-columns: repeat(2, 1fr); }
   .side { grid-template-columns: 1fr; }
+  .modal { max-width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -463,3 +484,39 @@ button { font: inherit; }
 
 .log-zone li { font-family: var(--font-mono); font-size: 12px; }
 .footer { font-family: var(--font-mono); letter-spacing: .04em; }
+
+/* ---------- training run coach ---------- */
+.coach {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #1a2842, #131f30);
+  margin-bottom: 14px;
+}
+.coach-badge {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  padding: 6px 10px;
+  border-radius: 99px;
+}
+.coach-body h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 16px; margin: 0 0 4px; }
+.coach-body p { margin: 0; font-family: var(--font-mono); font-size: 12.5px; }
+.coach-actions button { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.slot.tut-disarm { border-color: var(--stealth); box-shadow: 0 0 0 2px rgba(79, 143, 214, .35); }
+.slot.tut-knock { border-color: var(--alarm); box-shadow: 0 0 0 2px rgba(255, 82, 82, .35); }
+.slot.tut-exit { animation: exitGlow 2.4s ease-in-out infinite; }
+@keyframes exitGlow { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+button:disabled { opacity: .45; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .slot.tut-exit { animation: none; } }
+
+.rules .flowchart { margin: 0 0 14px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: #f4f6f9; }
+.rules .flowchart img { width: 100%; height: auto; display: block; }
+.rules .flowchart figcaption { font-family: var(--font-mono); font-size: 11px; color: #334155; margin-top: 8px; }

@@ -58,7 +58,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'replay-seed'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'replay-seed', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -92,10 +92,11 @@ globalThis.__storage = {
   removeItem(key) { delete this.items[key]; }
 };
 globalThis.Save = require('../save.js');
-globalThis.Sound = { play: function () {}, toggle: function () { return true; }, isMuted: function () { return false; } };
+globalThis.Sound = { play: function () {}, toggle: function () { return true; }, toggleMusic: function () { return true; }, setTension: function () {}, isMuted: function () { return false; } };
 globalThis.AgentDecker = require('../state.js');
 globalThis.Engine = require('../engine.js');
 globalThis.Actions = require('../actions.js');
+globalThis.Tutorial = require('../tutorial.js');
 const UI = require('../ui.js');
 
 const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
@@ -235,3 +236,16 @@ test('the campaign score screen lists the alarm at the end of each mission', () 
   assert.ok(score.children.some((c) => c.className === 'score-total'));
   map['modal-close'].click();
 });
+
+test('the training run shows a coach and gates what you can do', () => {
+  UI.startTraining();
+  assert.ok(UI.getState().tutorial);
+  assert.strictEqual(map['coach'].hidden, false);
+  assert.ok(map['end-turn'].disabled);
+  assert.ok(map['mission-check'].disabled);
+  UI.exitTraining();
+  assert.ok(!UI.getState().tutorial);
+  assert.strictEqual(map['coach'].hidden, true);
+  assert.ok(!map['end-turn'].disabled);
+});
+
