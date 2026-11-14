@@ -81,12 +81,16 @@ const UI = (function () {
     line.innerHTML = '';
     const p = plan();
     const mark = p && p.highlight ? p.highlight : {};
+    const canAct = state.interactionsLeft > 0 && !state.gameOver;
     state.line.forEach(function (card) {
       const def = defOf(card);
       let extra = '';
       if (mark.disarm === card.uid) extra += ' tut-disarm';
       if (mark.knockOut === card.uid) extra += ' tut-knock';
       if (mark.exiting === card.uid) extra += ' tut-exit';
+      const payable = canAct && !state.faceDown[card.uid] && Engine.canInteract(state, registry, card).ok &&
+        Engine.effectiveCost(state, registry, card).total <= state.resources.stealth + state.resources.fighting;
+      if (payable) extra += ' can-interact';
       const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
       slot.type = 'button';
       const img = el('img');
@@ -94,7 +98,7 @@ const UI = (function () {
       img.alt = cardAlt(def);
       slot.setAttribute('aria-label', def.name + ' — ' + (state.faceDown[card.uid] ? 'knocked out' : costLabel(card) + ', alarm ' + def.alarm));
       slot.appendChild(img);
-      slot.appendChild(el('span', 'slot-meta', state.faceDown[card.uid]
+      slot.appendChild(el('span', 'slot-meta' + (payable ? ' meta-afford' : ''), state.faceDown[card.uid]
         ? def.name + ' — KO'
         : def.name + ' · ' + costLabel(card) + ' · alarm ' + def.alarm));
       slot.addEventListener('click', function () { openCard(card, 'line'); });
@@ -181,9 +185,16 @@ const UI = (function () {
     const danger = document.getElementById('alarm-danger');
     if (danger) danger.hidden = state.alarm < 40;
     const check = document.getElementById('mission-check');
-    if (check) check.disabled = !allowed('missionCheck');
+    if (check) {
+      check.disabled = !allowed('missionCheck');
+      check.classList.toggle('glow', !check.disabled && Actions.missionCheck(state, registry, missions));
+    }
     const end = document.getElementById('end-turn');
-    if (end) end.disabled = !allowed('endTurn');
+    if (end) {
+      const outOfMoves = state.hand.length === 0 && state.interactionsLeft === 0 && !state.gameOver;
+      end.disabled = !allowed('endTurn');
+      end.classList.toggle('glow', !end.disabled && outOfMoves);
+    }
     document.getElementById('seed').textContent = 'seed: ' + state.seed;
 
     document.getElementById('res-stealth').textContent = state.resources.stealth;
