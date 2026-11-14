@@ -1,15 +1,26 @@
+@font-face { font-family: 'Big Shoulders Display'; font-weight: 400; src: url('../assets/fonts/BigShouldersDisplay-400.ttf') format('truetype'); }
+@font-face { font-family: 'Big Shoulders Display'; font-weight: 700; src: url('../assets/fonts/BigShouldersDisplay-700.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 400; src: url('../assets/fonts/IBMPlexSans-400.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 600; src: url('../assets/fonts/IBMPlexSans-600.ttf') format('truetype'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 400; src: url('../assets/fonts/IBMPlexMono-400.ttf') format('truetype'); }
+
 :root {
-  --bg: #0b1220;
-  --bg-2: #131d2f;
-  --panel: #16233a;
-  --line: #1e2f4b;
-  --ink: #e8f0fb;
-  --muted: #8fa2bd;
-  --stealth: #4f7cd6;
+  --bg: #071019;
+  --bg-2: #0f1a27;
+  --panel: #152234;
+  --panel-2: #1c2c43;
+  --line: #23344d;
+  --ink: #eef4fb;
+  --muted: #8ea3bd;
+  --stealth: #4f8fd6;
   --fighting: #e0473f;
-  --alarm: #ff4d4d;
+  --alarm: #ff5252;
+  --amber: #e6b36b;
   --accent: #2f7fa6;
-  --radius: 10px;
+  --radius: 12px;
+  --font-display: "Big Shoulders Display", "Helvetica Neue", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   --card-w: 140px;
   --card-ratio: 1.4079;
   --card-h: calc(var(--card-w) * var(--card-ratio));
@@ -19,9 +30,14 @@
 
 body {
   margin: 0;
-  background: radial-gradient(1200px 600px at 50% -10%, #1a2740, var(--bg));
   color: var(--ink);
-  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  background:
+    radial-gradient(1100px 600px at 50% -10%, #17263d, transparent 65%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  background-color: var(--bg);
 }
 
 a { color: var(--accent); }
@@ -378,3 +394,72 @@ button { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+
+/* ---------- theme & FX ---------- */
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.brand-sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; }
+.topbar { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(6px); }
+.mission-banner .mission-name { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .1em; text-transform: uppercase; }
+.mission-banner .mission-goal { font-family: var(--font-mono); font-size: 12px; }
+
+.alarm-bar {
+  position: relative;
+  width: 120px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+.alarm-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--stealth), var(--amber) 60%, var(--alarm));
+  transition: width .35s ease;
+}
+.alarm-value { font-family: var(--font-mono); font-size: 22px; }
+
+.controls button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.controls button:hover { border-color: var(--amber); color: var(--amber); }
+
+.stack-label, .slot-meta, .deck-note, .deck-breakdown, .seed, .save-status { font-family: var(--font-mono); font-size: 11px; }
+.card figcaption { font-family: var(--font-display); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; font-size: 12px; }
+.play-btn, .use-btn, .choice-btn {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.play-btn { background: var(--panel-2); border-color: var(--amber); color: var(--amber); }
+.play-btn:hover { background: var(--amber); color: #0b1420; }
+
+.area h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 14px; }
+.card-face img, .thumb-face img { transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+.card-face:hover img, .thumb-face:hover img { transform: translateY(-4px) rotate(-1.2deg); box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
+.slot { transition: transform .18s ease, border-color .18s ease; }
+.slot:hover { transform: translateY(-3px); border-color: var(--amber); }
+.slot img { box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
+.line .slot:nth-child(2) img { animation-delay: .06s; }
+.line .slot:nth-child(3) img { animation-delay: .12s; }
+.line .slot:nth-child(4) img { animation-delay: .18s; }
+.line .slot:nth-child(5) img { animation-delay: .24s; }
+.line .slot:nth-child(6) img { animation-delay: .30s; }
+
+.card-goal { border-color: var(--amber); background: var(--panel-2); }
+.card-goal figcaption { color: var(--amber); }
+.goal-strip { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+.log-zone li { font-family: var(--font-mono); font-size: 12px; }
+.footer { font-family: var(--font-mono); letter-spacing: .04em; }
