@@ -4,7 +4,9 @@ A static, offline-friendly web implementation of **Agent Decker**, the solo deck
 
 Play the full five-mission campaign in any modern browser. No accounts, no server, no build step — it is plain HTML/CSS/JS served by GitHub Pages.
 
-**Live game:** https://mgonzalvez.github.io/agent-decker/
+![tests](https://github.com/mgonzalvez/agent-decker/actions/workflows/test.yml/badge.svg)
+
+**Live game:** https://mgonzalvez.github.io/agent-decker/ *(needs Pages enabled once — see "Deploy" below)*
 
 > This is an unofficial implementation for personal play. It is not for sale, and all game content, rules and art remain © Manuel Correia.
 
@@ -66,6 +68,16 @@ If a card behaves unexpectedly, check `js/data/effects-notes.md` before filing a
 - No mobile-specific design pass beyond responsive scaling.
 - The ambient music mentioned in the plan is not implemented; sound is limited to synthesized effects.
 - Bot test runs do not beat the campaign — the naive test bot is not a good agent.
+
+## Deploy
+
+The site is plain static files, so GitHub Pages serves it directly:
+
+1. Repo → **Settings → Pages**
+2. Source: **main branch** (root of the repository)
+3. Save. The game appears at https://mgonzalvez.github.io/agent-decker/
+
+There is no build step, no dependency install, and no CDN: every asset is committed in the repo, so a cold cache only needs the files themselves.
 
 ## License
 
