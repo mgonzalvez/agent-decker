@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=11" />
-  <link rel="stylesheet" href="css/styles.css?v=11" />
+  <link rel="icon" href="assets/favicon.png?v=13" />
+  <link rel="stylesheet" href="css/styles.css?v=13" />
 </head>
 <body>
   <header class="topbar">
@@ -29,9 +29,11 @@
     </div>
 
     <div class="controls">
+      <button id="training-run" type="button">Training run</button>
       <button id="how-to-play" type="button">How to play</button>
       <button id="about" type="button">About</button>
       <button id="sound-toggle" type="button" aria-pressed="false">Sound: off</button>
+      <button id="music-toggle" type="button" aria-pressed="false">Music: off</button>
       <button id="replay-seed" type="button">Replay this seed</button>
       <button id="new-game" type="button">New game</button>
       <span class="seed" id="seed" title="RNG seed">seed: —</span>
@@ -40,6 +42,18 @@
   </header>
 
   <main class="board">
+    <aside class="coach" id="coach" hidden aria-live="polite">
+      <span class="coach-badge">Training run</span>
+      <div class="coach-body">
+        <h2 id="coach-title">Welcome, Agent</h2>
+        <p id="coach-text">Mission One is a warm-up: get 6 Stealth in a single turn before the alarm hits 50.</p>
+      </div>
+      <div class="coach-actions">
+        <button id="coach-how" type="button">Why?</button>
+        <button id="coach-exit" type="button">Exit training</button>
+      </div>
+    </aside>
+
     <section class="line-zone" aria-label="The Line">
       <div class="stack">
         <img class="card-back" src="assets/cards/back.jpg" alt="Obstacles deck" />
@@ -119,12 +133,13 @@
     <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
   </footer>
 
-  <script src="js/state.js?v=11"></script>
-  <script src="js/engine.js?v=11"></script>
-  <script src="js/actions.js?v=11"></script>
-  <script src="js/save.js?v=11"></script>
-  <script src="js/audio.js?v=11"></script>
-  <script src="js/ui.js?v=11"></script>
-  <script src="js/main.js?v=11"></script>
+  <script src="js/state.js?v=13"></script>
+  <script src="js/engine.js?v=13"></script>
+  <script src="js/actions.js?v=13"></script>
+  <script src="js/save.js?v=13"></script>
+  <script src="js/audio.js?v=13"></script>
+  <script src="js/tutorial.js?v=13"></script>
+  <script src="js/ui.js?v=13"></script>
+  <script src="js/main.js?v=13"></script>
 </body>
 </html>

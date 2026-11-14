@@ -559,4 +559,5 @@ const Engine = (function () {
   };
 })();
 
+if (typeof globalThis !== 'undefined') globalThis.Engine = Engine;
 if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
