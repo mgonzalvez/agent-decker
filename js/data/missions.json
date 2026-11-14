@@ -1,0 +1,88 @@
+{
+  "meta": {
+    "missionDeckOrder": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+    "notes": "Goal cards (A, C, E, G, I) stay on the table as the current mission; only the obstacle cards of a letter are injected into the Obstacles Discard when that mission starts (rules.md Mission Progression step 2)."
+  },
+  "missions": [
+    {
+      "index": 1,
+      "name": "Mission One",
+      "goalCardId": "goal_mission_one",
+      "letter": "A",
+      "goal": {
+        "resources": { "stealth": 6, "fighting": 0 },
+        "either": null,
+        "itemsRequired": [],
+        "handSize": null,
+        "knockOutWholeLine": false
+      },
+      "rewardId": "goal_mission_one",
+      "rewardItem": "Map",
+      "obstaclesIntroduced": []
+    },
+    {
+      "index": 2,
+      "name": "Mission Two",
+      "goalCardId": "goal_mission_two",
+      "letter": "C",
+      "goal": {
+        "resources": { "stealth": 0, "fighting": 6 },
+        "either": null,
+        "itemsRequired": ["obs_locker_room"],
+        "handSize": null,
+        "knockOutWholeLine": false
+      },
+      "rewardId": "goal_mission_two",
+      "rewardItem": "New Rule: interact with up to 2 obstacles per turn",
+      "obstaclesIntroduced": ["obs_siren", "obs_locker_room", "obs_inspector"]
+    },
+    {
+      "index": 3,
+      "name": "Mission Three",
+      "goalCardId": "goal_mission_three",
+      "letter": "E",
+      "goal": {
+        "resources": null,
+        "either": null,
+        "itemsRequired": [],
+        "handSize": 7,
+        "knockOutWholeLine": false
+      },
+      "rewardId": "goal_mission_three",
+      "rewardItem": "New Rule: draw FIVE cards at the start of the turn",
+      "obstaclesIntroduced": ["obs_archive_door", "obs_dormitory", "obs_engineering_bay", "obs_cctv_room_door"]
+    },
+    {
+      "index": 4,
+      "name": "Mission Four",
+      "goalCardId": "goal_mission_four",
+      "letter": "G",
+      "goal": {
+        "resources": null,
+        "either": 18,
+        "itemsRequired": ["obs_prison_door"],
+        "handSize": null,
+        "knockOutWholeLine": false
+      },
+      "rewardId": "goal_mission_four",
+      "rewardItem": "New Rule: interact with up to 3 obstacles per turn",
+      "obstaclesIntroduced": ["obs_sniper", "obs_watchtower", "obs_prison_door", "obs_flammable_barrel", "obs_guard_with_bazooka"]
+    },
+    {
+      "index": 5,
+      "name": "Mission Five",
+      "goalCardId": "goal_mission_five",
+      "letter": "I",
+      "goal": {
+        "resources": null,
+        "either": null,
+        "itemsRequired": [],
+        "handSize": null,
+        "knockOutWholeLine": true
+      },
+      "rewardId": "goal_mission_five",
+      "rewardItem": "Campaign complete",
+      "obstaclesIntroduced": ["obs_tech_container", "obs_chain_link_fence", "obs_laser_hall", "obs_clumsy_guard", "obs_armored_guard", "obs_hawk"]
+    }
+  ]
+}

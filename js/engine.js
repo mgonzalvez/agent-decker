@@ -1,0 +1,562 @@
+'use strict';
+
+/* Pure rules engine: state in, state out. No DOM, no Math.random.
+   Every action clones the state, so the caller keeps the previous state (undo/save). */
+const Engine = (function () {
+  function clone(state) {
+    return JSON.parse(JSON.stringify(state));
+  }
+
+  function def(card, registry) {
+    return registry[card.defId];
+  }
+
+  function rand(state) {
+    state.rngState = (state.rngState * 1664525 + 1013904223) >>> 0;
+    return state.rngState / 4294967296;
+  }
+
+  function shuffleInPlace(list, state) {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(rand(state) * (i + 1));
+      const t = list[i];
+      list[i] = list[j];
+      list[j] = t;
+    }
+    return list;
+  }
+
+  function findZone(state, zone, uid) {
+    return state[zone].find(function (c) { return c.uid === uid; });
+  }
+
+  function removeFrom(state, zone, uid) {
+    const idx = state[zone].findIndex(function (c) { return c.uid === uid; });
+    return idx < 0 ? null : state[zone].splice(idx, 1)[0];
+  }
+
+  function addResource(state, res) {
+    if (!res) return;
+    state.resources.stealth += res.stealth || 0;
+    state.resources.fighting += res.fighting || 0;
+  }
+
+  function lineIndexOf(state, uid) {
+    return state.line.findIndex(function (c) { return c.uid === uid; });
+  }
+
+  /* ---------- costs & passive line effects ---------- */
+  function effectiveCost(state, registry, card) {
+    const c = def(card, registry).cost;
+    if (!c) return { stealth: 0, fighting: 0, either: 0, extra: 0, total: 0 };
+    let extra = 0;
+    const idx = lineIndexOf(state, card.uid);
+    if (idx >= 0) {
+      [idx - 1, idx + 1].forEach(function (n) {
+        const neighbour = state.line[n];
+        if (!neighbour) return;
+        const e = def(neighbour, registry).effect;
+        if (e && e.type === 'adjacentCostModifier') extra += e.amount;
+      });
+    }
+    return {
+      stealth: c.stealth || 0,
+      fighting: c.fighting || 0,
+      either: c.either || 0,
+      extra: extra,
+      total: (c.stealth || 0) + (c.fighting || 0) + (c.either || 0) + extra
+    };
+  }
+
+  function itemPayments(state, registry, card) {
+    const targetType = def(card, registry).obstacleType;
+    return state.equip.filter(function (c) {
+      const reward = def(c, registry).reward;
+      const e = reward && reward.effect;
+      return e && e.type === 'discardToInteract' && (!e.targetType || e.targetType === targetType);
+    });
+  }
+
+  function canInteract(state, registry, card) {
+    if (state.faceDown[card.uid]) return { ok: false, reason: 'already knocked out' };
+    if (state.interactionsLeft <= 0) return { ok: false, reason: 'no interactions left this turn' };
+    const d = def(card, registry);
+    if (lineIndexOf(state, card.uid) < 0) return { ok: false, reason: 'not in the line' };
+
+    const hawk = state.line.some(function (c) {
+      if (state.faceDown[c.uid]) return false;
+      const e = def(c, registry).effect;
+      return e && e.type === 'blockStealthOnlyInteracts';
+    });
+    if (hawk && d.cost && d.cost.stealth && !d.cost.fighting && !d.cost.either) {
+      return { ok: false, reason: 'Hawk blocks stealth-only obstacles' };
+    }
+
+    if (d.effect && d.effect.type === 'interactOnlyIfOnlyTypeInLine') {
+      const people = state.line.filter(function (c) { return def(c, registry).obstacleType === 'person'; }).length;
+      if (people > 1) return { ok: false, reason: d.name + ' can only be interacted with if it is the only ' + d.effect.targetType + ' in the line' };
+    }
+
+    const items = itemPayments(state, registry, card);
+    if (state.resources.stealth + state.resources.fighting < effectiveCost(state, registry, card).total && !items.length) {
+      return { ok: false, reason: 'cannot pay the cost' };
+    }
+    return { ok: true, reason: '', items: items };
+  }
+
+  /* ---------- drawing ---------- */
+  function drawPlayer(state, n) {
+    const drawn = [];
+    for (let i = 0; i < n; i++) {
+      if (!state.deck.length) {
+        if (!state.discard.length) break;
+        state.deck = shuffleInPlace(state.discard, state);
+        state.discard = [];
+      }
+      drawn.push(state.deck.pop());
+    }
+    return drawn;
+  }
+
+  /* Cards entering the hand: an item (KEEP) goes straight to the Equip Area
+     instead of occupying a hand slot, so the hand is still filled to its size. */
+  function enterHand(state, registry, card) {
+    if (!card) return;
+    if (def(card, registry).keep) state.equip.push(card);
+    else state.hand.push(card);
+  }
+
+  function drawToHand(state, registry, n) {
+    let added = 0;
+    while (added < n) {
+      if (!state.deck.length) {
+        if (!state.discard.length) break;
+        state.deck = shuffleInPlace(state.discard, state);
+        state.discard = [];
+      }
+      const card = state.deck.pop();
+      if (def(card, registry).keep) state.equip.push(card);
+      else {
+        state.hand.push(card);
+        added += 1;
+      }
+    }
+  }
+
+  /* Equipped items: "once per turn" resources and Siren's extra draws. */
+  function applyEquipPassives(state, registry) {
+    const keeps = state.equip.filter(function (c) { return def(c, registry).keep; });
+    keeps.forEach(function (card) {
+      const d = def(card, registry);
+      addResource(state, d.reward && d.reward.resource);
+      const e = d.reward && d.reward.effect;
+      if (e && e.type === 'drawPerEquippedKeep') {
+        drawToHand(state, registry, Math.min(e.max || 3, keeps.length));
+      }
+    });
+  }
+
+  function drawObstacle(state) {
+    if (!state.obstacleDeck.length) {
+      if (!state.obstacleDiscard.length) return null;
+      state.obstacleDeck = shuffleInPlace(state.obstacleDiscard, state);
+      state.obstacleDiscard = [];
+    }
+    return state.obstacleDeck.pop();
+  }
+
+  /* ---------- obstacle effects that fire when a card appears in the line ---------- */
+  function applyAppearance(state, registry, card) {
+    const e = def(card, registry).effect;
+    if (!e) return;
+    const idx = lineIndexOf(state, card.uid);
+
+    if (e.type === 'slideRightToType') {
+      let target = -1;
+      for (let i = idx + 1; i < state.line.length; i++) {
+        if (def(state.line[i], registry).obstacleType === e.targetType) { target = i; break; }
+      }
+      if (target > idx) {
+        state.line.splice(idx, 1);
+        state.line.splice(target, 0, card);
+      }
+    } else if (e.type === 'slideTypeToSelf') {
+      const moved = state.line.filter(function (c) {
+        return c.uid !== card.uid && def(c, registry).obstacleType === e.targetType;
+      });
+      state.line = state.line.filter(function (c) { return moved.indexOf(c) < 0; });
+      const pos = state.line.indexOf(card);
+      moved.forEach(function (c, k) { state.line.splice(pos + 1 + k, 0, c); });
+    }
+  }
+
+  function refillLine(state, registry) {
+    while (state.line.length < 6) {
+      const card = drawObstacle(state);
+      if (!card) {
+        state.gameOver = 'time';
+        return;
+      }
+      state.line.unshift(card);
+      applyAppearance(state, registry, card);
+    }
+  }
+
+  /* ---------- 1. Use Cards ---------- */
+  function playCard(state, uid, registry, options) {
+    options = options || {};
+    const s = clone(state);
+    const card = removeFrom(s, 'hand', uid);
+    if (!card) throw new Error('card is not in hand: ' + uid);
+    const d = def(card, registry);
+
+    if (d.reward) {
+      addResource(s, d.reward.resource);
+      const e = d.reward.effect;
+      if (e) {
+        if (e.type === 'draw') {
+          drawToHand(s, registry, e.n);
+        } else if (e.type === 'fightingPerDiscardPair') {
+          s.resources.fighting += e.amount * Math.floor(s.discard.length / e.per);
+        } else if (e.type === 'stealthPerCardToPlayArea') {
+          (options.cards || []).forEach(function (u) {
+            const c = removeFrom(s, 'hand', u);
+            if (c) s.playArea.push(c);
+          });
+          s.resources.stealth += e.amount * (options.cards || []).length;
+        } else if (e.type === 'removeFromGame') {
+          const zone = e.source === 'discard' ? 'discard' : 'hand';
+          (options.cards || []).forEach(function (u) {
+            const c = removeFrom(s, zone, u);
+            if (c) s.removed.push(c.uid);
+          });
+        } else if (e.type === 'discardToHand') {
+          const pick = options.uid ? findZone(s, 'discard', options.uid) : s.discard[s.discard.length - 1];
+          if (pick) {
+            removeFrom(s, 'discard', pick.uid);
+            enterHand(s, registry, pick);
+          }
+        } else if (e.type === 'saveHandCardForNextTurn') {
+          const saved = options.uid ? removeFrom(s, 'hand', options.uid) : null;
+          if (saved) s.saved.push(saved);
+        } else if (e.type === 'moveObstacleToStartOfLine') {
+          const target = options.uid ? findZone(s, 'line', options.uid) : null;
+          if (target) {
+            removeFrom(s, 'line', target.uid);
+            s.line.unshift(target);
+          }
+        } else if (e.type === 'reshuffleObstacleDiscardIntoDeck') {
+          s.obstacleDeck = shuffleInPlace(s.obstacleDeck.concat(s.obstacleDiscard), s);
+          s.obstacleDiscard = [];
+        } else if (e.type === 'searchDeckToTop') {
+          const pick = options.uid ? findZone(s, 'deck', options.uid) : s.deck[s.deck.length - 1];
+          if (pick) {
+            removeFrom(s, 'deck', pick.uid);
+            shuffleInPlace(s.deck, s);
+            s.deck.push(pick);
+          }
+        } else if (e.type === 'scoutDeck' || e.type === 'reorderTopOfDeck') {
+          /* UI-driven: the engine exposes the top of the deck and reorders from options.order */
+          if (Array.isArray(options.order)) {
+            const top = s.deck.slice(-e.n);
+            s.deck = s.deck.slice(0, s.deck.length - e.n).concat(options.order.map(function (u) { return findZone(s, 'deck', u); }).filter(Boolean));
+          }
+        } else if (e.type === 'swapDeckAndDiscard') {
+          const t = s.deck;
+          s.deck = s.discard;
+          s.discard = t;
+        }
+      }
+    }
+
+    const routesToObstacles = d.reward && d.reward.effect && d.reward.effect.type === 'usedCardToObstacleDiscard';
+    if (routesToObstacles) s.obstacleDiscard.push(card);
+    else if (d.keep) s.equip.push(card);
+    else s.playArea.push(card);
+
+    s.log.push('played ' + d.name);
+    return s;
+  }
+
+  /* ---------- 1b. Interact: Disarm / Knock Out ---------- */
+  function interact(state, uid, choice, registry, options) {
+    options = options || {};
+    const s = clone(state);
+    const card = findZone(s, 'line', uid);
+    if (!card) throw new Error('card is not in the line: ' + uid);
+    const check = canInteract(s, registry, card);
+    if (!check.ok) throw new Error('cannot interact: ' + check.reason);
+
+    const d = def(card, registry);
+    const cost = effectiveCost(s, registry, card);
+    const item = options.itemUid ? findZone(s, 'equip', options.itemUid) : null;
+    if (options.itemUid && !item) throw new Error('item is not equipped: ' + options.itemUid);
+
+    if (item) {
+      const ieffect = def(item, registry).reward && def(item, registry).reward.effect;
+      if (!ieffect || ieffect.type !== 'discardToInteract' || (ieffect.targetType && ieffect.targetType !== d.obstacleType)) {
+        throw new Error(def(item, registry).name + ' cannot be used on ' + d.name);
+      }
+      removeFrom(s, 'equip', item.uid);
+      s.discard.push(item);
+    } else {
+      const fromStealth = Math.min(s.resources.stealth, cost.stealth + cost.extra);
+      s.resources.stealth -= fromStealth;
+      s.resources.fighting -= Math.min(s.resources.fighting, cost.total - fromStealth);
+    }
+    s.interactionsLeft -= 1;
+
+    if (choice === 'knockOutAdjacent') {
+      if (!d.effect || d.effect.type !== 'knockOutAdjacentInsteadOfInteract') {
+        throw new Error(d.name + ' does not let you knock out an adjacent card');
+      }
+      const target = findZone(s, 'line', options.uid);
+      if (!target) throw new Error('target is not in the line');
+      if (Math.abs(lineIndexOf(s, card.uid) - lineIndexOf(s, target.uid)) !== 1) {
+        throw new Error(def(target, registry).name + ' is not adjacent to ' + d.name);
+      }
+      s.faceDown[target.uid] = true;
+      s.log.push('knocked out ' + def(target, registry).name + ' instead of ' + d.name);
+      return s;
+    }
+
+    if (choice === 'knockOut') {
+      s.faceDown[card.uid] = true;
+    } else if (choice === 'disarm') {
+      removeFrom(s, 'line', card.uid);
+      if (d.keep) s.equip.push(card);
+      else s.playArea.push(card);
+    } else {
+      throw new Error('unknown interaction: ' + choice);
+    }
+
+    if (d.effect && d.effect.type === 'knockOutAdjacentOnInteract') {
+      const i = lineIndexOf(s, card.uid);
+      [i - 1, i + 1].forEach(function (n) {
+        if (s.line[n]) s.faceDown[s.line[n].uid] = true;
+      });
+    }
+    s.log.push((choice === 'knockOut' ? 'knocked out ' : 'disarmed ') + d.name);
+    return s;
+  }
+
+  /* ---------- 3. Line Scroll ---------- */
+  function hasFaceDownStasis(state, registry) {
+    return state.line.some(function (c) {
+      const e = def(c, registry).effect;
+      return e && e.type === 'faceDownCardsDoNotScroll';
+    });
+  }
+
+  function exitLine(state, card, registry) {
+    const d = def(card, registry);
+    const alarm = state.faceDown[card.uid] ? 0 : d.alarm;
+    state.obstacleDiscard.push(card);
+    state.alarm = Math.min(50, state.alarm + alarm);
+    if (state.alarm >= 50) state.gameOver = 'alarm';
+    state.log.push(d.name + ' left the line (alarm +' + alarm + ')');
+    if (d.effect && d.effect.type === 'flushLineToDiscardOnExit') {
+      state.line.forEach(function (c) { state.obstacleDiscard.push(c); });
+      state.line = [];
+    }
+  }
+
+  function applyScrollTriggers(state, registry) {
+    state.line.forEach(function (card) {
+      if (state.faceDown[card.uid]) return;
+      const e = def(card, registry).effect;
+      if (!e || e.type !== 'flipLastLineCardFaceUp') return;
+      const last = state.line[state.line.length - 1];
+      if (last && state.faceDown[last.uid]) {
+        state.faceDown[last.uid] = false;
+        state.log.push(def(last, registry).name + ' was flipped face up by ' + def(card, registry).name);
+        applyAppearance(state, registry, last);
+      }
+    });
+  }
+
+  function lineScroll(state, registry) {
+    const s = clone(state);
+    if (!s.line.length) return s;
+    applyScrollTriggers(s, registry);
+
+    const stasis = hasFaceDownStasis(s, registry);
+    let exitingIndex = s.line.length - 1;
+    if (stasis) {
+      exitingIndex = -1;
+      for (let i = s.line.length - 1; i >= 0; i--) {
+        if (!s.faceDown[s.line[i].uid]) { exitingIndex = i; break; }
+      }
+    }
+    if (exitingIndex < 0) {
+      s.log.push('the line is locked — every card is knocked out and nothing scrolls');
+      return s;
+    }
+
+    const exiting = s.line.splice(exitingIndex, 1)[0];
+    exitLine(s, exiting, registry);
+    if (s.gameOver) return s;
+    if (!s.line.length) {
+      if (s.alarm >= 50) s.gameOver = 'alarm';
+      return s;
+    }
+
+    for (let i = s.line.length - 1; i >= 0; i--) {
+      const card = s.line[i];
+      if (s.faceDown[card.uid] && hasFaceDownStasis(s, registry)) continue;
+      const e = def(card, registry).effect;
+      if (!e || e.type !== 'extraScroll') continue;
+      let pos = i;
+      for (let step = 0; step < e.n; step++) {
+        const next = pos + 1;
+        if (next < s.line.length) {
+          const t = s.line[pos];
+          s.line[pos] = s.line[next];
+          s.line[next] = t;
+          pos = next;
+        } else {
+          const slid = s.line.splice(pos, 1)[0];
+          exitLine(s, slid, registry);
+          break;
+        }
+      }
+    }
+    if (s.alarm >= 50) s.gameOver = 'alarm';
+    return s;
+  }
+
+  /* ---------- 4. Card Refresh ---------- */
+  function refresh(state, registry) {
+    const s = clone(state);
+    refillLine(s, registry);
+    if (s.gameOver) return s;
+
+    s.hand.forEach(function (card) {
+      if (def(card, registry).keep) s.equip.push(card);
+      else s.discard.push(card);
+    });
+    const persistent = [];
+    s.playArea.forEach(function (card) {
+      if (def(card, registry).keep) { s.equip.push(card); return; }
+      s.discard.push(card);
+    });
+    s.playArea = persistent;
+    s.hand = [];
+    drawToHand(s, registry, s.rules.handSize);
+    s.saved.forEach(function (card) { enterHand(s, registry, card); });
+    s.saved = [];
+
+    s.interactionsLeft = s.rules.interactionLimit;
+    s.resources = { stealth: 0, fighting: 0 };
+    applyEquipPassives(s, registry);
+    s.phase = 'useCards';
+    s.log.push('card refresh — hand redrawn, resources evaporated');
+    return s;
+  }
+
+  function endTurn(state, registry) {
+    const s = refresh(lineScroll(state, registry), registry);
+    s.turn += 1;
+    return s;
+  }
+
+  /* ---------- 2. Mission Check ---------- */
+  function goalSatisfied(state, registry, missions) {
+    const mission = missions[state.missionIndex];
+    const g = mission.goal;
+    if (g.handSize) return state.hand.length >= g.handSize;
+    if (g.knockOutWholeLine) return state.line.length === 6 && state.line.every(function (c) { return state.faceDown[c.uid]; });
+    const itemsOk = (g.itemsRequired || []).every(function (id) {
+      return state.equip.some(function (c) { return c.defId === id; });
+    });
+    if (!itemsOk) return false;
+    const need = (g.resources ? (g.resources.stealth || 0) + (g.resources.fighting || 0) : 0) + (g.either || 0);
+    if (need === 0) return true;
+    if (g.resources && g.resources.stealth && state.resources.stealth < g.resources.stealth) return false;
+    return state.resources.stealth + state.resources.fighting >= need;
+  }
+
+  function completeMission(state, registry, missions) {
+    const s = clone(state);
+    const mission = missions[s.missionIndex];
+    s.missionAlarms.push(s.alarm);
+
+    const goalCard = findZone(s, 'missionDeck', mission.goalCardId + '_0');
+    if (goalCard) {
+      removeFrom(s, 'missionDeck', goalCard.uid);
+      const d = def(goalCard, registry);
+      const e = d.reward && d.reward.effect;
+      if (e && e.type === 'interactionLimit') s.rules.interactionLimit = e.value;
+      if (e && e.type === 'handDrawSize') s.rules.handSize = e.value;
+      s.equip.push(goalCard);
+    }
+
+    if (s.missionIndex >= missions.length - 1) {
+      s.gameOver = 'campaignComplete';
+      s.log.push('campaign complete');
+      return s;
+    }
+
+    s.missionIndex += 1;
+    missions[s.missionIndex].obstaclesIntroduced.forEach(function (id) {
+      const card = findZone(s, 'missionDeck', id + '_0');
+      if (card) {
+        removeFrom(s, 'missionDeck', card.uid);
+        s.obstacleDiscard.push(card);
+      }
+    });
+
+    s.obstacleDeck = shuffleInPlace(s.obstacleDeck.concat(s.obstacleDiscard, s.line), s);
+    s.obstacleDiscard = [];
+    s.line = [];
+    for (let i = 0; i < 6; i++) {
+      const card = s.obstacleDeck.pop();
+      if (!card) { s.gameOver = 'time'; break; }
+      s.line.push(card);
+      applyAppearance(s, registry, card);
+    }
+    s.alarm = 0;
+    s.faceDown = {};
+
+    const kept = [];
+    const folded = [];
+    s.playArea.forEach(function (card) {
+      (def(card, registry).keep ? kept : folded).push(card);
+    });
+    s.playArea = [];
+    s.equip.push.apply(s.equip, kept);
+
+    /* the unused hand and the spent non-item cards are folded back into the deck */
+    s.deck = shuffleInPlace(s.deck.concat(s.discard, folded, s.hand), s);
+    s.discard = [];
+    s.saved = [];
+    s.hand = [];
+    drawToHand(s, registry, s.rules.handSize);
+    s.interactionsLeft = s.rules.interactionLimit;
+    s.resources = { stealth: 0, fighting: 0 };
+    applyEquipPassives(s, registry);
+    s.log.push('mission complete — ' + missions[s.missionIndex].name + ' begins');
+    return s;
+  }
+
+  /* Deliberately using an equipped item: it leaves the Equip Area for its effect. */
+  function useItem(state, uid, registry) {
+    const s = clone(state);
+    const card = findZone(s, 'equip', uid);
+    if (!card) throw new Error('item is not equipped: ' + uid);
+    const d = def(card, registry);
+    const e = d.reward && d.reward.effect;
+    if (!e || e.type !== 'usedCardToObstacleDiscard') throw new Error(d.name + ' has no use action');
+    removeFrom(s, 'equip', card.uid);
+    s.obstacleDiscard.push(card);
+    s.log.push('used ' + d.name + ' — it goes to the obstacles discard');
+    return s;
+  }
+
+  return {
+    clone, def, effectiveCost, canInteract, goalSatisfied,
+    playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = Engine;

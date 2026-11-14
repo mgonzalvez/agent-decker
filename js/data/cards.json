@@ -1,0 +1,1155 @@
+{
+  "meta": {
+    "game": "Agent Decker",
+    "source": "upstream/AgentDecker_cards_full_art.pdf (2016 edition, 7 pages, 54 card fronts)",
+    "credit": "Agent Decker by Manuel Correia \u2014 gamesbymanuel.com \u2014 CC BY-NC 4.0",
+    "notes": "Unique definitions with a copies count. cost.either means the cost can be paid with any mix of Stealth and Fighting.",
+    "totals": {
+      "starting": 8,
+      "obstacle": 22,
+      "mission": 23,
+      "alarm": 1,
+      "all": 54
+    }
+  },
+  "cards": [
+    {
+      "id": "start_hide",
+      "set": "starting",
+      "copies": 3,
+      "name": "Hide",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": false,
+      "reward": {
+        "name": "Hide",
+        "resource": {
+          "stealth": 1,
+          "fighting": 0
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/001.jpg",
+        "assets/cards/002.jpg",
+        "assets/cards/003.jpg"
+      ],
+      "topText": "1 Stealth. Nothing else.",
+      "bottomText": ""
+    },
+    {
+      "id": "start_punch",
+      "set": "starting",
+      "copies": 5,
+      "name": "Punch",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": false,
+      "reward": {
+        "name": "Punch",
+        "resource": {
+          "stealth": 0,
+          "fighting": 1
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/004.jpg",
+        "assets/cards/005.jpg",
+        "assets/cards/006.jpg",
+        "assets/cards/007.jpg",
+        "assets/cards/008.jpg"
+      ],
+      "topText": "1 Fighting.",
+      "bottomText": ""
+    },
+    {
+      "id": "alarm_counter",
+      "set": "alarm",
+      "copies": 1,
+      "name": "Alarm Counter",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": false,
+      "reward": null,
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/009.jpg"
+      ],
+      "topText": "Alarm counter: two tokens, 0 to 50. At 50 the mission is lost.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_guard",
+      "set": "obstacle",
+      "copies": 3,
+      "name": "Guard",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": null,
+        "fighting": 2,
+        "either": null
+      },
+      "alarm": 4,
+      "keep": false,
+      "reward": {
+        "name": "Gun",
+        "resource": {
+          "stealth": 0,
+          "fighting": 2
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/010.jpg",
+        "assets/cards/011.jpg",
+        "assets/cards/012.jpg"
+      ],
+      "topText": "Gun \u2014 gain 2 Fighting.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_patrolling_guard",
+      "set": "obstacle",
+      "copies": 2,
+      "name": "Patrolling Guard",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 5
+      },
+      "alarm": 5,
+      "keep": false,
+      "reward": {
+        "name": "Interrogate",
+        "resource": null,
+        "effect": {
+          "type": "draw",
+          "n": 2
+        }
+      },
+      "effect": {
+        "type": "extraScroll",
+        "n": 1,
+        "trigger": "onScroll"
+      },
+      "missionLetter": null,
+      "art": [
+        "assets/cards/013.jpg",
+        "assets/cards/014.jpg"
+      ],
+      "topText": "Interrogate \u2014 Draw two cards.",
+      "bottomText": "During the Line Scroll, Patrolling Guard slides forward one more position."
+    },
+    {
+      "id": "obs_motion_sensor_hall",
+      "set": "obstacle",
+      "copies": 1,
+      "name": "Motion Sensor Hall",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 6
+      },
+      "alarm": 6,
+      "keep": false,
+      "reward": {
+        "name": "Don't Move",
+        "resource": {
+          "stealth": 3,
+          "fighting": 0
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/015.jpg"
+      ],
+      "topText": "Don't Move \u2014 gain 3 Stealth when played from hand; inert in the line.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_waste_room",
+      "set": "obstacle",
+      "copies": 2,
+      "name": "Waste Room",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 6
+      },
+      "alarm": 3,
+      "keep": false,
+      "reward": {
+        "name": "Bin",
+        "resource": null,
+        "effect": {
+          "type": "removeFromGame",
+          "source": "hand",
+          "min": 0,
+          "max": null
+        }
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/016.jpg",
+        "assets/cards/017.jpg"
+      ],
+      "topText": "Bin \u2014 take any number of cards from your hand and remove them from the game.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_guard_dog",
+      "set": "obstacle",
+      "copies": 2,
+      "name": "Guard Dog",
+      "obstacleType": "animal",
+      "cost": {
+        "stealth": null,
+        "fighting": 5,
+        "either": null
+      },
+      "alarm": 6,
+      "keep": false,
+      "reward": {
+        "name": "Follow",
+        "resource": null,
+        "effect": {
+          "type": "draw",
+          "n": 1
+        }
+      },
+      "effect": {
+        "type": "slideRightToType",
+        "targetType": "person",
+        "trigger": "onAppearance"
+      },
+      "missionLetter": null,
+      "art": [
+        "assets/cards/018.jpg",
+        "assets/cards/019.jpg"
+      ],
+      "topText": "Follow \u2014 Draw a card.",
+      "bottomText": "When Guard Dog appears, if there is a person on the line, slide it all the way until it is adjacent to it."
+    },
+    {
+      "id": "obs_sentry_gun",
+      "set": "obstacle",
+      "copies": 1,
+      "name": "Sentry Gun",
+      "obstacleType": "equipment",
+      "cost": {
+        "stealth": null,
+        "fighting": 5,
+        "either": null
+      },
+      "alarm": 6,
+      "keep": false,
+      "reward": {
+        "name": "Machine Gun",
+        "resource": {
+          "stealth": 0,
+          "fighting": 3
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/020.jpg"
+      ],
+      "topText": "Machine Gun \u2014 gain 3 Fighting.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_security_camera",
+      "set": "obstacle",
+      "copies": 5,
+      "name": "Security Camera",
+      "obstacleType": "equipment",
+      "cost": {
+        "stealth": 2,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 8,
+      "keep": false,
+      "reward": {
+        "name": "Out of Sight",
+        "resource": {
+          "stealth": 2,
+          "fighting": 0
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/021.jpg",
+        "assets/cards/022.jpg",
+        "assets/cards/023.jpg",
+        "assets/cards/024.jpg",
+        "assets/cards/025.jpg"
+      ],
+      "topText": "Out of Sight \u2014 gain 2 Stealth.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_gym_door",
+      "set": "obstacle",
+      "copies": 1,
+      "name": "Gym Door",
+      "obstacleType": "door",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 9
+      },
+      "alarm": 3,
+      "keep": false,
+      "reward": {
+        "name": "Flashy Move",
+        "resource": null,
+        "effect": {
+          "type": "fightingPerDiscardPair",
+          "per": 2,
+          "amount": 1
+        }
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/026.jpg"
+      ],
+      "topText": "Flashy Move \u2014 gain 1 Fighting for every two cards in your discard pile, rounded down.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_sleeping_guard",
+      "set": "obstacle",
+      "copies": 1,
+      "name": "Sleeping Guard",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": 3,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 0,
+      "keep": true,
+      "reward": {
+        "name": "Keycard",
+        "resource": null,
+        "effect": {
+          "type": "discardToInteract",
+          "targetType": "person"
+        }
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/027.jpg"
+      ],
+      "topText": "Keycard (KEEP) \u2014 place Keycard in your discard to interact with a person.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_infimary",
+      "set": "obstacle",
+      "copies": 1,
+      "name": "Infimary",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": 3,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 3,
+      "keep": true,
+      "reward": {
+        "name": "Chloroform",
+        "resource": null,
+        "effect": {
+          "type": "discardToInteract",
+          "targetType": "person"
+        }
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/028.jpg"
+      ],
+      "topText": "Chloroform (KEEP) \u2014 place Chloroform in your discard to interact with a person.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_yard_door",
+      "set": "obstacle",
+      "copies": 2,
+      "name": "Yard Door",
+      "obstacleType": "door",
+      "cost": {
+        "stealth": 4,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 4,
+      "keep": false,
+      "reward": {
+        "name": "Throw a Rock",
+        "resource": {
+          "stealth": 0,
+          "fighting": 1
+        },
+        "effect": {
+          "type": "draw",
+          "n": 1,
+          "alternative": true
+        }
+      },
+      "effect": null,
+      "missionLetter": null,
+      "art": [
+        "assets/cards/029.jpg",
+        "assets/cards/030.jpg"
+      ],
+      "topText": "Throw a Rock \u2014 1 Fighting or draw a card.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_radio_tower",
+      "set": "obstacle",
+      "copies": 1,
+      "name": "Radio Tower",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 7
+      },
+      "alarm": 6,
+      "keep": false,
+      "reward": {
+        "name": "Misdirect",
+        "resource": null,
+        "effect": {
+          "type": "stealthPerCardToPlayArea",
+          "amount": 2
+        }
+      },
+      "effect": {
+        "type": "slideTypeToSelf",
+        "targetType": "person",
+        "trigger": "onAppearance"
+      },
+      "missionLetter": null,
+      "art": [
+        "assets/cards/031.jpg"
+      ],
+      "topText": "Misdirect \u2014 place any number of cards from your hand in the Play Area and get 2 Stealth for each.",
+      "bottomText": "When Radio Tower appears, slide all person cards all the way next to it."
+    },
+    {
+      "id": "obs_siren",
+      "set": "mission",
+      "copies": 1,
+      "name": "Siren",
+      "obstacleType": "equipment",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 12
+      },
+      "alarm": 5,
+      "keep": true,
+      "reward": {
+        "name": "Gear Up!",
+        "resource": null,
+        "effect": {
+          "type": "drawPerEquippedKeep",
+          "max": 3
+        }
+      },
+      "effect": {
+        "type": "flushLineToDiscardOnExit",
+        "alarmOnlyForSelf": true,
+        "trigger": "onDiscard"
+      },
+      "missionLetter": "B",
+      "art": [
+        "assets/cards/033.jpg"
+      ],
+      "topText": "Gear Up! (KEEP) \u2014 draw a card for every KEEP you have currently equipped, to a maximum of three.",
+      "bottomText": "When discarded, place every card in the line on the Obstacles Discard. Only raise the alarm for the Siren."
+    },
+    {
+      "id": "obs_locker_room",
+      "set": "mission",
+      "copies": 1,
+      "name": "Locker Room",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 8
+      },
+      "alarm": 3,
+      "keep": true,
+      "reward": {
+        "name": "Guard Uniform",
+        "resource": {
+          "stealth": 1,
+          "fighting": 0
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": "B",
+      "art": [
+        "assets/cards/034.jpg"
+      ],
+      "topText": "Guard Uniform (KEEP) \u2014 1 Stealth, once per turn.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_inspector",
+      "set": "mission",
+      "copies": 1,
+      "name": "Inspector",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": 7,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 5,
+      "keep": false,
+      "reward": {
+        "name": "Recall",
+        "resource": null,
+        "effect": {
+          "type": "discardToHand",
+          "n": 1
+        }
+      },
+      "effect": {
+        "type": "flipLastLineCardFaceUp",
+        "trigger": "onScroll",
+        "then": "triggerAppearanceEffects"
+      },
+      "missionLetter": "B",
+      "art": [
+        "assets/cards/035.jpg"
+      ],
+      "topText": "Recall \u2014 take a card from your discard pile to your hand.",
+      "bottomText": "At the Line Scroll, Inspector flips the last card in the line face up. 'When appears' effects activate."
+    },
+    {
+      "id": "obs_archive_door",
+      "set": "mission",
+      "copies": 1,
+      "name": "Archive Door",
+      "obstacleType": "door",
+      "cost": {
+        "stealth": null,
+        "fighting": 8,
+        "either": null
+      },
+      "alarm": 4,
+      "keep": false,
+      "reward": {
+        "name": "Plan Ahead",
+        "resource": null,
+        "effect": {
+          "type": "scoutDeck",
+          "n": 3,
+          "keep": 1
+        }
+      },
+      "effect": null,
+      "missionLetter": "D",
+      "art": [
+        "assets/cards/037.jpg"
+      ],
+      "topText": "Plan Ahead \u2014 look at the top three cards of your deck, keep one, put the rest back in any order.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_dormitory",
+      "set": "mission",
+      "copies": 1,
+      "name": "Dormitory",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 16
+      },
+      "alarm": 7,
+      "keep": false,
+      "reward": {
+        "name": "Distraction",
+        "resource": null,
+        "effect": {
+          "type": "moveObstacleToStartOfLine",
+          "n": 1
+        }
+      },
+      "effect": {
+        "type": "faceDownCardsDoNotScroll",
+        "trigger": "onScroll"
+      },
+      "missionLetter": "D",
+      "art": [
+        "assets/cards/038.jpg"
+      ],
+      "topText": "Distraction \u2014 pull an obstacle card back to the start of the line.",
+      "bottomText": "At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do."
+    },
+    {
+      "id": "obs_engineering_bay",
+      "set": "mission",
+      "copies": 1,
+      "name": "Engineering Bay",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": 8,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 6,
+      "keep": true,
+      "reward": {
+        "name": "E.M.P.",
+        "resource": null,
+        "effect": {
+          "type": "discardToInteract",
+          "targetType": "equipment"
+        }
+      },
+      "effect": null,
+      "missionLetter": "D",
+      "art": [
+        "assets/cards/039.jpg"
+      ],
+      "topText": "E.M.P. (KEEP) \u2014 place E.M.P. in your discard to interact with an equipment.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_cctv_room_door",
+      "set": "mission",
+      "copies": 1,
+      "name": "C.C.T.V. Room Door",
+      "obstacleType": "door",
+      "cost": {
+        "stealth": 12,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 7,
+      "keep": false,
+      "reward": {
+        "name": "Retrace Steps",
+        "resource": null,
+        "effect": {
+          "type": "reshuffleObstacleDiscardIntoDeck"
+        }
+      },
+      "effect": null,
+      "missionLetter": "D",
+      "art": [
+        "assets/cards/040.jpg"
+      ],
+      "topText": "Retrace Steps \u2014 shuffle the obstacles discard with the obstacles deck to form a new obstacles deck.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_sniper",
+      "set": "mission",
+      "copies": 1,
+      "name": "Sniper",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": null,
+        "fighting": 10,
+        "either": null
+      },
+      "alarm": 6,
+      "keep": false,
+      "reward": {
+        "name": "Just The Thing",
+        "resource": null,
+        "effect": {
+          "type": "searchDeckToTop"
+        }
+      },
+      "effect": {
+        "type": "interactOnlyIfOnlyTypeInLine",
+        "targetType": "person"
+      },
+      "missionLetter": "F",
+      "art": [
+        "assets/cards/042.jpg"
+      ],
+      "topText": "Just The Thing \u2014 search your deck for a card, shuffle it, then place it on top.",
+      "bottomText": "Sniper can't be interacted with unless it is the only person in the line."
+    },
+    {
+      "id": "obs_watchtower",
+      "set": "mission",
+      "copies": 1,
+      "name": "Watchtower",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": 12,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 7,
+      "keep": false,
+      "reward": {
+        "name": "Foresight",
+        "resource": null,
+        "effect": {
+          "type": "reorderTopOfDeck",
+          "n": 5
+        }
+      },
+      "effect": {
+        "type": "adjacentCostModifier",
+        "amount": 2
+      },
+      "missionLetter": "F",
+      "art": [
+        "assets/cards/043.jpg"
+      ],
+      "topText": "Foresight \u2014 look at the top five cards of your deck and put them back in any order.",
+      "bottomText": "Watchtower increases the cost of adjacent cards by 2."
+    },
+    {
+      "id": "obs_prison_door",
+      "set": "mission",
+      "copies": 1,
+      "name": "Prison Door",
+      "obstacleType": "door",
+      "cost": {
+        "stealth": null,
+        "fighting": 10,
+        "either": null
+      },
+      "alarm": 5,
+      "keep": true,
+      "reward": {
+        "name": "Prisoner",
+        "resource": {
+          "stealth": 0,
+          "fighting": 1
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": "F",
+      "art": [
+        "assets/cards/044.jpg"
+      ],
+      "topText": "Prisoner (KEEP) \u2014 1 Fighting, once per turn.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_flammable_barrel",
+      "set": "mission",
+      "copies": 1,
+      "name": "Flammable Barrel",
+      "obstacleType": "equipment",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 14
+      },
+      "alarm": 3,
+      "keep": false,
+      "reward": {
+        "name": "Burn",
+        "resource": null,
+        "effect": {
+          "type": "removeFromGame",
+          "source": "discard",
+          "min": 0,
+          "max": 2
+        }
+      },
+      "effect": {
+        "type": "knockOutAdjacentOnInteract",
+        "trigger": "onInteract"
+      },
+      "missionLetter": "F",
+      "art": [
+        "assets/cards/045.jpg"
+      ],
+      "topText": "Burn \u2014 pick up to two cards from your discard pile and remove them from the game.",
+      "bottomText": "When you interact with Flammable Barrel, knock out the cards adjacent to it."
+    },
+    {
+      "id": "obs_guard_with_bazooka",
+      "set": "mission",
+      "copies": 1,
+      "name": "Guard with Bazooka",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": null,
+        "fighting": 8,
+        "either": null
+      },
+      "alarm": 10,
+      "keep": false,
+      "reward": {
+        "name": "Bazooka",
+        "resource": {
+          "stealth": 0,
+          "fighting": 5
+        },
+        "effect": {
+          "type": "usedCardToObstacleDiscard"
+        }
+      },
+      "effect": null,
+      "missionLetter": "F",
+      "art": [
+        "assets/cards/046.jpg"
+      ],
+      "topText": "Bazooka \u2014 5 Fighting. When Bazooka is used, it is discarded to the obstacles discard instead of your own.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_tech_container",
+      "set": "mission",
+      "copies": 1,
+      "name": "Tech Container",
+      "obstacleType": "equipment",
+      "cost": {
+        "stealth": null,
+        "fighting": null,
+        "either": 10
+      },
+      "alarm": 5,
+      "keep": true,
+      "reward": {
+        "name": "Optic Camouflage",
+        "resource": null,
+        "effect": {
+          "type": "usedCardToObstacleDiscard"
+        }
+      },
+      "effect": null,
+      "missionLetter": "H",
+      "art": [
+        "assets/cards/048.jpg"
+      ],
+      "topText": "Optic Camouflage (KEEP) \u2014 when used, it is discarded to the obstacles discard instead of your own.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_chain_link_fence",
+      "set": "mission",
+      "copies": 1,
+      "name": "Chain Link Fence",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": 7,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 5,
+      "keep": false,
+      "reward": {
+        "name": "Save Bullets",
+        "resource": null,
+        "effect": {
+          "type": "saveHandCardForNextTurn",
+          "n": 1
+        }
+      },
+      "effect": null,
+      "missionLetter": "H",
+      "art": [
+        "assets/cards/049.jpg"
+      ],
+      "topText": "Save Bullets \u2014 save an unused card for the next turn.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_laser_hall",
+      "set": "mission",
+      "copies": 1,
+      "name": "Laser Hall",
+      "obstacleType": "location",
+      "cost": {
+        "stealth": 14,
+        "fighting": null,
+        "either": null
+      },
+      "alarm": 10,
+      "keep": false,
+      "reward": {
+        "name": "Superspeed",
+        "resource": null,
+        "effect": {
+          "type": "draw",
+          "n": 3
+        }
+      },
+      "effect": null,
+      "missionLetter": "H",
+      "art": [
+        "assets/cards/050.jpg"
+      ],
+      "topText": "Superspeed \u2014 draw three cards.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_clumsy_guard",
+      "set": "mission",
+      "copies": 1,
+      "name": "Clumsy Guard",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": null,
+        "fighting": 8,
+        "either": null
+      },
+      "alarm": 6,
+      "keep": false,
+      "reward": {
+        "name": "Heavy Hand",
+        "resource": {
+          "stealth": 0,
+          "fighting": 3
+        },
+        "effect": null
+      },
+      "effect": {
+        "type": "knockOutAdjacentInsteadOfInteract",
+        "trigger": "onInteract",
+        "optional": true
+      },
+      "missionLetter": "H",
+      "art": [
+        "assets/cards/051.jpg"
+      ],
+      "topText": "Heavy Hand \u2014 3 Fighting.",
+      "bottomText": "When you interact with Clumsy Guard, you may instead knock out an adjacent card."
+    },
+    {
+      "id": "obs_armored_guard",
+      "set": "mission",
+      "copies": 1,
+      "name": "Armored Guard",
+      "obstacleType": "person",
+      "cost": {
+        "stealth": null,
+        "fighting": 12,
+        "either": null
+      },
+      "alarm": 8,
+      "keep": false,
+      "reward": {
+        "name": "Auto Rifle",
+        "resource": {
+          "stealth": 0,
+          "fighting": 4
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": "H",
+      "art": [
+        "assets/cards/052.jpg"
+      ],
+      "topText": "Auto Rifle \u2014 4 Fighting.",
+      "bottomText": ""
+    },
+    {
+      "id": "obs_hawk",
+      "set": "mission",
+      "copies": 1,
+      "name": "Hawk",
+      "obstacleType": "animal",
+      "cost": {
+        "stealth": null,
+        "fighting": 12,
+        "either": null
+      },
+      "alarm": 6,
+      "keep": false,
+      "reward": {
+        "name": "Swap",
+        "resource": null,
+        "effect": {
+          "type": "swapDeckAndDiscard"
+        }
+      },
+      "effect": {
+        "type": "blockStealthOnlyInteracts",
+        "whenFaceUpInLine": true
+      },
+      "missionLetter": "H",
+      "art": [
+        "assets/cards/053.jpg"
+      ],
+      "topText": "Swap \u2014 swap your deck with your discard.",
+      "bottomText": "When Hawk is faceup in the line, you can't interact with cards that cost only Stealth."
+    },
+    {
+      "id": "goal_mission_one",
+      "set": "mission",
+      "copies": 1,
+      "name": "Mission One",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": true,
+      "reward": {
+        "name": "Map",
+        "resource": {
+          "stealth": 1,
+          "fighting": 0
+        },
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": "A",
+      "isGoal": true,
+      "goalText": "Get 6 Stealth",
+      "flavor": "First things first, you should find yourself a map",
+      "art": [
+        "assets/cards/032.jpg"
+      ],
+      "topText": "Map (KEEP) \u2014 1 Stealth, once per turn.",
+      "bottomText": "GOAL: Get 6 Stealth."
+    },
+    {
+      "id": "goal_mission_two",
+      "set": "mission",
+      "copies": 1,
+      "name": "Mission Two",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": true,
+      "reward": {
+        "name": "New Rule: Gear up",
+        "resource": null,
+        "effect": {
+          "type": "interactionLimit",
+          "value": 2
+        }
+      },
+      "effect": null,
+      "missionLetter": "C",
+      "isGoal": true,
+      "goalText": "Get 6 Fighting & the Guard Uniform",
+      "flavor": "Now you know where to go, it's time to blend in",
+      "art": [
+        "assets/cards/036.jpg"
+      ],
+      "topText": "New Rule \u2014 you can now interact with up to TWO obstacles per turn.",
+      "bottomText": "GOAL: Get 6 Fighting and the Guard Uniform."
+    },
+    {
+      "id": "goal_mission_three",
+      "set": "mission",
+      "copies": 1,
+      "name": "Mission Three",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": true,
+      "reward": {
+        "name": "New Rule: Gather info",
+        "resource": null,
+        "effect": {
+          "type": "handDrawSize",
+          "value": 5
+        }
+      },
+      "effect": null,
+      "missionLetter": "E",
+      "isGoal": true,
+      "goalText": "Hold seven cards in your hand",
+      "flavor": "He's in the prison, but in which cell? Gather more information",
+      "art": [
+        "assets/cards/041.jpg"
+      ],
+      "topText": "New Rule \u2014 at the start of the turn, draw FIVE cards instead of four.",
+      "bottomText": "GOAL: Hold seven cards in your hand."
+    },
+    {
+      "id": "goal_mission_four",
+      "set": "mission",
+      "copies": 1,
+      "name": "Mission Four",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": true,
+      "reward": {
+        "name": "New Rule: Overpower",
+        "resource": null,
+        "effect": {
+          "type": "interactionLimit",
+          "value": 3
+        }
+      },
+      "effect": null,
+      "missionLetter": "G",
+      "isGoal": true,
+      "goalText": "Get 18 (any mix of Stealth/Fighting) and the Prisoner",
+      "flavor": "There he is! Get him and sneak out of there!",
+      "art": [
+        "assets/cards/047.jpg"
+      ],
+      "topText": "New Rule \u2014 you can now interact with up to THREE obstacles per turn.",
+      "bottomText": "GOAL: Get 18 (any mix) and the Prisoner."
+    },
+    {
+      "id": "goal_mission_five",
+      "set": "mission",
+      "copies": 1,
+      "name": "Mission Five",
+      "obstacleType": null,
+      "cost": null,
+      "alarm": null,
+      "keep": false,
+      "reward": {
+        "name": "Mission Complete",
+        "resource": null,
+        "effect": null
+      },
+      "effect": null,
+      "missionLetter": "I",
+      "isGoal": true,
+      "goalText": "Knock out the six cards in the line",
+      "flavor": "That's it! Now all that's left to do is a clean getaway!",
+      "art": [
+        "assets/cards/054.jpg"
+      ],
+      "topText": "Mission Complete.",
+      "bottomText": "GOAL: Knock out the six cards in the line."
+    }
+  ]
+}

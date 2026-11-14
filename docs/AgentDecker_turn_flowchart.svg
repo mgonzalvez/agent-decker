@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1080" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrowMain" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4 L0,8 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowTeal" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4 L0,8 z" fill="#2dd4bf"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4 L0,8 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="960" height="1080" fill="#0e1621"/>
+
+  <!-- title -->
+  <text x="480" y="42" text-anchor="middle" fill="#e2e8f0" font-size="30" font-weight="bold" letter-spacing="6">AGENT DECKER</text>
+  <text x="480" y="68" text-anchor="middle" fill="#8fa3b8" font-size="14" letter-spacing="3">TURN SEQUENCE - PLAYER AID</text>
+
+  <!-- ==================== STEP 1 : USE CARDS ==================== -->
+  <rect x="280" y="88" width="360" height="150" rx="12" fill="#16283a" stroke="#2dd4bf" stroke-width="1.5"/>
+  <text x="296" y="112" fill="#2dd4bf" font-size="16" font-weight="bold">1 - USE CARDS</text>
+  <text x="296" y="134" fill="#dbe4ee" font-size="12.5">- Play hand cards -> gain Stealth / Fighting</text>
+  <text x="296" y="152" fill="#dbe4ee" font-size="12.5">- Pay the obstacle's cost (any mix of the two)</text>
+  <text x="296" y="170" fill="#dbe4ee" font-size="12.5">- Choose:  DISARM -> Play Area   |   KNOCK OUT -> face-down</text>
+  <text x="296" y="187" fill="#8fa3b8" font-size="11.5" font-style="italic">Item with KEEP icon can be placed in Equip Area instead</text>
+  <text x="296" y="206" fill="#dbe4ee" font-size="12.5">- Used / discarded cards go to the Play Area</text>
+  <text x="296" y="224" fill="#dbe4ee" font-size="12.5">- Interactions per turn: 1 (rewards may increase it)</text>
+
+  <!-- arrow 1 -> diamond -->
+  <path d="M460,238 L460,248" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowMain)"/>
+
+  <!-- ==================== STEP 2 : MISSION CHECK (diamond) ==================== -->
+  <path d="M460,252 L640,330 L460,408 L280,330 Z" fill="#2a2410" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="460" y="316" text-anchor="middle" fill="#f59e0b" font-size="15" font-weight="bold">2 - MISSION CHECK</text>
+  <text x="460" y="336" text-anchor="middle" fill="#dbe4ee" font-size="12.5">Can you pay the Mission Goal?</text>
+  <text x="460" y="356" text-anchor="middle" fill="#dbe4ee" font-size="11.5">the WHOLE goal, in one turn -</text>
+  <text x="460" y="372" text-anchor="middle" fill="#8fa3b8" font-size="11">items must be equipped</text>
+
+  <!-- YES branch to Mission Progression -->
+  <path d="M640,330 L682,330" stroke="#2dd4bf" stroke-width="2" fill="none" marker-end="url(#arrowTeal)"/>
+  <text x="660" y="320" text-anchor="middle" fill="#2dd4bf" font-size="13" font-weight="bold">YES</text>
+
+  <!-- Mission Progression panel -->
+  <rect x="690" y="88" width="230" height="330" rx="12" fill="#101f2e" stroke="#2dd4bf" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="805" y="112" text-anchor="middle" fill="#2dd4bf" font-size="15" font-weight="bold">MISSION PROGRESSION</text>
+  <text x="708" y="138" fill="#dbe4ee" font-size="12">1 REWARD - rotate Mission card,</text>
+  <text x="716" y="153" fill="#8fa3b8" font-size="11">reward -> Equip Area</text>
+  <text x="708" y="176" fill="#dbe4ee" font-size="12">2 MOVE FORWARD - next mission's</text>
+  <text x="716" y="191" fill="#8fa3b8" font-size="11">obstacles -> Obstacles Discard</text>
+  <text x="708" y="214" fill="#dbe4ee" font-size="12">3 NEW LINE - shuffle Discard +</text>
+  <text x="716" y="229" fill="#8fa3b8" font-size="11">Line + Deck; draw 6, activate</text>
+  <text x="716" y="244" fill="#8fa3b8" font-size="11">effects as they appear</text>
+  <text x="708" y="268" fill="#dbe4ee" font-size="12">4 RESET ALARM - tokens to 0</text>
+  <text x="708" y="291" fill="#dbe4ee" font-size="12">5 SHUFFLE - Play Area + Discard +</text>
+  <text x="716" y="306" fill="#8fa3b8" font-size="11">Deck -> new deck (Equip stays)</text>
+  <text x="708" y="329" fill="#dbe4ee" font-size="12">6 DRAW 4 - new hand</text>
+  <text x="708" y="352" fill="#8fa3b8" font-size="11" font-style="italic">Record alarm value -> score</text>
+
+  <!-- NEXT MISSION loop back to step 1 (up the right side) -->
+  <path d="M805,418 L805,455 L940,455 L940,163 L646,163" stroke="#2dd4bf" stroke-width="2" fill="none" marker-end="url(#arrowTeal)"/>
+  <text x="952" y="310" fill="#2dd4bf" font-size="12" font-weight="bold" letter-spacing="2" transform="rotate(90 952 310)">START NEXT MISSION</text>
+
+  <!-- NO branch -->
+  <path d="M460,408 L460,450" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowMain)"/>
+  <text x="478" y="432" fill="#ef4444" font-size="13" font-weight="bold">NO</text>
+
+  <!-- ==================== STEP 3 : LINE SCROLL ==================== -->
+  <rect x="280" y="456" width="360" height="126" rx="12" fill="#16283a" stroke="#2dd4bf" stroke-width="1.5"/>
+  <text x="296" y="480" fill="#2dd4bf" font-size="16" font-weight="bold">3 - LINE SCROLL</text>
+  <text x="296" y="502" fill="#dbe4ee" font-size="12.5">- Move rightmost line card -> Obstacles Discard</text>
+  <text x="296" y="520" fill="#dbe4ee" font-size="12.5">- Raise the Alarm by its value (face-down = 0)</text>
+  <text x="296" y="538" fill="#dbe4ee" font-size="12.5">- Slide all remaining line cards one space right</text>
+  <!-- mini conveyor -->
+  <g transform="translate(296,552)">
+    <rect x="0"   y="0" width="30" height="16" rx="3" fill="none" stroke="#8fa3b8"/>
+    <rect x="36"  y="0" width="30" height="16" rx="3" fill="none" stroke="#8fa3b8"/>
+    <rect x="72"  y="0" width="30" height="16" rx="3" fill="none" stroke="#8fa3b8"/>
+    <rect x="108" y="0" width="30" height="16" rx="3" fill="none" stroke="#8fa3b8"/>
+    <rect x="144" y="0" width="30" height="16" rx="3" fill="none" stroke="#8fa3b8"/>
+    <rect x="180" y="0" width="30" height="16" rx="3" fill="none" stroke="#ef4444"/>
+    <path d="M218,8 L244,8" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+    <text x="252" y="13" fill="#8fa3b8" font-size="11">leaves -> alarm</text>
+  </g>
+
+  <!-- arrow to alarm check -->
+  <path d="M460,582 L460,606" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowMain)"/>
+
+  <!-- ==================== ALARM CHECK (diamond) ==================== -->
+  <path d="M460,610 L570,672 L460,734 L350,672 Z" fill="#2a2410" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="460" y="667" text-anchor="middle" fill="#f59e0b" font-size="14" font-weight="bold">ALARM AT 50?</text>
+  <text x="460" y="685" text-anchor="middle" fill="#8fa3b8" font-size="11">two tokens, 0-50</text>
+
+  <!-- YES -> game over -->
+  <path d="M570,672 L606,672" stroke="#ef4444" stroke-width="2" fill="none" marker-end="url(#arrowRed)"/>
+  <text x="588" y="662" text-anchor="middle" fill="#ef4444" font-size="13" font-weight="bold">YES</text>
+  <rect x="610" y="645" width="175" height="54" rx="12" fill="#2a1215" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="697" y="668" text-anchor="middle" fill="#ef4444" font-size="15" font-weight="bold" letter-spacing="2">GAME OVER</text>
+  <text x="697" y="687" text-anchor="middle" fill="#8fa3b8" font-size="11">they found you</text>
+
+  <!-- NO -> refresh -->
+  <path d="M460,734 L460,760" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowMain)"/>
+  <text x="478" y="752" fill="#2dd4bf" font-size="13" font-weight="bold">NO</text>
+
+  <!-- ==================== STEP 4 : CARD REFRESH ==================== -->
+  <rect x="280" y="764" width="360" height="172" rx="12" fill="#16283a" stroke="#2dd4bf" stroke-width="1.5"/>
+  <text x="296" y="788" fill="#2dd4bf" font-size="16" font-weight="bold">4 - CARD REFRESH</text>
+  <text x="296" y="810" fill="#dbe4ee" font-size="12.5">- Draw until the Line has 6 cards (activate effects -</text>
+  <text x="304" y="826" fill="#8fa3b8" font-size="11.5" font-style="italic">they may rearrange the line)</text>
+  <text x="296" y="848" fill="#dbe4ee" font-size="12.5">- Deck empty? Always shuffle Obstacles Discard back in</text>
+  <text x="296" y="866" fill="#dbe4ee" font-size="12.5">- Still fewer than 6 obstacles total? -> out of time</text>
+  <text x="296" y="884" fill="#dbe4ee" font-size="12.5">- Discard hand + Play Area (items stay equipped), draw 4</text>
+  <text x="296" y="902" fill="#8fa3b8" font-size="11" font-style="italic">items drawn go straight to the Equip Area - the hand still fills to 4</text>
+  <text x="296" y="922" fill="#f59e0b" font-size="12.5">- Unspent resources evaporate; equipped items fire their per-turn bonus</text>
+
+  <!-- out of time -> game over -->
+  <path d="M640,838 L674,838" stroke="#ef4444" stroke-width="2" fill="none" marker-end="url(#arrowRed)"/>
+  <rect x="678" y="812" width="188" height="54" rx="12" fill="#2a1215" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="772" y="835" text-anchor="middle" fill="#ef4444" font-size="15" font-weight="bold" letter-spacing="2">GAME OVER</text>
+  <text x="772" y="854" text-anchor="middle" fill="#8fa3b8" font-size="11">out of time</text>
+
+  <!-- loop back to step 1 (up the left side) -->
+  <path d="M460,936 L460,952 L120,952 L120,163 L274,163" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowMain)"/>
+  <text x="110" y="560" fill="#94a3b8" font-size="13" font-weight="bold" letter-spacing="2" transform="rotate(-90 110 560)">NEXT TURN - REPEAT FROM 1</text>
+
+  <!-- ==================== LEGEND ==================== -->
+  <g font-size="12">
+    <rect x="200" y="985" width="170" height="58" rx="10" fill="#16283a" stroke="#33475c"/>
+    <text x="285" y="1008" text-anchor="middle" fill="#2dd4bf" font-weight="bold" font-size="13">HAND</text>
+    <text x="285" y="1028" text-anchor="middle" fill="#8fa3b8">4 cards each turn</text>
+
+    <rect x="405" y="985" width="170" height="58" rx="10" fill="#16283a" stroke="#33475c"/>
+    <text x="490" y="1008" text-anchor="middle" fill="#2dd4bf" font-weight="bold" font-size="13">LINE</text>
+    <text x="490" y="1028" text-anchor="middle" fill="#8fa3b8">6 cards - exits right, refills left</text>
+
+    <rect x="610" y="985" width="150" height="58" rx="10" fill="#16283a" stroke="#33475c"/>
+    <text x="685" y="1008" text-anchor="middle" fill="#ef4444" font-weight="bold" font-size="13">ALARM</text>
+    <text x="685" y="1028" text-anchor="middle" fill="#8fa3b8">2 tokens, 0-50</text>
+  </g>
+
+  <text x="480" y="1066" text-anchor="middle" fill="#48607a" font-size="10">Agent Decker by Manuel Correia - gamesbymanuel.com</text>
+</svg>

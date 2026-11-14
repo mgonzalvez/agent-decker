@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Decker — solo deckbuilding</title>
+  <link rel="stylesheet" href="css/styles.css?v=10" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-title">Agent Decker</span>
+      <span class="brand-sub">solo deckbuilding · 5 missions</span>
+    </div>
+
+    <div class="mission-banner" id="mission-banner" aria-live="polite">
+      <span class="mission-name">—</span>
+      <span class="mission-goal">—</span>
+    </div>
+
+    <div class="alarm" id="alarm" role="status" aria-label="Alarm counter">
+      <span class="alarm-value" id="alarm-value">0</span>
+      <span class="alarm-limit">/ 50</span>
+      <span class="alarm-token" id="token-tens" aria-hidden="true">0</span>
+      <span class="alarm-token" id="token-ones" aria-hidden="true">0</span>
+    </div>
+
+    <div class="controls">
+      <button id="how-to-play" type="button">How to play</button>
+      <button id="about" type="button">About</button>
+      <button id="sound-toggle" type="button" aria-pressed="false">Sound: off</button>
+      <button id="replay-seed" type="button">Replay this seed</button>
+      <button id="new-game" type="button">New game</button>
+      <span class="seed" id="seed" title="RNG seed">seed: —</span>
+      <span class="save-status" id="save-status" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <main class="board">
+    <section class="line-zone" aria-label="The Line">
+      <div class="stack">
+        <img class="card-back" src="assets/cards/back.jpg" alt="Obstacles deck" />
+        <span class="stack-label">Obstacles<br />Deck</span>
+        <span class="stack-count" id="obstacle-deck-count">0</span>
+      </div>
+
+      <div class="line" id="line"></div>
+
+      <div class="stack">
+        <span class="stack-label">Obstacles<br />Discard</span>
+        <span class="stack-count" id="obstacle-discard-count">0</span>
+      </div>
+    </section>
+
+    <section class="play-zone">
+      <div class="hand-zone">
+        <div class="deck-panel">
+          <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
+          <span class="stack-label">Draw deck</span>
+          <span class="stack-count" id="player-deck-count">0</span>
+          <span class="deck-breakdown" id="player-deck-breakdown">—</span>
+          <span class="deck-note">Hand <b id="player-hand-count">0</b> · Discard <b id="player-discard-count">0</b></span>
+        </div>
+
+        <div class="hand-column">
+          <div class="turn-panel">
+            <div class="resources" aria-live="polite">
+              <span class="chip chip-stealth"><b id="res-stealth">0</b> Stealth</span>
+              <span class="chip chip-fighting"><b id="res-fighting">0</b> Fighting</span>
+              <span class="chip chip-interactions"><b id="interactions-left">1</b> interaction(s) left</span>
+              <span class="chip chip-turn">Turn <b id="turn-number">1</b></span>
+            </div>
+            <div class="turn-actions">
+              <button id="mission-check" type="button">Mission Check</button>
+              <button id="end-turn" type="button">End Turn</button>
+            </div>
+            <p class="hint">Click <b>Play</b> on a hand card to use it (it lands in the Play Area and gives you resources). Then click a card in the line to Disarm or Knock Out it.</p>
+          </div>
+          <div class="hand" id="hand" aria-label="Your hand"></div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <figure class="card card-goal" id="goal-card">
+          <img src="assets/cards/032.jpg" alt="Mission One goal card" />
+          <figcaption>Mission One</figcaption>
+        </figure>
+
+        <div class="area">
+          <h2>Play Area</h2>
+          <div class="area-cards" id="play-area-cards"></div>
+        </div>
+        <div class="area">
+          <h2>Equip Area</h2>
+          <div class="area-cards" id="equip-area-cards"></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="log-zone">
+      <h2>What happened</h2>
+      <ul id="log" role="log" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h2 id="modal-title"></h2>
+      <div id="modal-body"></div>
+      <div id="modal-choices"></div>
+      <button id="modal-close" type="button">Close</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
+  </footer>
+
+  <script src="js/state.js?v=10"></script>
+  <script src="js/engine.js?v=10"></script>
+  <script src="js/actions.js?v=10"></script>
+  <script src="js/save.js?v=10"></script>
+  <script src="js/audio.js?v=10"></script>
+  <script src="js/ui.js?v=10"></script>
+  <script src="js/main.js?v=10"></script>
+</body>
+</html>
