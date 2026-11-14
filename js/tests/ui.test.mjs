@@ -52,7 +52,7 @@ function textOf(node) {
 }
 
 const ids = [
-  'mission-banner', 'alarm', 'alarm-value', 'alarm-fill', 'token-tens', 'token-ones', 'seed', 'new-game', 'how-to-play',
+  'mission-banner', 'alarm', 'alarm-label', 'alarm-value', 'alarm-fill', 'alarm-danger', 'seed', 'new-game', 'how-to-play',
   'goal-card', 'obstacle-deck', 'obstacle-deck-count', 'obstacle-discard-count',
   'player-deck-count', 'player-discard-count', 'player-hand-count', 'player-deck-breakdown', 'line', 'hand',
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
@@ -102,15 +102,25 @@ const UI = require('../ui.js');
 const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
 const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
 
-test('the alarm gauge tracks the counter', () => {
+test('the alarm gauge tracks the counter and escalates green → amber → red', () => {
   UI.init(cardDefs, missions, 42);
   const state = UI.getState();
   state.alarm = 25;
   UI.setState(state);
   assert.ok(String(map['alarm-fill'].style.width).includes('50%'));
+  assert.ok(map['alarm']._classes.has('level-mid'));
+  state.alarm = 44;
+  UI.setState(state);
+  assert.ok(map['alarm']._classes.has('level-high'));
+  assert.ok(!map['alarm-danger'].hidden);
+  state.alarm = 48;
+  UI.setState(state);
+  assert.ok(map['alarm']._classes.has('level-critical'));
   state.alarm = 0;
   UI.setState(state);
   assert.ok(String(map['alarm-fill'].style.width).includes('0%'));
+  assert.ok(map['alarm']._classes.has('level-low'));
+  assert.ok(map['alarm-danger'].hidden);
 });
 
 test('the board renders from the starting state', () => {

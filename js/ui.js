@@ -165,18 +165,25 @@ const UI = (function () {
     document.querySelector('#mission-banner .mission-name').textContent = mission.name + ' (' + mission.letter + ')';
     document.querySelector('#mission-banner .mission-goal').textContent = 'Goal: ' + registry[mission.goalCardId].goalText;
 
+    const alarmBox = document.getElementById('alarm');
     const alarmValue = document.getElementById('alarm-value');
+    const level = state.alarm >= 45 ? 'critical' : state.alarm >= 40 ? 'high' : state.alarm >= 20 ? 'mid' : 'low';
+    if (alarmBox) {
+      ['level-low', 'level-mid', 'level-high', 'level-critical'].forEach(function (name) {
+        alarmBox.classList.toggle(name, name === 'level-' + level);
+      });
+      alarmBox.setAttribute('aria-label', 'Alarm level: ' + state.alarm + ' of 50');
+    }
     alarmValue.textContent = state.alarm;
     alarmValue.classList.toggle('hot', state.alarm >= 40);
     const fill = document.getElementById('alarm-fill');
     if (fill) fill.style.width = Math.min(100, (state.alarm / 50) * 100) + '%';
+    const danger = document.getElementById('alarm-danger');
+    if (danger) danger.hidden = state.alarm < 40;
     const check = document.getElementById('mission-check');
     if (check) check.disabled = !allowed('missionCheck');
     const end = document.getElementById('end-turn');
     if (end) end.disabled = !allowed('endTurn');
-
-    document.getElementById('token-tens').textContent = Math.floor(state.alarm / 10) * 10;
-    document.getElementById('token-ones').textContent = state.alarm % 10;
     document.getElementById('seed').textContent = 'seed: ' + state.seed;
 
     document.getElementById('res-stealth').textContent = state.resources.stealth;

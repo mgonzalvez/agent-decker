@@ -15,6 +15,8 @@
   --stealth: #4f8fd6;
   --fighting: #e0473f;
   --alarm: #ff5252;
+  --safe: #3fb37f;
+  --warn: #e6b36b;
   --amber: #e6b36b;
   --accent: #2f7fa6;
   --radius: 12px;
@@ -78,19 +80,35 @@ button { font: inherit; }
 .alarm-value { font-size: 22px; font-weight: 700; }
 .alarm-value.hot { color: var(--alarm); animation: alarmPulse 1.2s ease-in-out infinite; }
 @keyframes alarmPulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+.alarm.level-mid { border-color: var(--warn); }
+.alarm.level-high, .alarm.level-critical { border-color: var(--alarm); }
+.alarm.level-high .alarm-value, .alarm.level-critical .alarm-value { color: var(--alarm); }
+.alarm.level-high .alarm-bar, .alarm.level-critical .alarm-bar { animation: barFlash 1s ease-in-out infinite; }
+.alarm.level-critical .alarm-bar { animation-duration: .55s; }
+@keyframes barFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); } 50% { box-shadow: 0 0 14px 3px rgba(255, 82, 82, .7); } }
 .slot img { animation: cardIn .22s ease both; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 .alarm-limit { color: var(--muted); font-size: 12px; }
-.alarm-token {
-  min-width: 26px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: #fff;
-  color: #101827;
+.alarm-label {
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 12px;
-  text-align: center;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
+.alarm-danger {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--alarm);
+  padding: 4px 9px;
+  border-radius: 999px;
+  animation: dangerFlash .8s ease-in-out infinite;
+}
+@keyframes dangerFlash { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
 .controls { display: flex; align-items: center; gap: 8px; }
 .controls button {
@@ -352,7 +370,21 @@ button { font: inherit; }
   cursor: pointer;
 }
 .choice-btn:hover { background: var(--accent); }
-#modal-close { margin-top: 12px; background: transparent; }
+#modal-close {
+  margin-top: 14px;
+  min-height: 40px;
+  padding: 10px 16px;
+  border: 1px solid var(--amber);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+#modal-close:hover { background: var(--amber); color: #0b1420; }
+#modal-close:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
 .score-row {
   display: flex;
@@ -432,19 +464,29 @@ button { font: inherit; }
 
 .alarm-bar {
   position: relative;
-  width: 120px;
-  height: 6px;
+  width: 140px;
+  height: 10px;
   border-radius: 99px;
-  background: var(--line);
+  background: #0d1626;
+  border: 1px solid var(--line);
   overflow: hidden;
+}
+.alarm-bar::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: repeating-linear-gradient(90deg, transparent 0 calc(20% - 1px), rgba(255, 255, 255, .22) calc(20% - 1px) 20%);
+  pointer-events: none;
 }
 .alarm-fill {
   display: block;
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--stealth), var(--amber) 60%, var(--alarm));
-  transition: width .35s ease;
+  background: var(--safe);
+  transition: width .35s ease, background .35s ease;
 }
+.alarm.level-mid .alarm-fill { background: var(--warn); }
+.alarm.level-high .alarm-fill, .alarm.level-critical .alarm-fill { background: var(--alarm); }
 .alarm-value { font-family: var(--font-mono); font-size: 22px; }
 
 .controls button {
