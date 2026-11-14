@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=13" />
-  <link rel="stylesheet" href="css/styles.css?v=13" />
+  <link rel="icon" href="assets/favicon.png?v=14" />
+  <link rel="stylesheet" href="css/styles.css?v=14" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
       <span class="brand-title">Agent Decker</span>
       <span class="brand-sub">solo deckbuilding · 5 missions</span>
+      <span class="signal-dot dot-low" id="signal-dot" aria-hidden="true"></span>
     </div>
 
     <div class="mission-banner" id="mission-banner" aria-live="polite">
@@ -54,7 +55,12 @@
       </div>
     </aside>
 
-    <section class="line-zone" aria-label="The Line">
+    <section class="panel" aria-label="The Line">
+      <div class="panel-head">
+        <h2 class="panel-title">The Line</h2>
+        <span class="panel-sub">conveyor — the card at the far right exits and raises the alarm</span>
+      </div>
+      <div class="line-zone">
       <div class="stack">
         <img class="card-back" src="assets/cards/back.jpg" alt="Obstacles deck" />
         <span class="stack-label">Obstacles<br />Deck</span>
@@ -67,9 +73,15 @@
         <span class="stack-label">Obstacles<br />Discard</span>
         <span class="stack-count" id="obstacle-discard-count">0</span>
       </div>
+      </div>
     </section>
 
-    <section class="play-zone">
+    <section class="panel" aria-label="Your turn">
+      <div class="panel-head">
+        <h2 class="panel-title">The Agent</h2>
+        <span class="panel-sub">hand · gear · objective</span>
+      </div>
+      <div class="play-zone">
       <div class="hand-zone">
         <div class="deck-panel">
           <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
@@ -112,10 +124,14 @@
           <div class="area-cards" id="equip-area-cards"></div>
         </div>
       </aside>
+      </div>
     </section>
 
-    <section class="log-zone">
-      <h2>What happened</h2>
+    <section class="panel log-zone" aria-label="Mission log">
+      <div class="panel-head">
+        <h2 class="panel-title">Mission Log</h2>
+        <span class="panel-sub">transcript of the run</span>
+      </div>
       <ul id="log" role="log" aria-live="polite"></ul>
     </section>
   </main>
@@ -130,16 +146,17 @@
   </div>
 
   <footer class="footer">
+    <p class="footer-stamp">Unofficial browser build · play in the browser, no install</p>
     <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
   </footer>
 
-  <script src="js/state.js?v=13"></script>
-  <script src="js/engine.js?v=13"></script>
-  <script src="js/actions.js?v=13"></script>
-  <script src="js/save.js?v=13"></script>
-  <script src="js/audio.js?v=13"></script>
-  <script src="js/tutorial.js?v=13"></script>
-  <script src="js/ui.js?v=13"></script>
-  <script src="js/main.js?v=13"></script>
+  <script src="js/state.js?v=14"></script>
+  <script src="js/engine.js?v=14"></script>
+  <script src="js/actions.js?v=14"></script>
+  <script src="js/save.js?v=14"></script>
+  <script src="js/audio.js?v=14"></script>
+  <script src="js/tutorial.js?v=14"></script>
+  <script src="js/ui.js?v=14"></script>
+  <script src="js/main.js?v=14"></script>
 </body>
 </html>

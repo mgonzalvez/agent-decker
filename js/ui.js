@@ -82,9 +82,10 @@ const UI = (function () {
     const p = plan();
     const mark = p && p.highlight ? p.highlight : {};
     const canAct = state.interactionsLeft > 0 && !state.gameOver;
-    state.line.forEach(function (card) {
+    state.line.forEach(function (card, index) {
       const def = defOf(card);
-      let extra = '';
+      const isLast = index === state.line.length - 1;
+      let extra = isLast ? ' exiting' : '';
       if (mark.disarm === card.uid) extra += ' tut-disarm';
       if (mark.knockOut === card.uid) extra += ' tut-knock';
       if (mark.exiting === card.uid) extra += ' tut-exit';
@@ -99,8 +100,8 @@ const UI = (function () {
       slot.setAttribute('aria-label', def.name + ' — ' + (state.faceDown[card.uid] ? 'knocked out' : costLabel(card) + ', alarm ' + def.alarm));
       slot.appendChild(img);
       slot.appendChild(el('span', 'slot-meta' + (payable ? ' meta-afford' : ''), state.faceDown[card.uid]
-        ? def.name + ' — KO'
-        : def.name + ' · ' + costLabel(card) + ' · alarm ' + def.alarm));
+        ? def.name + ' — knocked out'
+        : def.name + ' · ' + costLabel(card) + ' · alarm ' + def.alarm + (isLast ? ' · exits next' : '')));
       slot.addEventListener('click', function () { openCard(card, 'line'); });
       line.appendChild(slot);
     });
@@ -182,6 +183,8 @@ const UI = (function () {
     alarmValue.classList.toggle('hot', state.alarm >= 40);
     const fill = document.getElementById('alarm-fill');
     if (fill) fill.style.width = Math.min(100, (state.alarm / 50) * 100) + '%';
+    const dot = document.getElementById('signal-dot');
+    if (dot) dot.className = 'signal-dot dot-' + level;
     const danger = document.getElementById('alarm-danger');
     if (danger) danger.hidden = state.alarm < 40;
     const check = document.getElementById('mission-check');
