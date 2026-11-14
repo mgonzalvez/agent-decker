@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=10" />
-  <link rel="stylesheet" href="css/styles.css?v=10" />
+  <link rel="icon" href="assets/favicon.png?v=11" />
+  <link rel="stylesheet" href="css/styles.css?v=11" />
 </head>
 <body>
   <header class="topbar">
@@ -23,6 +23,7 @@
     <div class="alarm" id="alarm" role="status" aria-label="Alarm counter">
       <span class="alarm-value" id="alarm-value">0</span>
       <span class="alarm-limit">/ 50</span>
+      <div class="alarm-bar" aria-hidden="true"><span class="alarm-fill" id="alarm-fill"></span></div>
       <span class="alarm-token" id="token-tens" aria-hidden="true">0</span>
       <span class="alarm-token" id="token-ones" aria-hidden="true">0</span>
     </div>
@@ -118,12 +119,12 @@
     <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
   </footer>
 
-  <script src="js/state.js?v=10"></script>
-  <script src="js/engine.js?v=10"></script>
-  <script src="js/actions.js?v=10"></script>
-  <script src="js/save.js?v=10"></script>
-  <script src="js/audio.js?v=10"></script>
-  <script src="js/ui.js?v=10"></script>
-  <script src="js/main.js?v=10"></script>
+  <script src="js/state.js?v=11"></script>
+  <script src="js/engine.js?v=11"></script>
+  <script src="js/actions.js?v=11"></script>
+  <script src="js/save.js?v=11"></script>
+  <script src="js/audio.js?v=11"></script>
+  <script src="js/ui.js?v=11"></script>
+  <script src="js/main.js?v=11"></script>
 </body>
 </html>
