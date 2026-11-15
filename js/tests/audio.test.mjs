@@ -37,7 +37,7 @@ FakeContext.prototype.createDelay = function () {
 };
 FakeContext.prototype.createGain = function () {
   return {
-    gain: { setValueAtTime: function () {}, linearRampToValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} },
+    gain: { value: 0, setValueAtTime: function () {}, linearRampToValueAtTime: function () {}, exponentialRampToValueAtTime: function () {}, cancelScheduledValues: function () {} },
     connect: function () {}
   };
 };
@@ -70,7 +70,7 @@ test('all five beds are selectable', () => {
   assert.ok(names.indexOf('Nightline Shunt') >= 0);
   assert.ok(names.indexOf('Cold War Waltz') >= 0);
   assert.ok(names.indexOf('Dead Drop') >= 0);
-  assert.ok(names.indexOf('Safehouse Shuffle') >= 0);
+  assert.ok(names.indexOf('Safehouse Nocturne') >= 0);
   assert.ok(names.indexOf('Blackout March') >= 0);
 });
 
@@ -79,7 +79,7 @@ test('the scheduler keeps feeding notes instead of stopping after one bar', asyn
   Sound.setTrack('nightline');
   Sound.toggleMusic();
   await sleep(1500);
-  assert.ok(notes.length >= 15, 'the loop scheduled only ' + notes.length + ' notes in 1.5 s');
+  assert.ok(notes.length >= 8, 'the loop scheduled only ' + notes.length + ' notes in 1.5 s');
 
   Sound.toggle();
   await sleep(700);
@@ -96,9 +96,9 @@ test('the scheduler keeps feeding notes instead of stopping after one bar', asyn
 });
 
 test('the beds are actually different: Dead Drop is sparser than Nightline', async () => {
+  if (!Sound.isMusicOn()) Sound.toggleMusic();
   Sound.setTrack('nightline');
   assert.strictEqual(Sound.currentTrack(), 'nightline');
-  Sound.toggleMusic();
   const before = notes.length;
   await sleep(1500);
   const nightline = notes.length - before;
@@ -132,16 +132,26 @@ test('no melody or bass note clashes with the chord underneath it', () => {
   };
   for (const t of Sound.tracks()) {
     for (const phrase of t.data) {
-      const perChord = t.steps / phrase.arp.length;
-      for (let i = 0; i < t.steps; i++) {
-        const chord = phrase.arp[Math.floor(i / perChord)];
-        if (phrase.lead[i]) {
-          assert.ok(fits(phrase.lead[i], chord), t.name + ' lead ' + phrase.lead[i] + ' clashes at step ' + i);
-        }
-        if (phrase.bass[i]) {
-          assert.ok(fits(phrase.bass[i], chord), t.name + ' bass ' + phrase.bass[i] + ' clashes at step ' + i);
+      const span = t.steps / phrase.chords.length;
+      const chordAt = function (step) { return phrase.chords[Math.floor(step / span)]; };
+      for (const line of ['bass', 'lead']) {
+        for (const [at, note, length] of phrase[line]) {
+          assert.ok(fits(note, chordAt(at)), t.name + ' ' + line + ' ' + note + ' clashes at step ' + at);
+          assert.ok(at + length <= t.steps, t.name + ' ' + line + ' note at ' + at + ' runs past the phrase');
         }
       }
     }
+  }
+});
+
+test('the beds are slow, held, and quiet enough to sit under play', () => {
+  for (const t of Sound.tracks()) {
+    assert.ok(t.bpm <= 100, t.name + ' is too fast at ' + t.bpm + ' bpm');
+    const notes = t.data.reduce(function (n, p) { return Math.max(n, p.bass.length + p.lead.length); }, 0);
+    const longest = t.data.reduce(function (n, p) {
+      return Math.max(n, p.lead.reduce(function (m, l) { return Math.max(m, l[2]); }, 0));
+    }, 0);
+    assert.ok(longest >= 2, t.name + ' has no sustained melodic note');
+    assert.ok(notes / t.steps <= 0.9, t.name + ' is too dense: ' + notes + ' notes in ' + t.steps + ' steps');
   }
 });

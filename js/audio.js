@@ -24,72 +24,70 @@ const Sound = (function () {
 
   const LOOKAHEAD = 1.2;
 
-  /* Two phrases per bed so the tune develops instead of looping one bar. */
+  /* Five beds, each two phrases long. Notes are written as
+     [step, midi, length-in-eighths] so lines can hold for whole bars — a spy
+     bed is carried by long, dark sustained notes, not by machine-gun
+     sixteenths. `chords` are pitch classes and also voice the pad. */
   const TRACKS = {
     nightline: {
-      name: 'Nightline Shunt', bpm: 104, steps: 16, swing: 0,
-      drums: { kick: [0, 4, 8, 12], snare: [4, 12], hat: [2, 6, 10, 14] },
+      name: 'Nightline Shunt', bpm: 92, steps: 32, swing: 0, echo: 0.32, leadDuty: 0.25,
+      drums: { kick: [0, 16], snare: [8, 24], hat: [4, 12, 20, 28] },
       phrases: [
-        { bass: [45, 0, 45, 45, 41, 0, 41, 41, 38, 0, 38, 38, 40, 40, 44, 40],
-          lead: [69, 72, 76, 72, 65, 69, 72, 69, 74, 77, 72, 69, 64, 68, 71, 68],
-          arp: [[57, 60, 64], [53, 57, 60], [50, 53, 57, 48], [52, 56, 59]] },
-        { bass: [45, 0, 45, 45, 38, 0, 38, 38, 41, 0, 41, 41, 40, 44, 40, 44],
-          lead: [76, 72, 69, 72, 74, 69, 65, 69, 77, 72, 69, 72, 71, 68, 64, 68],
-          arp: [[57, 60, 64], [50, 53, 57, 48], [53, 57, 60], [52, 56, 59]] }
-      ],
-      leadDuty: 0.25, arpDuty: 0.125, echo: 0.30
+        { chords: [[9, 0, 4, 7], [5, 9, 0, 4], [2, 5, 9, 0], [4, 8, 11, 2]],
+          bass: [[0, 45, 8], [8, 41, 8], [16, 38, 8], [24, 40, 4], [28, 44, 4]],
+          lead: [[2, 69, 2], [4, 67, 2], [6, 72, 4], [10, 65, 2], [12, 69, 4], [18, 74, 2], [20, 69, 2], [22, 72, 4], [26, 68, 2], [28, 71, 4], [30, 64, 2]] },
+        { chords: [[9, 0, 4, 7], [2, 5, 9, 0], [5, 9, 0, 4], [4, 8, 11, 2]],
+          bass: [[0, 45, 8], [8, 38, 8], [16, 41, 8], [24, 40, 4], [28, 44, 4]],
+          lead: [[2, 76, 2], [4, 72, 2], [6, 69, 4], [10, 65, 2], [12, 69, 4], [18, 65, 2], [20, 72, 2], [22, 69, 4], [26, 64, 2], [28, 68, 2], [30, 71, 2]] }
+      ]
     },
     waltz: {
-      name: 'Cold War Waltz', bpm: 92, steps: 12, swing: 0,
-      drums: { kick: [0, 6], snare: [3, 9], hat: [2, 4, 8, 10] },
+      name: 'Cold War Waltz', bpm: 84, steps: 24, swing: 0, echo: 0.38, leadDuty: 0.3,
+      drums: { kick: [0, 12], snare: [3, 9, 15, 21], hat: [5, 11, 17, 23] },
       phrases: [
-        { bass: [50, 0, 57, 0, 46, 0, 53, 0, 45, 0, 52, 0],
-          lead: [74, 0, 72, 69, 70, 0, 74, 77, 69, 0, 72, 76],
-          arp: [[50, 53, 57, 48], [46, 50, 53], [45, 48, 52]] },
-        { bass: [43, 0, 50, 0, 50, 0, 57, 0, 45, 0, 52, 0],
-          lead: [67, 0, 70, 74, 74, 0, 72, 69, 69, 0, 72, 76],
-          arp: [[43, 46, 50], [50, 53, 57, 48], [45, 48, 52]] }
-      ],
-      leadDuty: 0.5, arpDuty: 0.25, echo: 0.26
+        { chords: [[2, 5, 9, 0], [10, 2, 5, 9], [9, 0, 4, 7]],
+          bass: [[0, 50, 3], [3, 57, 3], [6, 50, 2], [8, 46, 3], [11, 53, 3], [14, 46, 2], [16, 45, 3], [19, 52, 3], [22, 45, 2]],
+          lead: [[1, 74, 2], [5, 69, 1], [7, 77, 3], [9, 70, 2], [11, 74, 2], [13, 65, 1], [15, 77, 3], [17, 69, 2], [19, 72, 2], [21, 76, 3], [23, 69, 1]] },
+        { chords: [[2, 5, 9, 0], [10, 2, 5, 9], [9, 0, 4, 7]],
+          bass: [[0, 50, 3], [3, 57, 3], [6, 53, 2], [8, 41, 3], [11, 46, 3], [14, 41, 2], [16, 45, 3], [19, 52, 3], [22, 48, 2]],
+          lead: [[1, 77, 2], [5, 74, 1], [7, 69, 3], [9, 65, 2], [11, 70, 2], [13, 74, 1], [15, 70, 3], [17, 72, 2], [19, 69, 2], [21, 76, 3], [23, 76, 1]] }
+      ]
     },
     deaddrop: {
-      name: 'Dead Drop', bpm: 86, steps: 16, swing: 0,
-      drums: { kick: [0, 8], snare: [], hat: [8] },
+      name: 'Dead Drop', bpm: 76, steps: 32, swing: 0, echo: 0.42, leadDuty: 0.125,
+      drums: { kick: [0, 16], snare: [], hat: [8, 24] },
       phrases: [
-        { bass: [45, 0, 0, 0, 41, 0, 0, 0, 38, 0, 0, 0, 40, 0, 0, 0],
-          lead: [0, 0, 0, 69, 0, 0, 0, 72, 0, 0, 0, 77, 0, 0, 0, 71],
-          arp: [[57, 60, 64], [53, 57, 60], [50, 53, 57, 48], [52, 56, 59]] },
-        { bass: [45, 0, 0, 0, 38, 0, 0, 0, 41, 0, 0, 0, 40, 0, 44, 0],
-          lead: [0, 0, 0, 72, 0, 0, 0, 69, 0, 0, 0, 65, 0, 0, 0, 68],
-          arp: [[57, 60, 64], [50, 53, 57, 48], [53, 57, 60], [52, 56, 59]] }
-      ],
-      leadDuty: 0.125, arpDuty: 0.125, echo: 0.36
+        { chords: [[9, 0, 4, 7], [2, 5, 9, 0]],
+          bass: [[0, 45, 16], [16, 38, 16]],
+          lead: [[6, 76, 4], [14, 69, 4], [22, 72, 4], [28, 65, 4]] },
+        { chords: [[2, 5, 9, 0], [9, 0, 4, 7]],
+          bass: [[0, 38, 16], [16, 45, 16]],
+          lead: [[6, 65, 4], [14, 74, 4], [22, 69, 4], [28, 72, 4]] }
+      ]
     },
     safehouse: {
-      name: 'Safehouse Shuffle', bpm: 118, steps: 16, swing: 0.18,
-      drums: { kick: [0, 6, 10], snare: [8, 14], hat: [2, 4, 6, 8, 10, 12, 14] },
+      name: 'Safehouse Nocturne', bpm: 96, steps: 32, swing: 0.14, echo: 0.28, leadDuty: 0.25,
+      drums: { kick: [0, 8, 16, 24], snare: [16], hat: [4, 12, 20, 28] },
       phrases: [
-        { bass: [50, 53, 57, 53, 43, 46, 50, 46, 45, 52, 49, 52, 50, 53, 57, 0],
-          lead: [69, 0, 74, 77, 67, 0, 70, 74, 69, 73, 76, 73, 74, 77, 69, 0],
-          arp: [[50, 53, 57], [43, 46, 50], [57, 61, 64], [50, 53, 57]] },
-        { bass: [50, 0, 57, 0, 41, 0, 48, 0, 43, 0, 50, 0, 52, 0, 57, 0],
-          lead: [74, 77, 69, 74, 77, 72, 69, 72, 70, 74, 70, 67, 73, 76, 73, 69],
-          arp: [[50, 53, 57], [41, 45, 48], [43, 46, 50], [57, 61, 64]] }
-      ],
-      leadDuty: 0.25, arpDuty: 0.125, echo: 0.22
+        { chords: [[2, 5, 9, 0], [7, 10, 2, 5], [0, 4, 7, 11], [9, 1, 4, 6]],
+          bass: [[0, 50, 8], [8, 43, 8], [16, 48, 8], [24, 45, 4], [28, 52, 4]],
+          lead: [[0, 74, 3], [3, 69, 1], [4, 77, 4], [8, 70, 2], [10, 74, 4], [14, 65, 3], [17, 67, 3], [20, 76, 4], [24, 69, 2], [26, 73, 3], [29, 76, 2], [31, 69, 1]] },
+        { chords: [[2, 5, 9, 0], [9, 1, 4, 6], [7, 10, 2, 5], [0, 4, 7, 11]],
+          bass: [[0, 50, 8], [8, 45, 8], [16, 43, 8], [24, 48, 4], [28, 55, 4]],
+          lead: [[0, 77, 3], [3, 74, 1], [4, 69, 4], [8, 73, 2], [10, 76, 4], [14, 69, 3], [17, 70, 3], [20, 74, 4], [24, 67, 2], [26, 72, 3], [29, 64, 2], [31, 76, 1]] }
+      ]
     },
     blackout: {
-      name: 'Blackout March', bpm: 126, steps: 16, swing: 0,
-      drums: { kick: [0, 4, 8, 12], snare: [2, 6, 10, 14], hat: [1, 3, 5, 7, 9, 11, 13, 15] },
+      name: 'Blackout March', bpm: 100, steps: 32, swing: 0, echo: 0.24, leadDuty: 0.3,
+      drums: { kick: [0, 8, 16, 24], snare: [4, 12, 20, 28], hat: [] },
       phrases: [
-        { bass: [41, 41, 53, 41, 49, 49, 56, 49, 48, 48, 55, 48, 41, 41, 45, 41],
-          lead: [53, 57, 60, 57, 61, 68, 65, 61, 60, 64, 67, 64, 53, 57, 60, 57],
-          arp: [[41, 45, 48], [49, 53, 56], [48, 52, 55], [41, 45, 48, 53]] },
-        { bass: [41, 41, 53, 41, 48, 48, 55, 48, 49, 49, 56, 49, 41, 41, 45, 41],
-          lead: [65, 69, 65, 60, 64, 67, 72, 67, 61, 68, 65, 61, 60, 57, 53, 57],
-          arp: [[41, 45, 48], [48, 52, 55], [49, 53, 56], [41, 45, 48, 53]] }
-      ],
-      leadDuty: 0.5, arpDuty: 0.25, echo: 0.18
+        { chords: [[5, 9, 0, 3], [1, 5, 8, 0], [5, 9, 0, 3], [0, 4, 7, 11]],
+          bass: [[0, 41, 8], [8, 49, 8], [16, 41, 8], [24, 48, 8]],
+          lead: [[0, 65, 4], [4, 63, 2], [6, 69, 4], [12, 60, 4], [16, 65, 4], [20, 63, 2], [22, 69, 2], [26, 60, 2], [28, 64, 4], [30, 67, 2]] },
+        { chords: [[5, 9, 0, 3], [0, 4, 7, 11], [1, 5, 8, 0], [5, 9, 0, 3]],
+          bass: [[0, 41, 8], [8, 48, 8], [16, 49, 8], [24, 41, 8]],
+          lead: [[0, 69, 4], [4, 65, 2], [6, 60, 4], [12, 64, 4], [16, 61, 4], [20, 68, 4], [24, 65, 2], [26, 63, 2], [28, 60, 4], [30, 65, 2]] }
+      ]
     }
   };
 
@@ -151,23 +149,23 @@ const Sound = (function () {
     src.stop(at + duration + 0.02);
   }
 
-  /* Music sits on its own bus with a feedback delay, so the chip lines have
-     a little space without shipping any reverb assets. */
+  /* Music sits on its own bus: a long, dull feedback delay (a empty corridor,
+     not a chiptune echo) and a gain that fades in rather than snapping on. */
   let bus = null;
   let busDelay = null;
   let busFeedback = null;
   function musicBus(ctx) {
     if (bus) return bus;
     bus = ctx.createGain();
-    bus.gain.value = 1;
+    bus.gain.value = 0;
     bus.connect(ctx.destination);
-    busDelay = ctx.createDelay(0.6);
-    busDelay.delayTime.value = 0.2;
+    busDelay = ctx.createDelay(0.8);
+    busDelay.delayTime.value = 0.3;
     busFeedback = ctx.createGain();
-    busFeedback.gain.value = 0.3;
+    busFeedback.gain.value = 0.22;
     const cut = ctx.createBiquadFilter();
     cut.type = 'lowpass';
-    cut.frequency.value = 1600;
+    cut.frequency.value = 1100;
     bus.connect(busDelay);
     busDelay.connect(busFeedback);
     busFeedback.connect(busDelay);
@@ -177,12 +175,13 @@ const Sound = (function () {
   }
 
   function applyEcho(ctx) {
-    musicBus(ctx);
+    const b = musicBus(ctx);
     const echo = track().echo;
     if (busDelay && echo !== undefined) {
       busDelay.delayTime.value = echo;
-      busFeedback.gain.value = Math.min(0.34, 0.14 + echo * 0.4);
+      busFeedback.gain.value = Math.min(0.3, 0.12 + echo * 0.35 + tension * 0.002);
     }
+    return b;
   }
 
   function tone(freq, duration, type, gain, start) {
@@ -545,10 +544,64 @@ const Sound = (function () {
   function track() { return TRACKS[trackName]; }
 
   function bpm() {
-    return track().bpm + Math.round(tension * 0.5);
+    return track().bpm + Math.min(10, Math.round(tension * 0.35));
   }
 
-  function chip(at, note, duty, gate, gain) {
+  /* The pad: the whole chord held, swelling slowly, plus a root an octave
+     lower that is barely audible. This is the body of the bed. */
+  function padChord(at, pcs, gate) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    pcs.forEach(function (pc, k) {
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = midiToFreq(48 + pc) * (1 + (k % 2 ? 0.004 : -0.003));
+      env.gain.setValueAtTime(0, at);
+      env.gain.linearRampToValueAtTime(0.022, at + gate * 0.35);
+      env.gain.linearRampToValueAtTime(0.015, at + gate * 0.8);
+      env.gain.linearRampToValueAtTime(0, at + gate);
+      osc.connect(env);
+      env.connect(musicBus(ctx));
+      osc.start(at);
+      osc.stop(at + gate + 0.05);
+    });
+    const drone = ctx.createOscillator();
+    const dEnv = ctx.createGain();
+    drone.type = 'triangle';
+    drone.frequency.value = midiToFreq(36 + pcs[0]);
+    dEnv.gain.setValueAtTime(0, at);
+    dEnv.gain.linearRampToValueAtTime(0.03, at + gate * 0.3);
+    dEnv.gain.linearRampToValueAtTime(0, at + gate);
+    drone.connect(dEnv);
+    dEnv.connect(musicBus(ctx));
+    drone.start(at);
+    drone.stop(at + gate + 0.05);
+  }
+
+  function bassNote(at, note, gate) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    const cut = ctx.createBiquadFilter();
+    osc.type = 'triangle';
+    osc.frequency.value = midiToFreq(note);
+    cut.type = 'lowpass';
+    cut.frequency.value = 320;
+    env.gain.setValueAtTime(0, at);
+    env.gain.linearRampToValueAtTime(0.10, at + 0.03);
+    env.gain.setValueAtTime(0.09, at + gate * 0.65);
+    env.gain.linearRampToValueAtTime(0, at + gate);
+    osc.connect(cut);
+    cut.connect(env);
+    env.connect(musicBus(ctx));
+    osc.start(at);
+    osc.stop(at + gate + 0.02);
+  }
+
+  /* Soft pulse with a slow vibrato: a cheap stand-in for a bowed string. */
+  function leadNote(at, note, gate, duty, gain) {
     const ctx = ensureContext();
     if (!ctx) return;
     const osc = ctx.createOscillator();
@@ -557,30 +610,94 @@ const Sound = (function () {
     if (wave) osc.setPeriodicWave(wave);
     osc.frequency.value = midiToFreq(note);
     env.gain.setValueAtTime(0, at);
-    env.gain.linearRampToValueAtTime(gain, at + 0.006);
-    env.gain.setValueAtTime(gain, at + gate * 0.7);
+    env.gain.linearRampToValueAtTime(gain, at + 0.04);
+    env.gain.setValueAtTime(gain * 0.85, at + gate * 0.7);
     env.gain.linearRampToValueAtTime(0, at + gate);
+    if (gate > 0.3) {
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.type = 'sine';
+      lfo.frequency.value = 4.5;
+      lfoGain.gain.value = 2.5;
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(at);
+      lfo.stop(at + gate);
+    }
     osc.connect(env);
     env.connect(musicBus(ctx));
     osc.start(at);
     osc.stop(at + gate + 0.02);
   }
 
-  function bassChip(at, note, gate) {
+  function kick(at) {
     const ctx = ensureContext();
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = midiToFreq(note);
-    env.gain.setValueAtTime(0, at);
-    env.gain.linearRampToValueAtTime(0.13, at + 0.01);
-    env.gain.setValueAtTime(0.11, at + gate * 0.6);
-    env.gain.linearRampToValueAtTime(0, at + gate);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, at);
+    osc.frequency.exponentialRampToValueAtTime(38, at + 0.14);
+    env.gain.setValueAtTime(0.13, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
     osc.connect(env);
     env.connect(musicBus(ctx));
     osc.start(at);
-    osc.stop(at + gate + 0.02);
+    osc.stop(at + 0.25);
+  }
+
+  function snare(at) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    const env = ctx.createGain();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1200;
+    env.gain.setValueAtTime(0.045, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.12);
+    src.connect(filter);
+    filter.connect(env);
+    env.connect(musicBus(ctx));
+    src.start(at);
+    src.stop(at + 0.16);
+  }
+
+  /* A quiet clock ticking, not a hi-hat. */
+  function tick(at) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    const env = ctx.createGain();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2600;
+    env.gain.setValueAtTime(0.012, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
+    src.connect(filter);
+    filter.connect(env);
+    env.connect(musicBus(ctx));
+    src.start(at);
+    src.stop(at + 0.08);
+  }
+
+  /* Distant radio blip: only once the alarm is already high. */
+  function blip(at) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(980, at);
+    osc.frequency.exponentialRampToValueAtTime(700, at + 0.2);
+    env.gain.setValueAtTime(0.016, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.25);
+    osc.connect(env);
+    env.connect(musicBus(ctx));
+    osc.start(at);
+    osc.stop(at + 0.3);
   }
 
   function kick(at) {
@@ -637,27 +754,28 @@ const Sound = (function () {
 
   function playStep(t, i, at, eighth) {
     const phrase = t.phrases[Math.floor(step / t.steps) % t.phrases.length];
+    const span = t.steps / phrase.chords.length;
+    const chord = phrase.chords[Math.floor(i / span)];
+
+    /* One chord held for a whole span: that is the bed. */
+    if (i % span === 0) padChord(at, chord, span * eighth);
+
+    phrase.bass.forEach(function (n) {
+      if (n[0] === i) bassNote(at, n[1], n[2] * eighth);
+    });
+    phrase.lead.forEach(function (n) {
+      if (n[0] === i) leadNote(at, n[1], n[2] * eighth, t.leadDuty, 0.05);
+    });
+
     if (t.drums.kick.indexOf(i) >= 0) kick(at);
     if (t.drums.snare.indexOf(i) >= 0) snare(at);
-    if (t.drums.hat.indexOf(i) >= 0) hat(at);
+    if (t.drums.hat.indexOf(i) >= 0) tick(at);
 
-    if (phrase.bass[i]) bassChip(at, phrase.bass[i], eighth * 0.9);
-
-    const lead = phrase.lead[i];
-    if (lead) {
-      chip(at, lead + (tension >= 30 ? 12 : 0), t.leadDuty, eighth * 0.8, tension >= 30 ? 0.055 : 0.07);
+    /* The alarm thins the bed out into nervous chatter, then distant blips. */
+    if (tension >= 30 && i % 4 === 2) {
+      leadNote(at, chord[(i / 2) % chord.length] + 36, eighth * 0.6, 0.125, 0.022);
     }
-
-    /* Sixteenth-note arpeggios under the melody: the classic chip filler. */
-    if (i % 2 === 0) {
-      const chord = phrase.arp[Math.floor(i / (t.steps / phrase.arp.length))];
-      const sub = eighth / 2;
-      chip(at, chord[0], t.arpDuty, sub * 0.8, 0.035);
-      chip(at + sub, chord[1], t.arpDuty, sub * 0.8, 0.03);
-    }
-
-    /* Alarm past 42 adds a high chip sting on the off beats. */
-    if (tension >= 42 && i % 8 === 4) chip(at, 84, 0.125, eighth * 0.5, 0.028);
+    if (tension >= 42 && i % 8 === 6) blip(at);
   }
 
   /* Keep a rolling window of notes scheduled ahead of the clock: each tick
@@ -686,7 +804,10 @@ const Sound = (function () {
     const ctx = ensureContext();
     if (!ctx) return;
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
-    applyEcho(ctx);
+    const busGain = applyEcho(ctx);
+    busGain.gain.cancelScheduledValues(ctx.currentTime);
+    busGain.gain.setValueAtTime(0, ctx.currentTime);
+    busGain.gain.linearRampToValueAtTime(0.7, ctx.currentTime + 1.2);
     nextTime = ctx.currentTime + 0.05;
     step = 0;
     scheduleAhead();
@@ -696,6 +817,12 @@ const Sound = (function () {
   function stopMusic() {
     nextTime = 0;
     step = 0;
+    const ctx = ensureContext();
+    if (ctx && bus) {
+      bus.gain.cancelScheduledValues(ctx.currentTime);
+      bus.gain.setValueAtTime(bus.gain.value, ctx.currentTime);
+      bus.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+    }
     if (scheduler) {
       clearInterval(scheduler);
       scheduler = null;
