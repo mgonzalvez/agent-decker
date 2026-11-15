@@ -642,3 +642,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .modal { border-top: 3px solid var(--amber); }
 .modal h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
 .footer-stamp { font-family: var(--font-display); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--amber); margin: 0 0 6px; }
+
+.area-equip { border: 1px solid var(--amber); border-radius: var(--radius); background: rgba(230, 179, 107, .08); padding: 10px; }
+.area-equip h2 { color: var(--amber); }

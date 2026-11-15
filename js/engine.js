@@ -77,6 +77,28 @@ const Engine = (function () {
     });
   }
 
+  /* A cost written as "3 Stealth" must be paid in Stealth. Only the "any mix"
+     (either) cost can be split across the two resources. Watchtower's +2 follows
+     the resource type of the card it is attached to. */
+  function costBreakdown(cost) {
+    let stealth = cost.stealth || 0;
+    let fighting = cost.fighting || 0;
+    let flexible = cost.either || 0;
+    if (cost.extra) {
+      if (stealth && !fighting && !flexible) stealth += cost.extra;
+      else if (fighting && !stealth && !flexible) fighting += cost.extra;
+      else flexible += cost.extra;
+    }
+    return { stealth: stealth, fighting: fighting, flexible: flexible, total: stealth + fighting + flexible };
+  }
+
+  function canAfford(state, registry, card) {
+    const parts = costBreakdown(effectiveCost(state, registry, card));
+    if (state.resources.stealth < parts.stealth) return false;
+    if (state.resources.fighting < parts.fighting) return false;
+    return (state.resources.stealth - parts.stealth) + (state.resources.fighting - parts.fighting) >= parts.flexible;
+  }
+
   function canInteract(state, registry, card) {
     if (state.faceDown[card.uid]) return { ok: false, reason: 'already knocked out' };
     if (state.interactionsLeft <= 0) return { ok: false, reason: 'no interactions left this turn' };
@@ -98,8 +120,13 @@ const Engine = (function () {
     }
 
     const items = itemPayments(state, registry, card);
-    if (state.resources.stealth + state.resources.fighting < effectiveCost(state, registry, card).total && !items.length) {
-      return { ok: false, reason: 'cannot pay the cost' };
+    if (!canAfford(state, registry, card) && !items.length) {
+      const parts = costBreakdown(effectiveCost(state, registry, card));
+      const missing = [];
+      if (parts.stealth > state.resources.stealth) missing.push((parts.stealth - state.resources.stealth) + ' Stealth');
+      if (parts.fighting > state.resources.fighting) missing.push((parts.fighting - state.resources.fighting) + ' Fighting');
+      if (!missing.length && parts.flexible) missing.push(parts.flexible + ' (any mix)');
+      return { ok: false, reason: 'cannot pay the cost (needs ' + missing.join(' + ') + ')' };
     }
     return { ok: true, reason: '', items: items };
   }
@@ -310,9 +337,14 @@ const Engine = (function () {
       removeFrom(s, 'equip', item.uid);
       s.discard.push(item);
     } else {
-      const fromStealth = Math.min(s.resources.stealth, cost.stealth + cost.extra);
-      s.resources.stealth -= fromStealth;
-      s.resources.fighting -= Math.min(s.resources.fighting, cost.total - fromStealth);
+      const parts = costBreakdown(cost);
+      s.resources.stealth -= parts.stealth;
+      s.resources.fighting -= parts.fighting;
+      if (parts.flexible) {
+        const fromStealth = Math.min(s.resources.stealth, parts.flexible);
+        s.resources.stealth -= fromStealth;
+        s.resources.fighting -= parts.flexible - fromStealth;
+      }
     }
     s.interactionsLeft -= 1;
 
@@ -564,7 +596,7 @@ const Engine = (function () {
   }
 
   return {
-    clone, def, effectiveCost, canInteract, goalSatisfied,
+    clone, def, effectiveCost, costBreakdown, canAfford, canInteract, goalSatisfied,
     playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem
   };
 })();

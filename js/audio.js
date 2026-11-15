@@ -1,12 +1,18 @@
 'use strict';
 
-/* Synthetic sound effects with the Web Audio API — no asset files, no CDNs.
-   Muted by default (accessibility); the toggle in the top bar turns it on. */
+/* Everything is generated with the Web Audio API — no audio files, no CDNs.
+   SFX are short synthetic hits; the music is a looping spy groove whose tempo
+   and tension rise with the alarm. Off by default. */
 const Sound = (function () {
   let context = null;
   let muted = true;
   let musicOn = false;
-  let ambient = null;
+  let scheduler = null;
+  let nextTime = 0;
+  let tension = 0;
+
+  const BASS = [110, 0, 110, 110, 0, 130.8, 0, 110, 98, 0, 110, 130.8, 146.4, 0, 110, 82.4];
+  const STAB = [0, 0, 329.6, 0, 0, 440, 0, 329.6, 0, 0, 440, 0, 523.2, 0, 440, 0];
 
   function ensureContext() {
     if (context) return context;
@@ -20,21 +26,21 @@ const Sound = (function () {
     return context;
   }
 
-  function tone(freq, duration, type, gain, delay) {
+  function tone(freq, duration, type, gain, start) {
     const ctx = ensureContext();
     if (!ctx) return;
-    const start = ctx.currentTime + (delay || 0);
+    const at = start === undefined ? ctx.currentTime : start;
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
     osc.type = type || 'triangle';
     osc.frequency.value = freq;
-    env.gain.setValueAtTime(0, start);
-    env.gain.linearRampToValueAtTime(gain || 0.12, start + 0.01);
-    env.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    env.gain.setValueAtTime(0, at);
+    env.gain.linearRampToValueAtTime(gain || 0.12, at + 0.012);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + duration);
     osc.connect(env);
     env.connect(ctx.destination);
-    osc.start(start);
-    osc.stop(start + duration + 0.02);
+    osc.start(at);
+    osc.stop(at + duration + 0.02);
   }
 
   function burst(duration, gain) {
@@ -54,55 +60,100 @@ const Sound = (function () {
     source.stop(start + duration);
   }
 
-  function startAmbient() {
+  function bpm() {
+    return 104 + Math.round(tension * 0.5);
+  }
+
+  function kick(at) {
     const ctx = ensureContext();
-    if (!ctx || ambient) return;
-    const drone = ctx.createOscillator();
-    const drone2 = ctx.createOscillator();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(130, at);
+    osc.frequency.exponentialRampToValueAtTime(44, at + 0.12);
+    env.gain.setValueAtTime(0.16, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.16);
+    osc.connect(env);
+    env.connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + 0.2);
+  }
+
+  function hat(at) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
     const filter = ctx.createBiquadFilter();
-    const gain = ctx.createGain();
-    const pulse = ctx.createOscillator();
-    const pulseGain = ctx.createGain();
-    const tension = ctx.createOscillator();
-    const tensionGain = ctx.createGain();
-
-    drone.type = 'sine'; drone.frequency.value = 55;
-    drone2.type = 'sine'; drone2.frequency.value = 82.5;
-    tension.type = 'sawtooth'; tension.frequency.value = 196;
-    filter.type = 'lowpass'; filter.frequency.value = 320; filter.Q.value = 0.7;
-    gain.gain.value = 0.05;
-    tensionGain.gain.value = 0.0;
-    pulse.type = 'sine'; pulse.frequency.value = 0.12;
-    pulseGain.gain.value = 0.03;
-
-    pulse.connect(pulseGain);
-    pulseGain.connect(gain.gain);
-    drone.connect(filter);
-    drone2.connect(filter);
-    tension.connect(tensionGain);
-    tensionGain.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-
-    drone.start(); drone2.start(); pulse.start(); tension.start();
-    ambient = { drone: drone, tension: tension, tensionGain: tensionGain, pulse: pulse, gain: gain };
+    const env = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 1700 + (tension > 20 ? 400 : 0);
+    filter.type = 'highpass';
+    filter.frequency.value = 1200;
+    env.gain.setValueAtTime(0.018, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.06);
+    osc.connect(filter);
+    filter.connect(env);
+    env.connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + 0.08);
   }
 
-  function stopAmbient() {
-    if (!ambient) return;
-    try {
-      ambient.drone.stop();
-      ambient.tension.stop();
-      ambient.pulse.stop();
-    } catch (err) { /* already stopped */ }
-    ambient = null;
+  function bassNote(at, freq) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const env = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    filter.type = 'lowpass';
+    filter.frequency.value = 420;
+    env.gain.setValueAtTime(0, at);
+    env.gain.linearRampToValueAtTime(0.1, at + 0.02);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+    osc.connect(filter);
+    filter.connect(env);
+    env.connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + 0.26);
   }
 
-  function setTension(level) {
-    if (!ambient || !context) return;
-    const value = Math.max(0, Math.min(50, level || 0));
-    ambient.tensionGain.gain.setTargetAtTime(0.002 + value * 0.0014, context.currentTime, 1.5);
-    ambient.pulse.frequency.setTargetAtTime(0.12 + value * 0.012, context.currentTime, 2);
+  function scheduleBar() {
+    const ctx = ensureContext();
+    if (!ctx || !musicOn) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const eighth = 60 / bpm() / 2;
+    if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
+    for (let i = 0; i < 16; i++) {
+      const at = nextTime + i * eighth;
+      if (at > ctx.currentTime + 0.6) break;
+      if (i % 4 === 0) kick(at);
+      if (i % 2 === 1) hat(at);
+      if (BASS[i]) bassNote(at, BASS[i]);
+      if (STAB[i]) tone(STAB[i], 0.14, 'triangle', 0.045, at);
+      if (tension >= 30 && i % 4 === 2) tone(BASS[i] * 4, 0.08, 'square', 0.02, at);
+      if (tension >= 42 && i % 8 === 4) tone(880, 0.1, 'square', 0.03, at);
+    }
+    nextTime += 16 * eighth;
+  }
+
+  function startMusic() {
+    if (musicOn || scheduler) return;
+    const ctx = ensureContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    nextTime = ctx.currentTime + 0.05;
+    scheduleBar();
+    scheduler = setInterval(scheduleBar, 250);
+  }
+
+  function stopMusic() {
+    if (scheduler) {
+      clearInterval(scheduler);
+      scheduler = null;
+    }
+    musicOn = false;
   }
 
   function play(name, intensity) {
@@ -124,21 +175,28 @@ const Sound = (function () {
     }
   }
 
+  function setTension(level) {
+    tension = Math.max(0, Math.min(50, level || 0));
+  }
+
   function toggle() {
     muted = !muted;
     if (!muted) {
       const ctx = ensureContext();
       if (ctx && ctx.state === 'suspended' && ctx.resume) ctx.resume();
+      if (musicOn) startMusic();
     }
-    if (muted) stopAmbient();
-    else if (musicOn) startAmbient();
     return !muted;
   }
 
   function toggleMusic() {
     musicOn = !musicOn;
-    if (musicOn && !muted) startAmbient();
-    else stopAmbient();
+    if (musicOn) {
+      muted = false;
+      startMusic();
+    } else {
+      stopMusic();
+    }
     return musicOn;
   }
 
@@ -147,7 +205,8 @@ const Sound = (function () {
     toggle: toggle,
     toggleMusic: toggleMusic,
     setTension: setTension,
-    isMuted: function () { return muted; }
+    isMuted: function () { return muted; },
+    isMusicOn: function () { return musicOn; }
   };
 })();
 

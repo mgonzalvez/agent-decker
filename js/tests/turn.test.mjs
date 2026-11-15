@@ -219,7 +219,7 @@ test('only a card with the right effect may knock out an adjacent card instead o
   ];
   other.faceDown = {};
   other.interactionsLeft = 1;
-  other.resources = { stealth: 6, fighting: 0 };
+  other.resources = { stealth: 0, fighting: 6 };
   assert.throws(() => Engine.interact(other, 'guard_a', 'knockOutAdjacent', registry, { uid: 'guard_b' }), /does not let you/);
 
   let far = fresh(7);
@@ -399,4 +399,39 @@ test('Quick Hands grants an extra interaction when an item is equipped', () => {
   off.resources = { stealth: 3, fighting: 0 };
   off = Engine.interact(off, 'test_sleeping_guard', 'disarm', registry);
   assert.strictEqual(off.interactionsLeft, 0, 'the printed rules give no extra interaction');
+});
+
+test('a Stealth-only cost cannot be paid with Fighting', () => {
+  let state = fresh(11);
+  state.obstacleDeck = [];
+  state.obstacleDiscard = [];
+  state.line = [
+    { uid: 'sleeping_1', defId: 'obs_sleeping_guard' },
+    { uid: 'infimary_1', defId: 'obs_infimary' },
+    { uid: 'camera_1', defId: 'obs_security_camera' },
+    { uid: 'guard_1', defId: 'obs_guard' },
+    { uid: 'waste_1', defId: 'obs_waste_room' }
+  ];
+  state.faceDown = {};
+  state.resources = { stealth: 1, fighting: 3 };
+
+  assert.ok(!Engine.canInteract(state, registry, state.line[0]).ok, 'Sleeping Guard needs 3 Stealth');
+  assert.ok(!Engine.canInteract(state, registry, state.line[1]).ok, 'Infimary needs 3 Stealth');
+  assert.ok(!Engine.canInteract(state, registry, state.line[2]).ok, 'Security Camera needs 2 Stealth');
+  assert.ok(Engine.canInteract(state, registry, state.line[3]).ok, 'Guard needs 2 Fighting, which the player has');
+  assert.ok(!Engine.canInteract(state, registry, state.line[4]).ok, 'Waste Room needs 6 of any mix, the player has 4');
+
+  state = Engine.interact(state, 'guard_1', 'disarm', registry);
+  assert.strictEqual(state.resources.stealth, 1, 'Stealth was untouched');
+  assert.strictEqual(state.resources.fighting, 1, 'only Fighting was spent');
+
+  let mixed = fresh(11);
+  mixed.obstacleDeck = [];
+  mixed.obstacleDiscard = [];
+  mixed.line = [{ uid: 'waste_2', defId: 'obs_waste_room' }];
+  mixed.faceDown = {};
+  mixed.resources = { stealth: 2, fighting: 4 };
+  assert.ok(Engine.canInteract(mixed, registry, mixed.line[0]).ok, 'an "either" cost accepts any mix');
+  mixed = Engine.interact(mixed, 'waste_2', 'disarm', registry);
+  assert.strictEqual(mixed.resources.stealth + mixed.resources.fighting, 0);
 });

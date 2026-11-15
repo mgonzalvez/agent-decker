@@ -45,12 +45,23 @@ function targetScore(state, card) {
 
 /* A competent but simple player: play everything, disarm the most valuable
    obstacles (needed items first), knock out the highest-alarm cards late. */
+function wantsResource(state) {
+  const goal = missions[state.missionIndex].goal;
+  if (goal.resources && goal.resources.stealth) return 'stealth';
+  if (goal.resources && goal.resources.fighting) return 'fighting';
+  if (goal.either) return 'either';
+  return null;
+}
+
 function botTurn(state) {
   state.hand.slice().forEach((card) => {
     state = Engine.playCard(state, card.uid, registry, playChoice(state, card));
   });
 
+  if (Engine.goalSatisfied(state, registry, missions)) return Engine.completeMission(state, registry, missions);
+
   const goal = missions[state.missionIndex].goal;
+  const want = wantsResource(state);
   while (state.interactionsLeft > 0) {
     const targets = state.line.filter((c) => !state.faceDown[c.uid] && Engine.canInteract(state, registry, c).ok);
     if (!targets.length) break;
@@ -61,13 +72,18 @@ function botTurn(state) {
       continue;
     }
 
+    const helpers = want
+      ? targets.filter((c) => {
+          const res = registry[c.defId].reward && registry[c.defId].reward.resource;
+          return res && (want === 'either' ? res.stealth + res.fighting > 0 : res[want] > 0);
+        })
+      : [];
     const needed = goal.itemsRequired
       ? targets.filter((c) => registry[c.defId].keep && goal.itemsRequired.indexOf(c.defId) >= 0)
       : [];
-    const pick = needed.length
-      ? needed[0]
-      : targets.sort((a, b) => targetScore(state, b) - targetScore(state, a))[0];
-    state = Engine.interact(state, pick.uid, 'disarm', registry);
+    const pick = needed.length ? needed[0] : helpers.length ? helpers[0] : targets[0];
+    const worth = helpers.length || needed.length || registry[pick.defId].alarm <= 3;
+    state = Engine.interact(state, pick.uid, worth ? 'disarm' : 'knockOut', registry);
   }
 
   if (Engine.goalSatisfied(state, registry, missions)) state = Engine.completeMission(state, registry, missions);
