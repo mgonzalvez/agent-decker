@@ -543,6 +543,7 @@ const Engine = (function () {
           s.line[pos] = s.line[next];
           s.line[next] = t;
           pos = next;
+          event(s, 'moveCard', { card: card.uid, from: next - 1, to: next, reason: def(card, registry).name });
           log(s, 'line', def(card, registry).name + ' moves an extra space right');
         } else {
           const slid = s.line.splice(pos, 1)[0];

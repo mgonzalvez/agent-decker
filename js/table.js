@@ -47,8 +47,11 @@ const Table = (function () {
     return map;
   }
 
-  /* Pure: turn an event stream into timed animation steps. Testable without a DOM. */
-  function plan(state, before, after) {
+  /* Pure: turn an event stream into timed animation steps. Testable without a DOM.
+     `soundFor(event)` optionally returns a diegetic sound for the card involved
+     (a barking Guard Dog, a clanging prison door), which is layered on top of
+     the generic table cue. */
+  function plan(state, before, after, soundFor) {
     const steps = [];
 
     function delta(uid) {
@@ -91,7 +94,15 @@ const Table = (function () {
         }
       }
 
-      if (moves.length) steps.push({ kind: event.type, sound: SOUND[event.type], moves: moves });
+      if (moves.length) {
+        const sounds = [];
+        if (SOUND[event.type]) sounds.push(SOUND[event.type]);
+        if (soundFor) {
+          const extra = soundFor(event);
+          if (extra) sounds.push(extra);
+        }
+        steps.push({ kind: event.type, sounds: sounds, moves: moves });
+      }
     });
 
     return steps;
@@ -160,7 +171,11 @@ const Table = (function () {
         else if (move.enter) enter(move, duration, delay);
         else flip(move, duration, delay);
       });
-      if (step.sound && options.sound) setTimeout(function () { options.sound(step.sound); }, base);
+      if (step.sounds && step.sounds.length && options.sound) {
+        setTimeout(function () {
+          step.sounds.forEach(function (name) { options.sound(name); });
+        }, base);
+      }
     });
     return steps.length;
   }
