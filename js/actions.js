@@ -6,7 +6,6 @@ const Actions = (function () {
     const e = def.reward && def.reward.effect;
     if (!e) return null;
     if (e.type === 'stealthPerCardToPlayArea') return { kind: 'hand', label: 'Choose cards to place in the Play Area (2 Stealth each)' };
-    if (e.type === 'removeFromGame') return { kind: e.source, label: 'Choose cards to remove from the game' };
     if (e.type === 'saveHandCardForNextTurn') return { kind: 'hand', label: 'Choose a card to save for the next turn', single: true };
     if (e.type === 'discardToHand') return { kind: 'discard', label: 'Choose a card from your discard pile to put in your hand', single: true };
     if (e.type === 'searchDeckToTop') return { kind: 'deck', label: 'Choose a card from your deck to put on top of it', single: true };

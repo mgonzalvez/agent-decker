@@ -58,7 +58,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -380,4 +380,66 @@ test('a mission completion ends the turn, so the next mission starts a fresh one
   const state = UI.getState();
   assert.ok(state.log.some(function (entry) { return /begins \(turn \d+\)/.test(entry.text); }), 'the log stamps the new mission with a turn');
   assert.strictEqual(state.turn, state.log[state.log.length - 1].turn, 'the current turn is the newest turn');
+});
+
+test('the Bin opens when Waste Room is played and purges cards from the hand', () => {
+  UI.init(cardDefs, missions, 7);
+  const state = UI.getState();
+  state.hand = [
+    { uid: 'obs_waste_room_0', defId: 'obs_waste_room' },
+    { uid: 'start_hide_0', defId: 'start_hide' },
+    { uid: 'start_punch_0', defId: 'start_punch' }
+  ];
+  UI.setState(state);
+
+  const hand = map['hand'];
+  assert.ok(!hand.children.some(function (f) { return f.children.some(function (b) { return b.className === 'bin-btn'; }); }), 'no Bin before the card is played');
+
+  const playButton = hand.children[0].children.find(function (b) { return b.className === 'play-btn'; });
+  playButton.click();
+  const after = UI.getState();
+  assert.ok(after.bin, 'playing Waste Room opens the Bin');
+  assert.strictEqual(after.bin.remaining, -1, 'the Waste Room Bin is unlimited');
+
+  const binned = map['hand'].children[1].children.find(function (b) { return b.className === 'bin-btn'; });
+  assert.ok(binned, 'hand cards get a Bin button');
+  binned.click();
+
+  const purged = UI.getState();
+  assert.strictEqual(purged.hand.length, 1, 'the binned card left the hand (Waste Room itself went to the Play Area)');
+  assert.strictEqual(purged.removed.length, 1, 'it is recorded in the Bin');
+  assert.strictEqual(Number(map['bin-count'].textContent), 1, 'the Bin shows its count');
+  assert.ok(map['bin-cards'].children.length === 1, 'the binned card is visible in the Bin');
+  assert.ok(purged.removed[0].defId === 'start_punch', 'the right card was binned');
+});
+
+test('Undo rewinds the last move of the turn, move by move', () => {
+  assert.ok(UI.canUndo(), 'there is something to undo');
+
+  UI.undo();
+  const back = UI.getState();
+  assert.strictEqual(back.hand.length, 2, 'the binned card came back to hand');
+  assert.strictEqual(back.removed.length, 0, 'the Bin is empty again');
+  assert.ok(back.bin, 'the Bin is still open — the Waste Room play itself was not undone');
+
+  UI.undo();
+  const start = UI.getState();
+  assert.strictEqual(start.hand.length, 3, 'the Waste Room play was rewound too');
+  assert.strictEqual(start.bin, null, 'the Bin closed with it');
+  assert.ok(!UI.canUndo(), 'the stack is empty');
+});
+
+test('Flammable Barrel opens the Bin over the discard pile', () => {
+  UI.init(cardDefs, missions, 5);
+  const state = UI.getState();
+  state.hand = [{ uid: 'obs_flammable_barrel_0', defId: 'obs_flammable_barrel' }];
+  state.discard = [{ uid: 'start_hide_0', defId: 'start_hide' }];
+  UI.setState(state);
+  map['hand'].children[0].children.find(function (b) { return b.className === 'play-btn'; }).click();
+  const picks = map['bin-cards'].children.filter(function (f) {
+    return f.children.some(function (b) { return b.className === 'bin-btn'; });
+  });
+  assert.strictEqual(picks.length, 1, 'the discard pile is shown in the Bin as purge candidates');
+  picks[0].children.find(function (b) { return b.className === 'bin-btn'; }).click();
+  assert.strictEqual(UI.getState().discard.length, 0, 'the binned discard card is gone for good');
 });

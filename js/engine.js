@@ -325,11 +325,12 @@ const Engine = (function () {
           });
           s.resources.stealth += e.amount * (options.cards || []).length;
         } else if (e.type === 'removeFromGame') {
-          const zone = e.source === 'discard' ? 'discard' : 'hand';
-          (options.cards || []).forEach(function (u) {
-            const c = removeFrom(s, zone, u);
-            if (c) s.removed.push(c.uid);
-          });
+          /* The purge is interactive: playing the card opens the Bin, and the
+             player then bins as many cards as they want, one click at a time. */
+          s.bin = { source: e.source === 'discard' ? 'discard' : 'hand', remaining: e.max === null ? -1 : e.max };
+          log(s, 'agent', d.name + ' — ' + (e.max === null
+            ? 'the Bin is open: purge as many cards as you like'
+            : 'the Bin is open: purge up to ' + e.max + ' cards from your ' + e.source));
         } else if (e.type === 'discardToHand') {
           const pick = options.uid ? findZone(s, 'discard', options.uid) : s.discard[s.discard.length - 1];
           if (pick) {
@@ -582,6 +583,7 @@ const Engine = (function () {
 
     s.interactionsLeft = s.rules.interactionLimit;
     s.resources = { stealth: 0, fighting: 0 };
+    s.bin = null;
     applyEquipPassives(s, registry);
     s.phase = 'useCards';
     log(s, 'agent', 'card refresh — hand redrawn, unspent resources evaporated');
@@ -591,6 +593,22 @@ const Engine = (function () {
   function endTurn(state, registry) {
     const s = refresh(lineScroll(state, registry), registry);
     s.turn += 1;
+    return s;
+  }
+
+  /* Bin: a card the player purges from the game for good. */
+  function binCard(state, registry, uid) {
+    const s = clone(state);
+    resetEvents(s);
+    if (!s.bin || s.bin.remaining === 0) throw new Error('the Bin is not open');
+    const zone = s.bin.source === 'discard' ? 'discard' : 'hand';
+    const card = findZone(s, zone, uid);
+    if (!card) throw new Error('cannot bin ' + uid + ': it is not in your ' + zone);
+    removeFrom(s, zone, uid);
+    if (s.bin.remaining > 0) s.bin.remaining -= 1;
+    s.removed.push({ uid: card.uid, defId: card.defId });
+    event(s, 'bin', { card: card.uid });
+    log(s, 'agent', def(card, registry).name + ' goes in the Bin — out of the game for good');
     return s;
   }
 
@@ -662,6 +680,7 @@ const Engine = (function () {
     s.deck = shuffleInPlace(s.deck.concat(s.discard, folded, s.hand), s);
     s.discard = [];
     s.saved = [];
+    s.bin = null;
     s.hand = [];
     drawToHand(s, registry, s.rules.handSize);
 
@@ -694,7 +713,7 @@ const Engine = (function () {
 
   return {
     clone, def, effectiveCost, costBreakdown, canAfford, canInteract, goalSatisfied,
-    playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem,
+    playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem, binCard,
     dealLine, event
   };
 })();

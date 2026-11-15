@@ -673,3 +673,28 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .thumb.goal-card .thumb-face:hover img { transform: translateY(-3px) rotate(-90deg); }
 .fanfare-head { font-family: var(--font-display); font-size: 20px; color: var(--amber); margin: 0 0 6px; }
 .fanfare-next { font-weight: 600; color: var(--ink); }
+
+/* ---------- Bin ---------- */
+.area-bin { border-top: 1px dashed var(--line); padding-top: 10px; }
+.area-bin.open { border-top-color: var(--amber); }
+.area-bin h2 b { color: var(--amber); font-family: var(--font-mono); font-size: 12px; }
+.bin-note { color: var(--muted); font-size: 11px; margin: 8px 0 0; }
+.card-bin { opacity: .55; }
+.card-bin-pick { opacity: 1; }
+.card-bin-pick img { filter: none; }
+.card-bin img { filter: saturate(.4); }
+.bin-btn {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--amber);
+  background: transparent;
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.bin-btn:hover { background: var(--amber); color: var(--paper); }
+#undo[disabled] { opacity: .45; }

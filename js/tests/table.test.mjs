@@ -46,3 +46,12 @@ test('a card with a printed sound layers its own cue on top of the table cue', (
   );
   assert.deepStrictEqual(steps[0].sounds, ['slide', 'bark']);
 });
+
+test('a binned card is planned as a drop off the table with a bin cue', () => {
+  const before = { trash: { x: 10, y: 20, el: {} } };
+  const steps = Table.plan({ events: [{ type: 'bin', card: 'trash' }] }, before, {});
+  assert.strictEqual(steps.length, 1);
+  assert.strictEqual(steps[0].kind, 'bin');
+  assert.strictEqual(steps[0].sounds[0], 'bin');
+  assert.ok(steps[0].moves[0].bin, 'the move is flagged as a bin drop');
+});

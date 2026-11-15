@@ -613,3 +613,37 @@ test('the mission log records the completed mission and the one that follows', (
   assert.ok(state.log.some(function (e) { return e.kind === 'mission' && e.text.indexOf('Mission One complete') >= 0; }));
   assert.ok(state.log.some(function (e) { return e.kind === 'mission' && e.text.indexOf('Mission Two begins') >= 0; }));
 });
+
+test('Waste Room opens the Bin and purging takes cards out of the game for good', () => {
+  let state = fresh(3);
+  state.hand = [
+    { uid: 'obs_waste_room_0', defId: 'obs_waste_room' },
+    { uid: 'start_hide_0', defId: 'start_hide' }
+  ];
+  state = Engine.playCard(state, 'obs_waste_room_0', registry);
+  assert.ok(state.bin, 'the Bin opened');
+  assert.strictEqual(state.bin.remaining, -1, 'Waste Room lets you bin as many as you like');
+
+  state = Engine.binCard(state, registry, 'start_hide_0');
+  assert.strictEqual(state.hand.length, 0);
+  assert.strictEqual(state.removed.length, 1);
+  assert.throws(function () { Engine.binCard(state, registry, 'start_hide_0'); }, /not in your hand/);
+
+  state = Engine.endTurn(state, registry);
+  assert.strictEqual(state.bin, null, 'the Bin closes when the turn ends');
+});
+
+test('Flammable Barrel caps the Bin at two cards from the discard', () => {
+  let state = fresh(11);
+  state.hand = [{ uid: 'obs_flammable_barrel_0', defId: 'obs_flammable_barrel' }];
+  state.discard = [
+    { uid: 'start_hide_0', defId: 'start_hide' },
+    { uid: 'start_punch_0', defId: 'start_punch' },
+    { uid: 'start_hide_1', defId: 'start_hide' }
+  ];
+  state = Engine.playCard(state, 'obs_flammable_barrel_0', registry);
+  assert.strictEqual(state.bin.remaining, 2);
+  state = Engine.binCard(state, registry, 'start_hide_0');
+  state = Engine.binCard(state, registry, 'start_punch_0');
+  assert.throws(function () { Engine.binCard(state, registry, 'start_hide_1'); }, /Bin is not open/);
+});
