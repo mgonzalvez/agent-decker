@@ -21,6 +21,11 @@ function playChoice(state, card) {
   const def = registry[card.defId];
   const choice = Actions.needsChoice(def);
   if (!choice) return {};
+  if (choice.kind === 'choice') {
+    const goal = missions[state.missionIndex].goal;
+    const wantsFighting = goal && (goal.resources && goal.resources.fighting) > 0;
+    return { choice: wantsFighting ? 'resource' : 'draw' };
+  }
   if (choice.kind === 'line') {
     const target = state.line.filter((c) => !state.faceDown[c.uid]).sort((a, b) => registry[b.defId].alarm - registry[a.defId].alarm)[0];
     return target ? { uid: target.uid } : {};

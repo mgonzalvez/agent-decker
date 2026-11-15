@@ -5,6 +5,7 @@ const Actions = (function () {
   function needsChoice(def) {
     const e = def.reward && def.reward.effect;
     if (!e) return null;
+    if (e.alternative) return { kind: 'choice', label: (def.reward.name || def.name) + ' — choose one of the two printed options' };
     if (e.type === 'stealthPerCardToPlayArea') return { kind: 'hand', label: 'Choose cards to place in the Play Area (2 Stealth each)' };
     if (e.type === 'saveHandCardForNextTurn') return { kind: 'hand', label: 'Choose a card to save for the next turn', single: true };
     if (e.type === 'discardToHand') return { kind: 'discard', label: 'Choose a card from your discard pile to put in your hand', single: true };

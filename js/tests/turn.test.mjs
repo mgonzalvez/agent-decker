@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import AgentDecker from '../state.js';
 import Engine from '../engine.js';
+import Actions from '../actions.js';
 
 const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
 const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
@@ -646,4 +647,20 @@ test('Flammable Barrel caps the Bin at two cards from the discard', () => {
   state = Engine.binCard(state, registry, 'start_hide_0');
   state = Engine.binCard(state, registry, 'start_punch_0');
   assert.throws(function () { Engine.binCard(state, registry, 'start_hide_1'); }, /Bin is not open/);
+});
+
+test('Throw a Rock makes the player choose between 1 Fighting and drawing a card', () => {
+  let state = fresh(23);
+  state.hand = [{ uid: 'obs_yard_door_0', defId: 'obs_yard_door' }, { uid: 'start_hide_0', defId: 'start_hide' }];
+  assert.ok(Actions.needsChoice(registry.obs_yard_door), 'the card asks for a choice');
+
+  let fighting = Engine.playCard(state, 'obs_yard_door_0', registry, { choice: 'resource' });
+  assert.strictEqual(fighting.resources.fighting, 1, 'the Fighting option gives the resource');
+  assert.strictEqual(fighting.hand.length, 1, 'and no card is drawn');
+
+  let drew = Engine.playCard(state, 'obs_yard_door_0', registry, { choice: 'draw' });
+  assert.strictEqual(drew.resources.fighting, 0, 'the draw option gives no resource');
+  assert.strictEqual(drew.hand.length, 2, 'a card was drawn instead');
+
+  assert.throws(function () { Engine.playCard(state, 'obs_yard_door_0', registry); }, /needs a choice/);
 });

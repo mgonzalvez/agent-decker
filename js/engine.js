@@ -311,9 +311,22 @@ const Engine = (function () {
     const d = def(card, registry);
 
     if (d.reward) {
-      addResource(s, d.reward.resource);
       const e = d.reward.effect;
-      if (e) {
+      if (e && e.alternative) {
+        /* Printed as "X or Y" — the player must pick one of them. */
+        if (options.choice === 'resource') {
+          addResource(s, d.reward.resource);
+          log(s, 'agent', d.name + ' — ' + resourceText(d.reward.resource));
+        } else if (options.choice === 'draw') {
+          drawToHand(s, registry, e.n);
+          log(s, 'agent', d.name + ' — drew ' + e.n + ' card' + (e.n === 1 ? '' : 's') + ' instead of the resource');
+        } else {
+          throw new Error(d.name + ' needs a choice: ' + resourceText(d.reward.resource) + ' or draw ' + e.n + ' card' + (e.n === 1 ? '' : 's'));
+        }
+      } else {
+        addResource(s, d.reward.resource);
+      }
+      if (e && !e.alternative) {
         if (e.type === 'draw') {
           drawToHand(s, registry, e.n);
         } else if (e.type === 'fightingPerDiscardPair') {
