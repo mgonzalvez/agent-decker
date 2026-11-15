@@ -11,9 +11,57 @@ const Sound = (function () {
   let nextTime = 0;
   let step = 0;
   let tension = 0;
+  let trackName = 'nightline';
 
-  const BASS = [110, 0, 110, 110, 0, 130.8, 0, 110, 98, 0, 110, 130.8, 146.4, 0, 110, 82.4];
-  const STAB = [0, 0, 329.6, 0, 0, 440, 0, 329.6, 0, 0, 440, 0, 523.2, 0, 440, 0];
+  /* Five synthesized beds, all generated from the same four primitives
+     (kick, hat, bass, stab) so there are no audio files to ship. */
+  const TRACKS = {
+    nightline: {
+      name: 'Nightline Shunt',
+      bpm: 104, steps: 16, swing: 0,
+      kick: [0, 4, 8, 12],
+      hat: [1, 3, 5, 7, 9, 11, 13, 15],
+      bass: [110, 0, 110, 110, 0, 130.8, 0, 110, 98, 0, 110, 130.8, 146.4, 0, 110, 82.4],
+      stab: [0, 0, 329.6, 0, 0, 440, 0, 329.6, 0, 0, 440, 0, 523.2, 0, 440, 0],
+      bassType: 'sawtooth', bassCut: 420, bassGain: 0.10
+    },
+    waltz: {
+      name: 'Cold War Waltz',
+      bpm: 96, steps: 12, swing: 0,
+      kick: [0, 6],
+      hat: [3, 9],
+      bass: [110, 0, 0, 146.4, 0, 0, 98, 0, 0, 110, 0, 0],
+      stab: [0, 0, 329.6, 0, 0, 0, 0, 0, 440, 0, 0, 0],
+      bassType: 'triangle', bassCut: 300, bassGain: 0.11
+    },
+    deaddrop: {
+      name: 'Dead Drop',
+      bpm: 88, steps: 16, swing: 0,
+      kick: [0, 8],
+      hat: [],
+      bass: [82.4, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0, 0, 0, 0, 0, 0],
+      stab: [0, 0, 0, 0, 220, 0, 0, 0, 0, 0, 0, 0, 261.6, 0, 0, 0],
+      bassType: 'sawtooth', bassCut: 240, bassGain: 0.09
+    },
+    safehouse: {
+      name: 'Safehouse Shuffle',
+      bpm: 118, steps: 16, swing: 0.18,
+      kick: [0, 6, 10],
+      hat: [2, 4, 6, 8, 10, 12, 14],
+      bass: [110, 0, 0, 110, 0, 130.8, 0, 0, 98, 0, 110, 0, 0, 130.8, 0, 0],
+      stab: [0, 0, 0, 329.6, 0, 0, 440, 0, 0, 329.6, 0, 0, 0, 523.2, 0, 0],
+      bassType: 'triangle', bassCut: 520, bassGain: 0.10
+    },
+    blackout: {
+      name: 'Blackout March',
+      bpm: 124, steps: 16, swing: 0,
+      kick: [0, 4, 8, 12],
+      hat: [2, 6, 10, 14],
+      bass: [110, 0, 110, 0, 146.4, 0, 110, 0, 110, 0, 110, 0, 98, 0, 110, 0],
+      stab: [0, 0, 0, 0, 440, 0, 0, 0, 0, 0, 523.2, 0, 0, 0, 587.3, 0],
+      bassType: 'square', bassCut: 620, bassGain: 0.08
+    }
+  };
 
   function ensureContext() {
     if (context) return context;
@@ -103,8 +151,10 @@ const Sound = (function () {
     source.stop(start + duration);
   }
 
+  function track() { return TRACKS[trackName]; }
+
   function bpm() {
-    return 104 + Math.round(tension * 0.5);
+    return track().bpm + Math.round(tension * 0.5);
   }
 
   function kick(at) {
@@ -142,18 +192,19 @@ const Sound = (function () {
     osc.stop(at + 0.08);
   }
 
-  function bassNote(at, freq) {
+  function bassNote(at, freq, t) {
     const ctx = ensureContext();
     if (!ctx) return;
+    t = t || track();
     const osc = ctx.createOscillator();
     const filter = ctx.createBiquadFilter();
     const env = ctx.createGain();
-    osc.type = 'sawtooth';
+    osc.type = t.bassType || 'sawtooth';
     osc.frequency.value = freq;
     filter.type = 'lowpass';
-    filter.frequency.value = 420;
+    filter.frequency.value = t.bassCut || 420;
     env.gain.setValueAtTime(0, at);
-    env.gain.linearRampToValueAtTime(0.1, at + 0.02);
+    env.gain.linearRampToValueAtTime(t.bassGain || 0.1, at + 0.02);
     env.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
     osc.connect(filter);
     filter.connect(env);
@@ -170,18 +221,19 @@ const Sound = (function () {
     const ctx = ensureContext();
     if (!ctx || !musicOn || muted) return;
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = track();
     const eighth = 60 / bpm() / 2;
     if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
     const horizon = ctx.currentTime + LOOKAHEAD;
     let guard = 0;
-    while (nextTime < horizon && guard < 64) {
-      const i = step % 16;
-      const at = nextTime;
-      if (i % 4 === 0) kick(at);
-      if (i % 2 === 1) hat(at);
-      if (BASS[i]) bassNote(at, BASS[i]);
-      if (STAB[i]) tone(STAB[i], 0.14, 'triangle', 0.045, at);
-      if (tension >= 30 && i % 4 === 2) tone(BASS[i] * 4, 0.08, 'square', 0.02, at);
+    while (nextTime < horizon && guard < 96) {
+      const i = step % t.steps;
+      const at = (i % 2 === 1) ? nextTime + t.swing * eighth : nextTime;
+      if (t.kick.indexOf(i) >= 0) kick(at);
+      if (t.hat.indexOf(i) >= 0) hat(at);
+      if (t.bass[i]) bassNote(at, t.bass[i], t);
+      if (t.stab[i]) tone(t.stab[i], 0.14, 'triangle', 0.045, at);
+      if (tension >= 30 && i % 4 === 2) tone((t.bass[i] || 110) * 4, 0.08, 'square', 0.02, at);
       if (tension >= 42 && i % 8 === 4) tone(880, 0.1, 'square', 0.03, at);
       nextTime += eighth;
       step += 1;
@@ -270,11 +322,24 @@ const Sound = (function () {
     return musicOn;
   }
 
+  function setTrack(name) {
+    if (!TRACKS[name]) return trackName;
+    trackName = name;
+    step = 0;
+    return trackName;
+  }
+
   return {
     play: play,
     toggle: toggle,
     toggleMusic: toggleMusic,
     setTension: setTension,
+    tracks: function () {
+      return Object.keys(TRACKS).map(function (id) { return { id: id, name: TRACKS[id].name }; });
+    },
+    setTrack: setTrack,
+    currentTrack: function () { return trackName; },
+    trackName: function () { return track().name; },
     isMuted: function () { return muted; },
     isMusicOn: function () { return musicOn; }
   };
