@@ -7,12 +7,12 @@
 const Table = (function () {
   const DUR = {
     deal: 240, move: 320, scroll: 260, knockOut: 200, disarm: 260,
-    play: 220, draw: 180, exit: 340, flipUp: 220
+    play: 220, draw: 180, exit: 340, flipUp: 220, bin: 320
   };
   const SOUND = {
     dealLine: 'deal', moveCard: 'slide', scroll: 'scroll', exitLine: 'exit',
     knockOut: 'knockOut', knockOutAdjacent: 'knockOut', disarm: 'disarm',
-    play: 'play', draw: 'draw', flipUp: 'flip'
+    play: 'play', draw: 'draw', flipUp: 'flip', bin: 'bin'
   };
   const STEP = 130;
 
@@ -82,6 +82,9 @@ const Table = (function () {
         });
         const g = ghost(event.exiting);
         if (g) { ghosted[event.exiting] = true; moves.push(g); }
+      } else if (event.type === 'bin') {
+        const g = ghost(event.card);
+        if (g) { ghosted[event.card] = true; moves.push({ uid: event.card, ghost: true, bin: true, from: g.from }); }
       } else if (event.type === 'exitLine') {
         if (ghosted[event.card]) return;
         const g = ghost(event.card);
@@ -136,6 +139,30 @@ const Table = (function () {
     }, delay);
   }
 
+  /* A binned card tips down and off the table into the Bin. */
+  function drop(move, duration, delay) {
+    const original = move.from.el;
+    const clone = original.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = move.from.x + 'px';
+    clone.style.top = move.from.y + 'px';
+    clone.style.width = (original.offsetWidth || 140) + 'px';
+    clone.style.zIndex = '40';
+    clone.style.opacity = '1';
+    clone.style.transition = 'none';
+    document.body.appendChild(clone);
+    setTimeout(function () {
+      requestAnimationFrame(function () {
+        clone.style.transition = 'transform ' + duration + 'ms ease-in, opacity ' + duration + 'ms ease-in';
+        clone.style.transform = 'translate(-24px, 90px) rotate(-14deg) scale(.8)';
+        clone.style.opacity = '0';
+        setTimeout(function () {
+          if (clone.parentNode) clone.parentNode.removeChild(clone);
+        }, duration + 120);
+      });
+    }, delay);
+  }
+
   function leave(move, duration, delay) {
     const original = move.from.el;
     const clone = original.cloneNode(true);
@@ -167,7 +194,8 @@ const Table = (function () {
       step.moves.forEach(function (move, i) {
         const delay = base + i * 40;
         const duration = DUR[step.kind] || 240;
-        if (move.ghost) leave(move, DUR.exit, delay);
+        if (move.bin) drop(move, DUR.bin, delay);
+        else if (move.ghost) leave(move, DUR.exit, delay);
         else if (move.enter) enter(move, duration, delay);
         else flip(move, duration, delay);
       });

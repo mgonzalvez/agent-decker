@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=26" />
-  <link rel="stylesheet" href="css/styles.css?v=26" />
+  <link rel="icon" href="assets/favicon.png?v=27" />
+  <link rel="stylesheet" href="css/styles.css?v=27" />
 </head>
 <body>
   <header class="topbar">
@@ -111,6 +111,7 @@
             <div class="turn-actions">
               <button id="mission-check" type="button">Mission Check</button>
               <button id="end-turn" type="button">End Turn</button>
+              <button id="undo" type="button" disabled title="Rewind the last move of this turn (Ctrl+Z)">Undo</button>
             </div>
             <p class="hint">Click <b>Play</b> on a hand card to use it (it lands in the Play Area and gives you resources). Then click a card in the line to Disarm or Knock Out it.</p>
           </div>
@@ -131,6 +132,11 @@
         <div class="area">
           <h2>Play Area</h2>
           <div class="area-cards" id="play-area-cards"></div>
+        </div>
+        <div class="area area-bin" id="bin">
+          <h2>Bin <b id="bin-count">0</b></h2>
+          <div class="area-cards" id="bin-cards"></div>
+          <p class="bin-note" id="bin-note">Cards in the Bin are out of the game for good. Waste Room and Flammable Barrel open it.</p>
         </div>
       </aside>
       </div>
@@ -159,14 +165,14 @@
     <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
   </footer>
 
-  <script src="js/state.js?v=26"></script>
-  <script src="js/engine.js?v=26"></script>
-  <script src="js/actions.js?v=26"></script>
-  <script src="js/save.js?v=26"></script>
-  <script src="js/audio.js?v=26"></script>
-  <script src="js/table.js?v=26"></script>
-  <script src="js/tutorial.js?v=26"></script>
-  <script src="js/ui.js?v=26"></script>
-  <script src="js/main.js?v=26"></script>
+  <script src="js/state.js?v=27"></script>
+  <script src="js/engine.js?v=27"></script>
+  <script src="js/actions.js?v=27"></script>
+  <script src="js/save.js?v=27"></script>
+  <script src="js/audio.js?v=27"></script>
+  <script src="js/table.js?v=27"></script>
+  <script src="js/tutorial.js?v=27"></script>
+  <script src="js/ui.js?v=27"></script>
+  <script src="js/main.js?v=27"></script>
 </body>
 </html>

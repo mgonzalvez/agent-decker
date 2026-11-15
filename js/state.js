@@ -78,6 +78,7 @@ const AgentDecker = (function () {
       equip: [],
       saved: [],
       removed: [],
+      bin: null,
       missionDeck: missionDeck(registry),
       faceDown: {},
       interactionsLeft: 1,
@@ -140,7 +141,7 @@ const AgentDecker = (function () {
         seen.add(card.uid);
       });
     });
-    (state.removed || []).forEach(function (uid) { seen.add(uid); });
+    (state.removed || []).forEach(function (entry) { seen.add(typeof entry === 'string' ? entry : entry.uid); });
 
     if (!state.gameOver && state.line.length > 6) problems.push('line cannot exceed 6 cards (found ' + state.line.length + ')');
     if (state.hand.length > 12) problems.push('hand is implausibly large (' + state.hand.length + ')');

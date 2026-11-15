@@ -31,6 +31,41 @@ const UI = (function () {
     return parts.join(' + ') || 'free';
   }
 
+  /* Undo: the engine is pure, so a snapshot of the previous state is a perfect
+     rewind. Only moves inside the current turn are rewindable. */
+  let undoStack = [];
+  const UNDO_LIMIT = 20;
+
+  function defIdFromUid(uid) {
+    return String(uid).replace(/_\d+$/, '');
+  }
+
+  function updateUndoButton() {
+    const button = document.getElementById('undo');
+    if (!button) return;
+    button.disabled = !undoStack.length || !state || !!state.gameOver;
+  }
+
+  function pushUndo() {
+    if (!state || state.gameOver) return;
+    undoStack.push(JSON.parse(JSON.stringify(state)));
+    if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  }
+
+  function undo() {
+    if (!undoStack.length || !state || state.gameOver) return null;
+    const previous = undoStack.pop();
+    previous.events = [];
+    state = previous;
+    if (typeof window !== 'undefined') window.gameState = state;
+    if (typeof Save !== 'undefined') Save.saveGame(state);
+    if (typeof Sound !== 'undefined') Sound.play('undo');
+    closeOverlay();
+    render();
+    updateUndoButton();
+    return 'move undone';
+  }
+
   function cardAlt(def) {
     if (def.set === 'starting') return def.name;
     if (def.isGoal) return def.name + ' — goal: ' + def.goalText;
@@ -61,7 +96,7 @@ const UI = (function () {
         button.type = 'button';
         button.textContent = 'Use';
         button.addEventListener('click', function () {
-          apply(Engine.useItem(state, card.uid, registry), d.name + ' used', 'disarm');
+          apply(Engine.useItem(state, card.uid, registry), d.name + ' used', 'disarm', true);
         });
         div.appendChild(button);
       }
@@ -145,6 +180,16 @@ const UI = (function () {
       button.disabled = !allowed('play');
       button.addEventListener('click', function () { playCard(card); });
       fig.appendChild(button);
+      if (state.bin && !state.gameOver) {
+        const binButton = el('button', 'bin-btn');
+        binButton.type = 'button';
+        binButton.textContent = 'Bin';
+        binButton.title = 'Remove ' + def.name + ' from the game for good';
+        binButton.addEventListener('click', function () {
+          apply(Engine.binCard(state, registry, card.uid), def.name + ' binned', 'bin', true);
+        });
+        fig.appendChild(binButton);
+      }
       hand.appendChild(fig);
     });
   }
@@ -240,7 +285,65 @@ const UI = (function () {
     fillArea('play-area-cards', state.playArea, 'play');
     fillArea('equip-area-cards', state.equip, 'equip');
 
+    renderBin();
     renderLog();
+  }
+
+  function renderBin() {
+    const area = document.getElementById('bin');
+    if (!area) return;
+    const count = document.getElementById('bin-count');
+    const cards = document.getElementById('bin-cards');
+    const note = document.getElementById('bin-note');
+    const removed = state.removed || [];
+    if (count) count.textContent = removed.length;
+    if (cards) {
+      cards.innerHTML = '';
+      removed.forEach(function (entry) {
+        const defId = typeof entry === 'string' ? defIdFromUid(entry) : entry.defId;
+        const def = registry[defId];
+        if (!def) return;
+        const fig = el('figure', 'card card-bin');
+        const img = el('img');
+        img.src = def.art[0];
+        img.alt = def.name + ' (binned)';
+        fig.appendChild(img);
+        fig.appendChild(el('figcaption', null, def.name));
+        cards.appendChild(fig);
+      });
+    }
+    if (state.bin && state.bin.source === 'discard') {
+      if (cards) {
+        state.discard.forEach(function (card) {
+          const def = registry[card.defId];
+          if (!def) return;
+          const fig = el('figure', 'card card-bin card-bin-pick');
+          const img = el('img');
+          img.src = def.art[0];
+          img.alt = def.name + ' in the discard';
+          fig.appendChild(img);
+          fig.appendChild(el('figcaption', null, def.name));
+          const pick = el('button', 'bin-btn');
+          pick.type = 'button';
+          pick.textContent = 'Bin';
+          pick.addEventListener('click', function () {
+            apply(Engine.binCard(state, registry, card.uid), def.name + ' binned', 'bin', true);
+          });
+          fig.appendChild(pick);
+          cards.appendChild(fig);
+        });
+      }
+    }
+    if (note) {
+      if (state.bin) {
+        note.textContent = state.bin.remaining < 0
+          ? 'Bin open — click Bin on any card in your hand to remove it from the game'
+          : 'Bin open — ' + state.bin.remaining + ' more card' + (state.bin.remaining === 1 ? '' : 's') + ' you can purge from your ' + state.bin.source;
+      } else {
+        note.textContent = 'Cards in the Bin are out of the game for good. Waste Room and Flammable Barrel open it.';
+      }
+    }
+    area.classList.toggle('open', !!state.bin);
   }
 
   const CHALLENGE = {
@@ -356,8 +459,9 @@ const UI = (function () {
     });
   }
 
-  function apply(newState, message, sound) {
+  function apply(newState, message, sound, undoable) {
     const before = typeof Table !== 'undefined' ? Table.snapshot(boardRoot()) : {};
+    if (undoable) pushUndo();
     const previousAlarm = state ? state.alarm : 0;
     state = newState;
     if (typeof window !== 'undefined') window.gameState = state;
@@ -399,7 +503,7 @@ const UI = (function () {
     const def = defOf(card);
     const choice = Actions.needsChoice(def);
     if (!choice) {
-      apply(Actions.play(state, card.uid, registry), def.name + ' played', 'play');
+      apply(Actions.play(state, card.uid, registry), def.name + ' played', 'play', true);
       return;
     }
 
@@ -411,7 +515,7 @@ const UI = (function () {
       : state.deck.slice(-(choice.n || 5)).reverse();
 
     if (!pool.length) {
-      apply(Actions.play(state, card.uid, registry), def.name + ' played (nothing to choose)', 'play');
+      apply(Actions.play(state, card.uid, registry), def.name + ' played (nothing to choose)', 'play', true);
       return;
     }
 
@@ -432,7 +536,7 @@ const UI = (function () {
         options.push({
           label: order.length === pool.length ? 'Put them back in this order' : 'Cancel',
           action: function () {
-            apply(Actions.play(state, card.uid, registry, order.length === pool.length ? { order: order } : {}), def.name + ' played', 'play');
+            apply(Actions.play(state, card.uid, registry, order.length === pool.length ? { order: order } : {}), def.name + ' played', 'play', true);
           }
         });
         openOverlay(def.name, choice.label, options);
@@ -443,9 +547,9 @@ const UI = (function () {
 
     if (choice.single) {
       const options = pool.map(function (c) {
-        return { label: defOf(c).name, action: function () { apply(Actions.play(state, card.uid, registry, { uid: c.uid }), def.name + ' played', 'play'); } };
+        return { label: defOf(c).name, action: function () { apply(Actions.play(state, card.uid, registry, { uid: c.uid }), def.name + ' played', 'play', true); } };
       });
-      options.push({ label: 'Cancel', action: function () { apply(Actions.play(state, card.uid, registry), def.name + ' played', 'play'); } });
+      options.push({ label: 'Cancel', action: function () { apply(Actions.play(state, card.uid, registry), def.name + ' played', 'play', true); } });
       openOverlay(def.name, choice.label, options);
       return;
     }
@@ -461,7 +565,7 @@ const UI = (function () {
       });
       options.push({
         label: 'Done',
-        action: function () { apply(Actions.play(state, card.uid, registry, { cards: picked }), def.name + ' played', 'play'); }
+        action: function () { apply(Actions.play(state, card.uid, registry, { cards: picked }), def.name + ' played', 'play', true); }
       });
       openOverlay(def.name, choice.label, options);
     }
@@ -495,18 +599,18 @@ const UI = (function () {
     const check = Engine.canInteract(state, registry, card);
     const choices = [];
     if (check.ok && allowed('interact')) {
-      choices.push({ label: 'Disarm (to ' + (def.keep ? 'Equip Area' : 'Play Area') + ')', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry), def.name + ' disarmed', 'disarm'); } });
-      choices.push({ label: 'Knock Out (face down, no alarm)', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry), def.name + ' knocked out', 'knockOut'); } });
+      choices.push({ label: 'Disarm (to ' + (def.keep ? 'Equip Area' : 'Play Area') + ')', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry), def.name + ' disarmed', 'disarm', true); } });
+      choices.push({ label: 'Knock Out (face down, no alarm)', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry), def.name + ' knocked out', 'knockOut', true); } });
       if (check.items && check.items.length) {
         check.items.forEach(function (item) {
           const itemName = defOf(item).name;
-          choices.push({ label: 'Use ' + itemName + ' (discard it) → Disarm', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry, { itemUid: item.uid }), itemName + ' used on ' + def.name, 'disarm'); } });
-          choices.push({ label: 'Use ' + itemName + ' (discard it) → Knock Out', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry, { itemUid: item.uid }), itemName + ' used on ' + def.name, 'knockOut'); } });
+          choices.push({ label: 'Use ' + itemName + ' (discard it) → Disarm', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry, { itemUid: item.uid }), itemName + ' used on ' + def.name, 'disarm', true); } });
+          choices.push({ label: 'Use ' + itemName + ' (discard it) → Knock Out', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry, { itemUid: item.uid }), itemName + ' used on ' + def.name, 'knockOut', true); } });
         });
       }
       if (def.effect && def.effect.type === 'knockOutAdjacentInsteadOfInteract') {
         Actions.neighbours(state, registry, card.uid).forEach(function (n) {
-          choices.push({ label: 'Knock out adjacent ' + defOf(n).name + ' instead', action: function () { apply(Actions.interact(state, card.uid, 'knockOutAdjacent', registry, { uid: n.uid }), 'knocked out ' + defOf(n).name, 'knockOut'); } });
+          choices.push({ label: 'Knock out adjacent ' + defOf(n).name + ' instead', action: function () { apply(Actions.interact(state, card.uid, 'knockOutAdjacent', registry, { uid: n.uid }), 'knocked out ' + defOf(n).name, 'knockOut', true); } });
         });
       }
     }
@@ -520,6 +624,7 @@ const UI = (function () {
     }
     const completed = missions[state.missionIndex];
     const next = missions[state.missionIndex + 1] || null;
+    undoStack = [];
     apply(Actions.completeMission(state, registry, missions), 'Mission complete', 'fanfare');
     if (!state.gameOver) missionFanfare(completed, next);
   }
@@ -550,10 +655,12 @@ const UI = (function () {
   }
 
   function endTurn() {
+    undoStack = [];  /* the turn is spent: yesterday's moves are no longer rewritable */
     apply(Actions.endTurn(state, registry), 'Turn over');
   }
 
   function startTraining() {
+    undoStack = [];
     state = AgentDecker.createInitialState(Object.keys(registry).map(function (id) { return registry[id]; }), missions, TRAINING_SEED);
     state.tutorial = true;
     if (typeof window !== 'undefined') window.gameState = state;
@@ -570,6 +677,7 @@ const UI = (function () {
   }
 
   function start(seed) {
+    undoStack = [];
     const fromUrl = typeof window !== 'undefined' && window.location
       ? Number(new URLSearchParams(window.location.search).get('seed'))
       : 0;
@@ -656,6 +764,8 @@ const UI = (function () {
       '3) Line Scroll — the rightmost card exits the line and raises the alarm by its value; everything slides right and the line refills. ' +
       '4) Card Refresh — discard your hand and Play Area, draw a fresh hand. Unspent resources evaporate.'));
     body.appendChild(el('p', 'modal-text',
+      'Some cards let you <b>Bin</b> cards — Waste Room purges as many cards from your hand as you like, Flammable Barrel up to two from your discard. Binned cards are out of the game for good, and the Bin panel shows them. <b>Undo</b> (or Ctrl+Z) rewinds any move you made this turn.'));
+    body.appendChild(el('p', 'modal-text',
       'Items with a KEEP icon stay on the table in the Equip Area and give their bonus every turn. Alarm reaches 50 and the complex locks down; your score is the alarm at the end of each mission, added up — lower is better.'));
     body.appendChild(el('p', 'modal-text', 'Agent Decker by Manuel Correia (gamesbymanuel.com), CC BY-NC 4.0. This implementation is unofficial and free.'));
     openOverlay('How to play a turn', body, []);
@@ -663,6 +773,10 @@ const UI = (function () {
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') closeOverlay();
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      undo();
+    }
   });
 
   document.getElementById('mission-check').addEventListener('click', missionCheck);
@@ -676,6 +790,7 @@ const UI = (function () {
     });
   }
   document.getElementById('end-turn').addEventListener('click', endTurn);
+  if (document.getElementById('undo')) document.getElementById('undo').addEventListener('click', undo);
   document.getElementById('how-to-play').addEventListener('click', howToPlay);
   if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', toggleQuickHands);
   if (document.getElementById('training-run')) document.getElementById('training-run').addEventListener('click', startTraining);
@@ -719,6 +834,8 @@ const UI = (function () {
     init: init,
     getState: function () { return state; },
     setState: function (s) { return apply(s, 'state restored'); },
+    undo: undo,
+    canUndo: function () { return undoStack.length > 0; },
     start: start,
     startTraining: startTraining,
     toggleQuickHands: toggleQuickHands,
