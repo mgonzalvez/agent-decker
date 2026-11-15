@@ -40,6 +40,7 @@ const UI = (function () {
   function thumb(card, zone) {
     const isGoal = defOf(card).isGoal;
     const div = el('div', 'thumb' + (isGoal ? ' goal-card' : ''));
+    div.setAttribute('data-uid', card.uid);
     const face = el('button', 'thumb-face');
     face.type = 'button';
     face.setAttribute('aria-label', 'Zoom ' + defOf(card).name);
@@ -105,6 +106,8 @@ const UI = (function () {
       if (payable) extra += ' can-interact';
       const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
       slot.type = 'button';
+      slot.setAttribute('data-uid', card.uid);
+      slot.style.gridColumn = String(7 - state.line.length + index);
       const img = el('img');
       img.src = def.art[0];
       img.alt = cardAlt(def);
@@ -124,6 +127,7 @@ const UI = (function () {
     state.hand.forEach(function (card) {
       const def = defOf(card);
       const fig = el('figure', 'card');
+      fig.setAttribute('data-uid', card.uid);
       const face = el('button', 'card-face');
       face.type = 'button';
       face.setAttribute('aria-label', 'Zoom ' + def.name);
@@ -318,7 +322,20 @@ const UI = (function () {
     return wrap;
   }
 
+  function boardRoot() {
+    return document.querySelector ? document.querySelector('.board') : null;
+  }
+
+  function animateTable(newState, before) {
+    if (typeof Table === 'undefined') return;
+    const after = Table.snapshot(boardRoot());
+    Table.run(Table.plan(newState, before, after), {
+      sound: function (name) { if (typeof Sound !== 'undefined') Sound.play(name); }
+    });
+  }
+
   function apply(newState, message, sound) {
+    const before = typeof Table !== 'undefined' ? Table.snapshot(boardRoot()) : {};
     const previousAlarm = state ? state.alarm : 0;
     state = newState;
     if (typeof window !== 'undefined') window.gameState = state;
@@ -339,6 +356,7 @@ const UI = (function () {
     setSaveNote(state.gameOver ? 'game over — nothing saved' : 'game saved locally');
     closeOverlay();
     render();
+    animateTable(state, before);
     if (state.gameOver) {
       const reason = state.gameOver === 'campaignComplete'
         ? 'You made it out of the complex. Final alarm score:'
@@ -538,11 +556,27 @@ const UI = (function () {
     if (typeof window !== 'undefined') window.gameState = state;
     if (typeof Save !== 'undefined') Save.clearGame();
     render();
+    animateTable(state, {});
     setSaveNote('new game · seed ' + usedSeed);
+  }
+
+  function restoreTableSpeed() {
+    try {
+      if (typeof Table !== 'undefined' && typeof localStorage !== 'undefined' &&
+          localStorage.getItem('agent-decker.fast-table') === '1') {
+        Table.setFast(true);
+        const button = document.getElementById('fast-table');
+        if (button) {
+          button.textContent = 'Fast table: on';
+          button.setAttribute('aria-pressed', 'true');
+        }
+      }
+    } catch (err) { /* storage unavailable */ }
   }
 
   function init(cardDefs, missionList, seed) {
     registry = AgentDecker.buildRegistry(cardDefs);
+    restoreTableSpeed();
     missions = missionList;
     const saved = typeof Save !== 'undefined' ? Save.loadGame() : null;
     if (!seed && saved && saved.state) {
@@ -610,6 +644,15 @@ const UI = (function () {
   });
 
   document.getElementById('mission-check').addEventListener('click', missionCheck);
+  if (document.getElementById('fast-table')) {
+    document.getElementById('fast-table').addEventListener('click', function () {
+      const on = !Table.isFast();
+      Table.setFast(on);
+      document.getElementById('fast-table').textContent = on ? 'Fast table: on' : 'Fast table: off';
+      document.getElementById('fast-table').setAttribute('aria-pressed', on ? 'true' : 'false');
+      try { localStorage.setItem('agent-decker.fast-table', on ? '1' : '0'); } catch (err) { /* no storage */ }
+    });
+  }
   document.getElementById('end-turn').addEventListener('click', endTurn);
   document.getElementById('how-to-play').addEventListener('click', howToPlay);
   if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', toggleQuickHands);

@@ -93,6 +93,7 @@ const AgentDecker = (function () {
        reading each card as it lands (Guard Dog, Radio Tower, etc. move things). */
     if (typeof globalThis.Engine !== 'undefined' && globalThis.Engine.dealLine) {
       globalThis.Engine.dealLine(state, registry, 6);
+      state.hand.forEach(function (card) { globalThis.Engine.event(state, 'draw', { card: card.uid, from: 'deck' }); });
     } else {
       state.line = obstacleCards.slice(0, 6).reverse();
       state.obstacleDeck = obstacleCards.slice(6);
