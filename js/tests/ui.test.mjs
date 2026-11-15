@@ -58,7 +58,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'replay-seed', 'quick-hands', 'fast-table', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -91,9 +91,20 @@ globalThis.__storage = {
   setItem(key, value) { this.items[key] = String(value); },
   removeItem(key) { delete this.items[key]; }
 };
+globalThis.localStorage = globalThis.__storage;
 globalThis.Save = require('../save.js');
 const playedSounds = [];
-globalThis.Sound = { play: function (name) { playedSounds.push(name); }, toggle: function () { return true; }, toggleMusic: function () { return true; }, setTension: function () {}, isMuted: function () { return false; } };
+let chosenTrack = 'nightline';
+globalThis.Sound = {
+  play: function (name) { playedSounds.push(name); },
+  toggle: function () { return true; },
+  toggleMusic: function () { return true; },
+  setTension: function () {},
+  isMuted: function () { return false; },
+  tracks: function () { return [{ id: 'nightline' }, { id: 'waltz' }]; },
+  setTrack: function (id) { chosenTrack = id; return id; },
+  currentTrack: function () { return chosenTrack; }
+};
 globalThis.AgentDecker = require('../state.js');
 globalThis.Engine = require('../engine.js');
 globalThis.Actions = require('../actions.js');
@@ -348,4 +359,12 @@ test('the Fast table switch turns the animation layer off', () => {
 test('line cards carry their uid so the table layer can track them', () => {
   const line = map['line'];
   assert.ok(line.children.some(function (c) { return c['data-uid']; }), 'line slots are addressable by uid');
+});
+
+test('the music select switches the bed', () => {
+  const select = map['music-track'];
+  select.value = 'blackout';
+  select.listeners.change();
+  assert.strictEqual(Sound.currentTrack(), 'blackout');
+  assert.strictEqual(__storage.items['agent-decker.music-track'], 'blackout');
 });

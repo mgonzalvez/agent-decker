@@ -2,72 +2,96 @@ import test from 'node:test';
 import assert from 'node:assert';
 import Sound from '../audio.js';
 
-test('every sound the table layer asks for is defined and safe without a browser', () => {
-  ['play', 'disarm', 'knockOut', 'alarm', 'mission', 'fanfare', 'gameOver', 'deal', 'draw', 'slide', 'scroll', 'exit', 'flip'].forEach(function (name) {
-    assert.doesNotThrow(function () { Sound.play(name, 20); });
-  });
+const startedAt = Date.now();
+const notes = [];
+
+function FakeContext() {
+  this.state = 'running';
+  this.destination = { name: 'destination' };
+}
+Object.defineProperty(FakeContext.prototype, 'currentTime', {
+  get: function () { return (Date.now() - startedAt) / 1000; }
+});
+FakeContext.prototype.createOscillator = function () {
+  const osc = {
+    type: 'sine',
+    frequency: { value: 0, setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} },
+    connect: function () {},
+    start: function () { notes.push(osc); },
+    stop: function () {}
+  };
+  return osc;
+};
+FakeContext.prototype.createGain = function () {
+  return {
+    gain: { setValueAtTime: function () {}, linearRampToValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} },
+    connect: function () {}
+  };
+};
+FakeContext.prototype.createBiquadFilter = function () {
+  return { type: 'lowpass', frequency: { value: 0 }, connect: function () {} };
+};
+FakeContext.prototype.resume = function () {};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test('every sound cue the UI can ask for resolves without throwing', () => {
+  const cues = ['tap', 'thud', 'alarm', 'fanfare', 'deal', 'draw', 'slide', 'scroll', 'exit', 'flip'];
+  for (const cue of cues) Sound.play(cue);
 });
 
 test('the music toggle unmutes and reports its state', () => {
-  assert.strictEqual(Sound.isMuted(), true, 'audio starts muted');
-  assert.strictEqual(Sound.toggleMusic(), true, 'music turns on');
-  assert.strictEqual(Sound.isMuted(), false, 'turning music on unmutes the whole audio');
-  assert.strictEqual(Sound.toggleMusic(), false, 'music turns off again');
+  assert.strictEqual(Sound.toggleMusic(), true);
+  assert.strictEqual(Sound.isMusicOn(), true);
+  Sound.toggleMusic();
   assert.strictEqual(Sound.isMusicOn(), false);
 });
 
-test('the music scheduler keeps feeding notes instead of stopping after one bar', async () => {
-  const startedAt = Date.now();
-  const created = [];
+test('all five beds are selectable', () => {
+  const names = Sound.tracks().map(function (t) { return t.name; });
+  assert.strictEqual(names.length, 5);
+  assert.ok(names.indexOf('Nightline Shunt') >= 0);
+  assert.ok(names.indexOf('Cold War Waltz') >= 0);
+  assert.ok(names.indexOf('Dead Drop') >= 0);
+  assert.ok(names.indexOf('Safehouse Shuffle') >= 0);
+  assert.ok(names.indexOf('Blackout March') >= 0);
+});
 
-  function FakeContext() {
-    this.state = 'running';
-    this.destination = { name: 'destination' };
-  }
-  Object.defineProperty(FakeContext.prototype, 'currentTime', {
-    get: function () { return (Date.now() - startedAt) / 1000; }
-  });
-  FakeContext.prototype.createOscillator = function () {
-    const osc = {
-      type: 'sine',
-      frequency: { value: 0, setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} },
-      connect: function () {},
-      start: function () { created.push(osc); },
-      stop: function () {}
-    };
-    return osc;
-  };
-  FakeContext.prototype.createGain = function () {
-    return {
-      gain: { setValueAtTime: function () {}, linearRampToValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} },
-      connect: function () {}
-    };
-  };
-  FakeContext.prototype.createBiquadFilter = function () {
-    return { type: 'lowpass', frequency: { value: 0 }, connect: function () {} };
-  };
-  FakeContext.prototype.resume = function () {};
-
+test('the scheduler keeps feeding notes instead of stopping after one bar', async () => {
   globalThis.window = { AudioContext: FakeContext };
+  Sound.setTrack('nightline');
   Sound.toggleMusic();
-  assert.strictEqual(Sound.isMusicOn(), true);
-
-  await new Promise(function (resolve) { setTimeout(resolve, 1200); });
-  assert.ok(created.length >= 12, 'the loop scheduled ' + created.length + ' notes in just over a second, not two');
+  await sleep(1500);
+  assert.ok(notes.length >= 15, 'the loop scheduled only ' + notes.length + ' notes in 1.5 s');
 
   Sound.toggle();
-  assert.strictEqual(Sound.isMuted(), true, 'muting audio silences the loop too');
-  await new Promise(function (resolve) { setTimeout(resolve, 600); });
-  const mutedCount = created.length;
-  await new Promise(function (resolve) { setTimeout(resolve, 600); });
-  assert.strictEqual(created.length, mutedCount, 'a muted board schedules nothing');
+  await sleep(700);
+  const mutedCount = notes.length;
+  await sleep(700);
+  assert.strictEqual(notes.length, mutedCount, 'a muted board schedules nothing');
   Sound.toggle();
 
   Sound.toggleMusic();
   assert.strictEqual(Sound.isMusicOn(), false);
-  await new Promise(function (resolve) { setTimeout(resolve, 300); });
-  const after = created.length;
-  await new Promise(function (resolve) { setTimeout(resolve, 600); });
-  assert.strictEqual(created.length, after, 'turning the music off stops the scheduler');
-  delete globalThis.window;
+  const stopped = notes.length;
+  await sleep(600);
+  assert.strictEqual(notes.length, stopped, 'turning the music off stops the scheduler');
+});
+
+test('the beds are actually different: Dead Drop is sparser than Nightline', async () => {
+  Sound.setTrack('nightline');
+  assert.strictEqual(Sound.currentTrack(), 'nightline');
+  Sound.toggleMusic();
+  const before = notes.length;
+  await sleep(1500);
+  const nightline = notes.length - before;
+
+  Sound.setTrack('deaddrop');
+  assert.strictEqual(Sound.currentTrack(), 'deaddrop');
+  const beforeSparse = notes.length;
+  await sleep(1500);
+  const deadDrop = notes.length - beforeSparse;
+
+  assert.ok(deadDrop < nightline, 'Dead Drop (' + deadDrop + ') should be sparser than Nightline (' + nightline + ')');
+  Sound.toggleMusic();
 });

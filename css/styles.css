@@ -121,6 +121,18 @@ button { font: inherit; }
   font-size: 13px;
 }
 .controls button:hover { background: var(--accent); }
+.controls select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.controls select:hover { border-color: var(--amber); color: var(--amber); }
 .seed { color: var(--muted); font-size: 12px; }
 .save-status { color: var(--muted); font-size: 12px; }
 
@@ -423,7 +435,7 @@ button { font: inherit; }
   .brand-title { font-size: 20px; }
   .mission-banner, .alarm { flex: 1 1 100%; }
   .controls { flex: 1 1 100%; flex-wrap: wrap; }
-  .controls button { min-height: 40px; }
+  .controls button, .controls select { min-height: 40px; }
   .coach { margin-bottom: 12px; }
   .line-zone { grid-template-columns: 1fr; gap: 10px; }
   .stack { flex-direction: row; gap: 10px; align-items: center; }

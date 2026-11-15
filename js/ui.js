@@ -681,6 +681,16 @@ const UI = (function () {
     const soundButton = document.getElementById('sound-toggle');
     if (soundButton) soundButton.textContent = Sound.isMuted() ? 'Sound: off' : 'Sound: on';
   });
+  if (document.getElementById('music-track')) {
+    const select = document.getElementById('music-track');
+    let saved = null;
+    try { saved = localStorage.getItem('agent-decker.music-track'); } catch (err) { /* no storage */ }
+    if (saved && Sound.tracks().some(function (t) { return t.id === saved; })) select.value = saved;
+    select.addEventListener('change', function () {
+      Sound.setTrack(select.value);
+      try { localStorage.setItem('agent-decker.music-track', select.value); } catch (err) { /* no storage */ }
+    });
+  }
   if (document.getElementById('replay-seed')) document.getElementById('replay-seed').addEventListener('click', function () { start(state.seed); });
 
   return {
