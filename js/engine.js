@@ -663,10 +663,16 @@ const Engine = (function () {
     s.saved = [];
     s.hand = [];
     drawToHand(s, registry, s.rules.handSize);
+
+    /* Completing a mission skips Line Scroll and Card Refresh (player aid) and
+       the new mission "begins at step 1" — that is a fresh turn. The interaction
+       allowance therefore belongs to the new turn, not the one that just ended,
+       so finishing a mission never hands the agent a second interaction. */
+    s.turn += 1;
     s.interactionsLeft = s.rules.interactionLimit;
     s.resources = { stealth: 0, fighting: 0 };
     applyEquipPassives(s, registry);
-    log(s, 'mission', missions[s.missionIndex].name + ' begins: ' + missions[s.missionIndex].goalText);
+    log(s, 'mission', missions[s.missionIndex].name + ' begins (turn ' + s.turn + '): ' + missions[s.missionIndex].goalText);
     return s;
   }
 

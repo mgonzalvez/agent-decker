@@ -213,3 +213,11 @@ test('the final score is the sum of the alarm at each mission end', () => {
   assert.ok(Number.isFinite(total));
   assert.ok(state.missionAlarms.every((a) => a >= 0 && a <= 50));
 });
+
+test('completing a mission ends the turn instead of handing out a second interaction', () => {
+  const state = fresh(19);
+  const after = Engine.completeMission(state, registry, missions);
+  assert.strictEqual(after.turn, state.turn + 1, 'the new mission starts a new turn');
+  assert.strictEqual(after.rules.interactionLimit, 1, 'Mission One rewards no extra interaction');
+  assert.strictEqual(after.interactionsLeft, 1, 'the allowance is a fresh turn\'s, not a top-up');
+});

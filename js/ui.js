@@ -258,14 +258,15 @@ const UI = (function () {
       return entry;
     });
 
-    /* Strictly newest first. */
+    /* Strictly newest first: `entries` is already reversed, so the groups come
+       out newest turn first and must not be reversed again. */
     const groups = [];
     entries.forEach(function (entry) {
       const last = groups[groups.length - 1];
       if (last && last.turn === entry.turn) last.items.push(entry);
       else groups.push({ turn: entry.turn, items: [entry] });
     });
-    groups.reverse().forEach(function (group) {
+    groups.forEach(function (group) {
       log.appendChild(el('div', 'log-turn', 'Turn ' + group.turn));
       group.items.forEach(function (entry) {
         const li = el('li', 'log-entry log-' + (entry.kind || 'system'));

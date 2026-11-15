@@ -27,6 +27,7 @@ This file is the engine-facing rules reference. Per `AGENTS.md`, ambiguous readi
 
 - **1 interaction per turn** initially; one interaction = one Disarm *or* one Knock Out. **[C7]**
 - Later reward items can raise the per-turn interaction limit. **[C7, C8]**
+- **[C10] Completing a mission ends the turn.** The player aid says a successful Mission Check "complete the mission … skip steps 3–4", and Mission Progression step 6 says "Draw 4 cards. **Begin the new mission at step 1**." That new step 1 is a *new turn*: the interaction allowance is not topped up on top of the one already spent, so finishing Mission One never lets the agent deal with two obstacles. `Engine.completeMission()` therefore increments `state.turn` as it sets up the next mission.
 - You may play any number of hand cards to generate resources; only the obstacle interaction is limited. **[rules.md]**
 
 ## 4. Items (KEEP)

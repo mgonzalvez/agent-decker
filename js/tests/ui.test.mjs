@@ -375,3 +375,9 @@ test('every asset is cache-busted with the same token', () => {
   assert.ok(tokens.length >= 10, 'assets must carry a cache token');
   assert.strictEqual(new Set(tokens).size, 1, 'mixed cache tokens: ' + Array.from(new Set(tokens)).join(', '));
 });
+
+test('a mission completion ends the turn, so the next mission starts a fresh one', () => {
+  const state = UI.getState();
+  assert.ok(state.log.some(function (entry) { return /begins \(turn \d+\)/.test(entry.text); }), 'the log stamps the new mission with a turn');
+  assert.strictEqual(state.turn, state.log[state.log.length - 1].turn, 'the current turn is the newest turn');
+});
