@@ -61,6 +61,7 @@ A **static web player for Agent Decker**, a solo deckbuilding game by Manuel Cor
 
 - **No frameworks, no build step, no `package.json` required.** Vanilla HTML/CSS/JS, committed files only, GitHub Pages as the host. (A local static server like `python3 -m http.server` is fine for dev.)
 - **`engine.js` is pure:** state in → new state out. No DOM, no `Math.random` (injectable seeded RNG). UI reads state; it never mutates rules.
+- **House rules are opt-in.** `state.rules.quickHands` (Quick Hands: equipping an item grants an extra interaction that turn) is a documented deviation in `js/data/effects-notes.md`, off by default. Never make a deviation the default without recording it.
 - **Data-driven cards.** New card effect = new effect descriptor in JSON + one handler in engine. Never special-case a card id in engine code.
 - **Card data schema** lives in `PLAN.md` §2 — `id, set, name, obstacleType, cost {stealth, fighting, either}, alarm, keep, reward, effect, missionLetter`.
 - **JSON over CSV** for game data (nested costs/effects don't fit tabular).

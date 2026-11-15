@@ -96,3 +96,7 @@ These are the calls the engine makes where the printed rules are silent. Flagged
 ---
 
 *[Cn]* = designer clarification #n from the 2025-09-30 session. See `docs/video-validation.md` for the full validation report.
+
+## House rules (our additions, off by default)
+
+- **Quick Hands.** Equipping a KEEP item grants one extra interaction that turn, so items become an early-game way to act twice. The printed rules do **not** say this — equipping is instant (rules.md:61) but nothing grants an extra interaction, and "once per turn" passives are resolved at Card Refresh (see §39), so a freshly equipped item cannot help in the turn it arrives. Implemented as `state.rules.quickHands` behind a top-bar toggle; the engine grants the interaction in `equipCard()` for every route into the Equip Area (disarm, drawn item, refresh). Never enable it if you want a faithful play of the printed game.

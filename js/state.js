@@ -81,7 +81,7 @@ const AgentDecker = (function () {
       missionDeck: missionDeck(registry),
       faceDown: {},
       interactionsLeft: 1,
-      rules: { interactionLimit: 1, handSize: 4 },
+      rules: { interactionLimit: 1, handSize: 4, quickHands: false },
       phase: 'useCards',
       gameOver: null,
       turn: 1,

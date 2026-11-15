@@ -495,6 +495,7 @@ const UI = (function () {
     const wrap = el('div', 'about');
     wrap.appendChild(el('p', 'modal-text', 'Agent Decker by Manuel Correia — gamesbymanuel.com — licensed CC BY-NC 4.0. This is an unofficial browser implementation; it is not for sale.'));
     wrap.appendChild(el('p', 'modal-text', 'Goal: finish all five missions before the alarm hits 50. Your score is the alarm level at the end of each mission, added up — lower is better.'));
+    wrap.appendChild(el('p', 'modal-text', 'House rule (off by default): Quick Hands — equipping an item grants one extra interaction that turn. It is not in the printed rules; toggle it in the top bar if you like a faster early game.'));
     if (best.length) {
       wrap.appendChild(el('p', 'score-total', 'Best runs on this device'));
       best.forEach(function (entry) {
@@ -541,6 +542,7 @@ const UI = (function () {
   document.getElementById('mission-check').addEventListener('click', missionCheck);
   document.getElementById('end-turn').addEventListener('click', endTurn);
   document.getElementById('how-to-play').addEventListener('click', howToPlay);
+  if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', toggleQuickHands);
   if (document.getElementById('training-run')) document.getElementById('training-run').addEventListener('click', startTraining);
   if (document.getElementById('coach-exit')) document.getElementById('coach-exit').addEventListener('click', exitTraining);
   if (document.getElementById('coach-how')) document.getElementById('coach-how').addEventListener('click', howToPlay);
@@ -548,6 +550,17 @@ const UI = (function () {
   document.getElementById('new-game').addEventListener('click', function () { start(); });
   if (document.getElementById('about')) document.getElementById('about').addEventListener('click', about);
   if (document.getElementById('sound-toggle')) document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+  function toggleQuickHands() {
+    if (!state) return;
+    state.rules.quickHands = !state.rules.quickHands;
+    const button = document.getElementById('quick-hands');
+    if (button) {
+      button.textContent = state.rules.quickHands ? 'Quick hands: on' : 'Quick hands: off';
+      button.setAttribute('aria-pressed', state.rules.quickHands ? 'true' : 'false');
+    }
+    render();
+  }
+
   if (document.getElementById('music-toggle')) document.getElementById('music-toggle').addEventListener('click', function () {
     const on = Sound.toggleMusic();
     document.getElementById('music-toggle').textContent = on ? 'Music: on' : 'Music: off';
@@ -561,6 +574,7 @@ const UI = (function () {
     setState: function (s) { return apply(s, 'state restored'); },
     start: start,
     startTraining: startTraining,
+    toggleQuickHands: toggleQuickHands,
     exitTraining: exitTraining,
     endTurn: endTurn,
     missionCheck: missionCheck
