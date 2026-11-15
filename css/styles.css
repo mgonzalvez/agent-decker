@@ -647,3 +647,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .area-equip h2 { color: var(--amber); }
 
 .equip-note { font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: .06em; text-transform: uppercase; margin-top: 6px; }
+
+.log-turn { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 10px; border-bottom: 1px solid rgba(230,179,107,.25); padding-bottom: 4px; }
+.log-entry { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: baseline; }
+.log-stamp { font-family: var(--mono); font-size: 11px; color: var(--amber); }
+.log-line { border-left-color: #5f8fa8; }
+.log-mission { border-left-color: var(--safe); }

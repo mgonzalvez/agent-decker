@@ -55,6 +55,28 @@ const Engine = (function () {
     state.events = [];
   }
 
+  /* The Mission Log: every entry carries the turn it happened on and whether it
+     was the agent acting or the line doing something on its own. */
+  function log(state, kind, text) {
+    state.log.push({ turn: state.turn, kind: kind, text: text });
+  }
+
+  function resourceText(r) {
+    const parts = [];
+    if (r && r.stealth) parts.push(r.stealth + ' Stealth');
+    if (r && r.fighting) parts.push(r.fighting + ' Fighting');
+    return parts.join(' + ');
+  }
+
+  function costText(c) {
+    const parts = [];
+    if (c.stealth) parts.push(c.stealth + ' Stealth');
+    if (c.fighting) parts.push(c.fighting + ' Fighting');
+    if (c.either) parts.push(c.either + ' in any mix');
+    if (c.extra) parts.push('+' + c.extra + ' (Watchtower)');
+    return parts.join(' + ') || 'nothing';
+  }
+
   function lineIndexOf(state, uid) {
     return state.line.findIndex(function (c) { return c.uid === uid; });
   }
@@ -172,7 +194,7 @@ const Engine = (function () {
     state.equip.push(card);
     if (state.rules.quickHands) {
       state.interactionsLeft += 1;
-      state.log.push('Quick Hands — ' + def(card, registry).name + ' equipped, +1 interaction');
+      log(state, 'agent', 'Quick Hands — ' + def(card, registry).name + ' equipped, +1 interaction');
     }
   }
 
@@ -241,6 +263,7 @@ const Engine = (function () {
         state.line.splice(idx, 1);
         state.line.splice(target, 0, card);
         event(state, 'moveCard', { card: card.uid, from: from, to: target, reason: def(card, registry).name });
+        log(state, 'line', def(card, registry).name + ' slides right beside the first ' + e.targetType + ' in the line');
       }
     } else if (e.type === 'slideTypeToSelf') {
       const from = idx;
@@ -251,6 +274,7 @@ const Engine = (function () {
       const pos = state.line.indexOf(card);
       moved.forEach(function (c, k) { state.line.splice(pos + 1 + k, 0, c); });
       event(state, 'moveCard', { card: card.uid, from: from, to: pos, reason: def(card, registry).name, pulled: moved.map(function (c) { return c.uid; }) });
+      log(state, 'line', def(card, registry).name + ' pulls ' + moved.map(function (c) { return def(c, registry).name; }).join(', ') + ' next to itself');
     }
   }
 
@@ -266,7 +290,9 @@ const Engine = (function () {
         return;
       }
       state.line.unshift(card);
+      const enteredAtLeft = state.line.length > 1;
       event(state, 'dealLine', { card: card.uid, index: 0, slot: 6 - state.line.length });
+      log(state, 'line', def(card, registry).name + (enteredAtLeft ? ' enters the line at the left' : ' is placed at the right end of the line'));
       applyAppearance(state, registry, card);
     }
   }
@@ -355,7 +381,7 @@ const Engine = (function () {
       event(s, 'play', { card: card.uid, to: 'playArea' });
     }
 
-    s.log.push('played ' + d.name);
+    log(s, 'agent', 'played ' + d.name + ' (' + (d.reward && d.reward.resource ? resourceText(d.reward.resource) : d.reward ? d.reward.name : 'no resource') + ')');
     return s;
   }
 
@@ -404,7 +430,7 @@ const Engine = (function () {
         throw new Error(def(target, registry).name + ' is not adjacent to ' + d.name);
       }
       s.faceDown[target.uid] = true;
-      s.log.push('knocked out ' + def(target, registry).name + ' instead of ' + d.name);
+      log(s, 'agent', 'knocked out ' + def(target, registry).name + ' instead of ' + d.name);
       return s;
     }
 
@@ -432,7 +458,7 @@ const Engine = (function () {
         if (s.line[n]) s.faceDown[s.line[n].uid] = true;
       });
     }
-    s.log.push((choice === 'knockOut' ? 'knocked out ' : 'disarmed ') + d.name);
+    log(s, 'agent', (choice === 'knockOut' ? 'knocked out ' : 'disarmed ') + d.name + ' for ' + costText(effectiveCost(s, registry, card)));
     return s;
   }
 
@@ -453,7 +479,7 @@ const Engine = (function () {
     if (alarm) event(state, 'alarm', { amount: alarm, total: Math.min(50, state.alarm + alarm) });
     state.alarm = Math.min(50, state.alarm + alarm);
     if (state.alarm >= 50) state.gameOver = 'alarm';
-    state.log.push(d.name + ' left the line (alarm +' + alarm + ')');
+    log(state, 'line', d.name + ' left the line — alarm +' + alarm);
     if (d.effect && d.effect.type === 'flushLineToDiscardOnExit') {
       state.line.forEach(function (c) { state.obstacleDiscard.push(c); });
       state.line = [];
@@ -469,7 +495,7 @@ const Engine = (function () {
       if (last && state.faceDown[last.uid]) {
         state.faceDown[last.uid] = false;
         event(state, 'flipUp', { card: last.uid, reason: def(card, registry).name });
-        state.log.push(def(last, registry).name + ' was flipped face up by ' + def(card, registry).name);
+        log(state, 'line', def(last, registry).name + ' was flipped face up by ' + def(card, registry).name);
         applyAppearance(state, registry, last);
       }
     });
@@ -490,12 +516,13 @@ const Engine = (function () {
       }
     }
     if (exitingIndex < 0) {
-      s.log.push('the line is locked — every card is knocked out and nothing scrolls');
+      log(s, 'line', 'the line is locked — every card is knocked out and nothing scrolls');
       return s;
     }
 
     const exiting = s.line.splice(exitingIndex, 1)[0];
     event(s, 'scroll', { shift: s.line.map(function (c) { return c.uid; }), exiting: exiting.uid });
+    log(s, 'line', 'the line scrolls one step right; ' + def(exiting, registry).name + ' exits');
     exitLine(s, exiting, registry);
     if (s.gameOver) return s;
     if (!s.line.length) {
@@ -516,8 +543,10 @@ const Engine = (function () {
           s.line[pos] = s.line[next];
           s.line[next] = t;
           pos = next;
+          log(s, 'line', def(card, registry).name + ' moves an extra space right');
         } else {
           const slid = s.line.splice(pos, 1)[0];
+          log(s, 'line', def(slid, registry).name + ' scrolls off the end of the line');
           exitLine(s, slid, registry);
           break;
         }
@@ -554,7 +583,7 @@ const Engine = (function () {
     s.resources = { stealth: 0, fighting: 0 };
     applyEquipPassives(s, registry);
     s.phase = 'useCards';
-    s.log.push('card refresh — hand redrawn, resources evaporated');
+    log(s, 'agent', 'card refresh — hand redrawn, unspent resources evaporated');
     return s;
   }
 
@@ -598,7 +627,7 @@ const Engine = (function () {
 
     if (s.missionIndex >= missions.length - 1) {
       s.gameOver = 'campaignComplete';
-      s.log.push('campaign complete');
+      log(s, 'mission', 'campaign complete');
       return s;
     }
 
@@ -636,7 +665,7 @@ const Engine = (function () {
     s.interactionsLeft = s.rules.interactionLimit;
     s.resources = { stealth: 0, fighting: 0 };
     applyEquipPassives(s, registry);
-    s.log.push('mission complete — ' + missions[s.missionIndex].name + ' begins');
+    log(s, 'mission', 'mission complete — ' + missions[s.missionIndex].name + ' begins');
     return s;
   }
 
@@ -651,7 +680,7 @@ const Engine = (function () {
     if (!e || e.type !== 'usedCardToObstacleDiscard') throw new Error(d.name + ' has no use action');
     removeFrom(s, 'equip', card.uid);
     s.obstacleDiscard.push(card);
-    s.log.push('used ' + d.name + ' — it goes to the obstacles discard');
+    log(s, 'agent', 'used ' + d.name + ' — it goes to the obstacles discard');
     return s;
   }
 
