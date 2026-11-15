@@ -327,10 +327,31 @@ const UI = (function () {
     return document.querySelector ? document.querySelector('.board') : null;
   }
 
+  /* Every card that has a printed identity gets a diegetic cue: the Guard Dog
+     barks as it slides into place, the prison door clangs when it exits. */
+  function defByUid(uid) {
+    const zones = [state.line, state.hand, state.playArea, state.equip,
+      state.obstacleDiscard, state.obstacleDeck, state.discard, state.saved, state.removed];
+    for (let i = 0; i < zones.length; i++) {
+      for (let j = 0; j < zones[i].length; j++) {
+        if (zones[i][j].uid === uid) return registry[zones[i][j].defId];
+      }
+    }
+    return null;
+  }
+
+  function eventSound(event) {
+    const uid = event.card || event.exiting || event.by;
+    if (!uid) return null;
+    const def = defByUid(uid);
+    if (!def || !def.sound) return null;
+    return def.sound;
+  }
+
   function animateTable(newState, before) {
     if (typeof Table === 'undefined') return;
     const after = Table.snapshot(boardRoot());
-    Table.run(Table.plan(newState, before, after), {
+    Table.run(Table.plan(newState, before, after, eventSound), {
       sound: function (name) { if (typeof Sound !== 'undefined') Sound.play(name); }
     });
   }

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import Sound from '../audio.js';
+import { readFileSync } from 'node:fs';
 
 const startedAt = Date.now();
 const notes = [];
@@ -15,12 +16,24 @@ Object.defineProperty(FakeContext.prototype, 'currentTime', {
 FakeContext.prototype.createOscillator = function () {
   const osc = {
     type: 'sine',
-    frequency: { value: 0, setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {} },
+    frequency: { value: 0, setValueAtTime: function () {}, exponentialRampToValueAtTime: function () {}, linearRampToValueAtTime: function () {} },
+    setPeriodicWave: function () {},
     connect: function () {},
     start: function () { notes.push(osc); },
     stop: function () {}
   };
   return osc;
+};
+FakeContext.prototype.createPeriodicWave = function () { return { wave: true }; };
+FakeContext.prototype.createBuffer = function (channels, length) {
+  const data = new Float32Array(length);
+  return { getChannelData: function () { return data; } };
+};
+FakeContext.prototype.createBufferSource = function () {
+  return { buffer: null, connect: function () {}, start: function () { notes.push('noise'); }, stop: function () {} };
+};
+FakeContext.prototype.createDelay = function () {
+  return { delayTime: { value: 0 }, connect: function () {} };
 };
 FakeContext.prototype.createGain = function () {
   return {
@@ -36,7 +49,11 @@ FakeContext.prototype.resume = function () {};
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test('every sound cue the UI can ask for resolves without throwing', () => {
-  const cues = ['tap', 'thud', 'alarm', 'fanfare', 'deal', 'draw', 'slide', 'scroll', 'exit', 'flip'];
+  const cues = ['play', 'disarm', 'knockOut', 'alarm', 'fanfare', 'mission', 'gameOver',
+    'deal', 'draw', 'slide', 'scroll', 'exit', 'flip',
+    'bark', 'whine', 'screech', 'steps', 'snore', 'hiss', 'clang', 'clank', 'latch', 'ping',
+    'hum', 'shot', 'boom', 'sizzle', 'rattle', 'whistle', 'beep', 'stumble', 'cam', 'drip',
+    'sweep', 'servo', 'siren'];
   for (const cue of cues) Sound.play(cue);
 });
 
@@ -94,4 +111,37 @@ test('the beds are actually different: Dead Drop is sparser than Nightline', asy
 
   assert.ok(deadDrop < nightline, 'Dead Drop (' + deadDrop + ') should be sparser than Nightline (' + nightline + ')');
   Sound.toggleMusic();
+});
+
+test('every obstacle card carries a sound the audio layer can actually make', () => {
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
+  const known = ['play', 'disarm', 'knockOut', 'alarm', 'fanfare', 'mission', 'gameOver', 'deal', 'draw',
+    'slide', 'scroll', 'exit', 'flip', 'bark', 'whine', 'screech', 'steps', 'snore', 'hiss', 'clang', 'clank',
+    'latch', 'ping', 'hum', 'shot', 'boom', 'sizzle', 'rattle', 'whistle', 'beep', 'stumble', 'cam', 'drip',
+    'sweep', 'servo', 'siren'];
+  const tagged = cards.filter(function (c) { return c.sound; });
+  assert.ok(tagged.length >= 30, 'obstacles should have diegetic sounds');
+  for (const card of tagged) {
+    assert.ok(known.indexOf(card.sound) >= 0, card.name + ' asks for an unknown sound: ' + card.sound);
+  }
+});
+
+test('no melody or bass note clashes with the chord underneath it', () => {
+  const fits = function (note, chord) {
+    return chord.map(function (n) { return n % 12; }).indexOf(note % 12) >= 0;
+  };
+  for (const t of Sound.tracks()) {
+    for (const phrase of t.data) {
+      const perChord = t.steps / phrase.arp.length;
+      for (let i = 0; i < t.steps; i++) {
+        const chord = phrase.arp[Math.floor(i / perChord)];
+        if (phrase.lead[i]) {
+          assert.ok(fits(phrase.lead[i], chord), t.name + ' lead ' + phrase.lead[i] + ' clashes at step ' + i);
+        }
+        if (phrase.bass[i]) {
+          assert.ok(fits(phrase.bass[i], chord), t.name + ' bass ' + phrase.bass[i] + ' clashes at step ' + i);
+        }
+      }
+    }
+  }
 });
