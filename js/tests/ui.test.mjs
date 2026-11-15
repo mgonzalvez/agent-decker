@@ -139,7 +139,8 @@ test('the board renders from the starting state', () => {
 test('the draw deck panel shows how many cards are left and what is in it', () => {
   assert.strictEqual(String(map['player-deck-count'].textContent), '4');
   assert.strictEqual(String(map['player-hand-count'].textContent), '4');
-  assert.ok(map['player-deck-breakdown'].textContent.includes('Punch') || map['player-deck-breakdown'].textContent.includes('Hide'));
+  assert.ok(map['player-deck-breakdown'].textContent.includes('8 cards'), 'the player starts with 8 cards');
+  assert.ok(map['player-deck-breakdown'].textContent.includes('disarm'));
 });
 
 test('playing a hand card adds resources and moves it to the Play Area', () => {

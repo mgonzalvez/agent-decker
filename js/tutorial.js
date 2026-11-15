@@ -4,8 +4,7 @@
    it only decides which actions the player is allowed to take right now. */
 const Tutorial = (function () {
   function affordable(state, registry, card) {
-    const cost = Engine.effectiveCost(state, registry, card);
-    return cost.total <= state.resources.stealth + state.resources.fighting;
+    return Engine.canAfford(state, registry, card);
   }
 
   function live(state) {
@@ -27,15 +26,15 @@ const Tutorial = (function () {
   }
 
   function bestDisarm(state, registry, missions) {
+    const want = goalResource(missions[state.missionIndex]);
     const options = live(state).filter(function (card) {
       return interactable(state, registry, card) && affordable(state, registry, card);
     });
-    const want = goalResource(missions[state.missionIndex]);
-    return options.sort(function (a, b) {
-      const ha = helpsGoal(registry[a.defId], want) ? 1 : 0;
-      const hb = helpsGoal(registry[b.defId], want) ? 1 : 0;
-      return (hb - ha) || (registry[b.defId].alarm - registry[a.defId].alarm) ||
-        (Engine.effectiveCost(state, registry, b).total - Engine.effectiveCost(state, registry, a).total);
+    const helpers = options.filter(function (card) { return helpsGoal(registry[card.defId], want); });
+    const pool = helpers.length ? helpers : options;
+    return pool.sort(function (a, b) {
+      return registry[b.defId].alarm - registry[a.defId].alarm ||
+        Engine.effectiveCost(state, registry, b).total - Engine.effectiveCost(state, registry, a).total;
     })[0] || null;
   }
 
@@ -83,26 +82,26 @@ const Tutorial = (function () {
     }
 
     if (state.interactionsLeft > 0) {
+      const want = goalResource(missions[state.missionIndex]);
       const disarm = bestDisarm(state, registry, missions);
       const knockOut = bestKnockOut(state, registry);
 
-      const want = goalResource(missions[state.missionIndex]);
-      if (exiting && affordable(state, registry, exiting) && interactable(state, registry, exiting)) {
-        const cost = Engine.effectiveCost(state, registry, exiting);
+      if (disarm && helpsGoal(registry[disarm.defId], want)) {
+        const cost = Engine.effectiveCost(state, registry, disarm);
         return {
           id: 'disarm',
-          title: 'Deal with the card about to leave',
-          text: registry[exiting.defId].name + ' is at the right end of the line: it exits at the end of this turn and adds ' + registry[exiting.defId].alarm + ' to the alarm. You can afford it (' + cost.total + ') — disarm it, and it comes to your Play Area, where it will reappear in your deck later and generate resources again. The other option is Knock Out: the card stays in the line face down and raises no alarm when it leaves.',
+          title: 'Build your deck',
+          text: registry[disarm.defId].name + ' costs ' + cost.total + ' and gives ' + want + ' when it comes back round in your deck — disarm it. Disarmed obstacles join your deck, which is how you get better cards. You have ' + state.resources.stealth + ' Stealth and ' + state.resources.fighting + ' Fighting.',
           allowed: { interact: true },
-          highlight: { disarm: exiting.uid, knockOut: knockOut ? knockOut.uid : null, exiting: exiting.uid }
+          highlight: { disarm: disarm.uid, exiting: exiting ? exiting.uid : null }
         };
       }
 
       if (exiting && interactable(state, registry, exiting)) {
         return {
           id: 'knockOut',
-          title: 'Knock it out before it leaves',
-          text: 'You cannot afford ' + registry[exiting.defId].name + ' (it costs ' + Engine.effectiveCost(state, registry, exiting).total + '), and it would add ' + registry[exiting.defId].alarm + ' to the alarm when it exits. Knocking it out puts it face down: its type and effect are ignored and it raises no alarm when it slides out.',
+          title: 'Silence the card about to leave',
+          text: registry[exiting.defId].name + ' is at the right end of the line and exits at the end of this turn, adding ' + registry[exiting.defId].alarm + ' to the alarm. You cannot afford to disarm it (it costs ' + Engine.effectiveCost(state, registry, exiting).total + '), so knock it out: it goes face down, its effect is ignored and it raises no alarm when it slides out.',
           allowed: { interact: true },
           highlight: { knockOut: exiting.uid, exiting: exiting.uid }
         };
@@ -113,16 +112,16 @@ const Tutorial = (function () {
         return {
           id: 'disarm',
           title: 'Disarm something worth keeping',
-          text: registry[disarm.defId].name + ' costs ' + cost.total + ' and raises ' + registry[disarm.defId].alarm + ' alarm. Disarm it to take it into your Play Area — you have ' + state.resources.stealth + ' Stealth and ' + state.resources.fighting + ' Fighting. If you do not want the card, Knock Out instead: it stays face down in the line and raises no alarm when it slides out.',
+          text: registry[disarm.defId].name + ' costs ' + cost.total + ' and raises ' + registry[disarm.defId].alarm + ' alarm. Disarm it to take it into your Play Area — you have ' + state.resources.stealth + ' Stealth and ' + state.resources.fighting + ' Fighting.',
           allowed: { interact: true },
-          highlight: { disarm: disarm.uid, knockOut: knockOut ? knockOut.uid : null, exiting: exiting ? exiting.uid : null }
+          highlight: { disarm: disarm.uid, exiting: exiting ? exiting.uid : null }
         };
       }
 
       return {
         id: 'interact',
-        title: 'Interact with the line',
-        text: 'One interaction per turn. Disarm takes a card into your Play Area (KEEP items go to the Equip Area). Knock Out leaves it face down and silent. Nothing in the line is affordable right now — play your cards first, then come back.',
+        title: 'Nothing you can afford',
+        text: 'One interaction per turn. Nothing in the line is payable with ' + state.resources.stealth + ' Stealth and ' + state.resources.fighting + ' Fighting — play your cards first, then come back.',
         allowed: { interact: true, endTurn: true },
         highlight: { exiting: exiting ? exiting.uid : null }
       };

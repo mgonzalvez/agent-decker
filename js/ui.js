@@ -90,7 +90,7 @@ const UI = (function () {
       if (mark.knockOut === card.uid) extra += ' tut-knock';
       if (mark.exiting === card.uid) extra += ' tut-exit';
       const payable = canAct && !state.faceDown[card.uid] && Engine.canInteract(state, registry, card).ok &&
-        Engine.effectiveCost(state, registry, card).total <= state.resources.stealth + state.resources.fighting;
+        Engine.canAfford(state, registry, card);
       if (payable) extra += ' can-interact';
       const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
       slot.type = 'button';
@@ -214,8 +214,10 @@ const UI = (function () {
     document.getElementById('player-deck-count').textContent = state.deck.length;
     document.getElementById('player-hand-count').textContent = state.hand.length;
     document.getElementById('player-discard-count').textContent = state.discard.length;
+    const playerTotal = state.deck.length + state.hand.length + state.discard.length + state.playArea.length + state.equip.length;
     document.getElementById('player-deck-breakdown').textContent =
-      'Your deck (' + state.deck.length + ' in the draw pile): ' + breakdown(state.deck);
+      'Your deck: ' + playerTotal + ' cards — ' + state.deck.length + ' to draw, ' + state.hand.length +
+      ' in hand, ' + state.discard.length + ' discarded. Every obstacle you disarm joins your deck.';
 
     renderCoach();
     renderLine();
@@ -444,12 +446,12 @@ const UI = (function () {
   }
 
   function startTraining() {
-    state = AgentDecker.createInitialState(Object.keys(registry).map(function (id) { return registry[id]; }), missions, 76);
+    state = AgentDecker.createInitialState(Object.keys(registry).map(function (id) { return registry[id]; }), missions, 17);
     state.tutorial = true;
     if (typeof window !== 'undefined') window.gameState = state;
     if (typeof Save !== 'undefined') Save.clearGame();
     render();
-    setSaveNote('training run · seed 76');
+    setSaveNote('training run · seed 17');
   }
 
   function exitTraining() {
@@ -565,6 +567,8 @@ const UI = (function () {
     const on = Sound.toggleMusic();
     document.getElementById('music-toggle').textContent = on ? 'Music: on' : 'Music: off';
     if (state) Sound.setTension(state.alarm);
+    const soundButton = document.getElementById('sound-toggle');
+    if (soundButton) soundButton.textContent = Sound.isMuted() ? 'Sound: off' : 'Sound: on';
   });
   if (document.getElementById('replay-seed')) document.getElementById('replay-seed').addEventListener('click', function () { start(state.seed); });
 
