@@ -1,6 +1,6 @@
 # Table Physics — spec for animating the deal, the scroll and the draw
 
-**Status:** PR 1 implemented (engine event stream + right-to-left line dealing). PR 2–4 (line animation, hand animation, table-speed control) are still to do.
+**Status:** PR 1 (engine event stream + right-to-left dealing) and PR 2 (`js/table.js`: FLIP animation of the line, the hand and the Play/Equip areas, exit ghosts, per-event SFX, Fast-table toggle) are implemented. Remaining: replaying each event as a separate visible step (today a whole action animates as one composite move) and a full mobile QA pass.
 
 Goal: make the browser feel like handling physical cards, without changing a single rule.
 
