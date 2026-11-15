@@ -605,3 +605,11 @@ test('the mission log stamps every entry with its turn and its kind', () => {
   state = Engine.playCard(state, state.hand[0].uid, registry, {});
   assert.ok(state.log.some(function (e) { return e.turn === 2; }), 'the next turn gets its own stamp');
 });
+
+test('the mission log records the completed mission and the one that follows', () => {
+  let state = fresh(76);
+  state.resources = { stealth: 6, fighting: 0 };
+  state = Engine.completeMission(state, registry, missions);
+  assert.ok(state.log.some(function (e) { return e.kind === 'mission' && e.text.indexOf('Mission One complete') >= 0; }));
+  assert.ok(state.log.some(function (e) { return e.kind === 'mission' && e.text.indexOf('Mission Two begins') >= 0; }));
+});

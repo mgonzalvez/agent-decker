@@ -170,6 +170,12 @@ const Sound = (function () {
       tone(180 + level * 6, 0.2, 'sawtooth', 0.06 + level * 0.002);
     } else if (name === 'mission') {
       [392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.18, 'triangle', 0.12, i * 0.12); });
+    } else if (name === 'fanfare') {
+      /* four rising notes with a lower brass doubling and a held top note */
+      [294, 392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.28, 'triangle', 0.16, i * 0.13); });
+      [147, 196, 247, 294, 392].forEach(function (f, i) { tone(f, 0.4, 'sawtooth', 0.07, i * 0.13); });
+      tone(784, 0.7, 'triangle', 0.12, 0.66);
+      tone(1176, 0.5, 'sine', 0.05, 0.7);
     } else if (name === 'gameOver') {
       [392, 330, 262, 196].forEach(function (f, i) { tone(f, 0.25, 'sawtooth', 0.12, i * 0.16); });
     }

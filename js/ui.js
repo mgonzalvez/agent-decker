@@ -38,7 +38,8 @@ const UI = (function () {
   }
 
   function thumb(card, zone) {
-    const div = el('div', 'thumb');
+    const isGoal = defOf(card).isGoal;
+    const div = el('div', 'thumb' + (isGoal ? ' goal-card' : ''));
     const face = el('button', 'thumb-face');
     face.type = 'button';
     face.setAttribute('aria-label', 'Zoom ' + defOf(card).name);
@@ -238,15 +239,22 @@ const UI = (function () {
     renderLog();
   }
 
+  const CHALLENGE = {
+    2: 'Guards and radios everywhere — expect harder obstacles and a line that rearranges itself.',
+    3: 'Doors and rooms: the complex is closing off sections. Your hand grows, but so does the alarm clock.',
+    4: 'Heavy weaponry. Interacting costs more and the watchtower makes its neighbours dearer.',
+    5: 'Everything they have is on the line now. Knock it all out and get out.'
+  };
+
   function renderLog() {
     const log = document.getElementById('log');
     log.innerHTML = '';
-    const entries = state.log.slice(-60).map(function (entry) {
+    const entries = state.log.slice(-60).reverse().map(function (entry) {
       if (typeof entry === 'string') return { turn: state.turn, kind: 'system', text: entry };
       return entry;
     });
 
-    /* Newest turn first; inside a turn, chronological order. */
+    /* Strictly newest first. */
     const groups = [];
     entries.forEach(function (entry) {
       const last = groups[groups.length - 1];
@@ -466,11 +474,39 @@ const UI = (function () {
   }
 
   function missionCheck() {
-    if (Actions.missionCheck(state, registry, missions)) {
-      apply(Actions.completeMission(state, registry, missions), 'Mission complete', 'mission');
-    } else {
+    if (!Actions.missionCheck(state, registry, missions)) {
       openOverlay('Mission Check', 'Not yet — the whole goal has to be paid in one turn.', []);
+      return;
     }
+    const completed = missions[state.missionIndex];
+    const next = missions[state.missionIndex + 1] || null;
+    apply(Actions.completeMission(state, registry, missions), 'Mission complete', 'fanfare');
+    if (!state.gameOver) missionFanfare(completed, next);
+  }
+
+  function missionFanfare(completed, next) {
+    const body = el('div', 'fanfare');
+    const reward = registry[completed.goalCardId] && registry[completed.goalCardId].reward;
+    body.appendChild(el('p', 'fanfare-head', 'Mission complete. The complex never saw it coming.'));
+    body.appendChild(el('p', null, 'Nice work, Agent — ' + completed.name + ' is done with the alarm at ' +
+      state.missionAlarms[state.missionAlarms.length - 1] + '.'));
+    if (reward) {
+      const bonus = reward.resource
+        ? ((reward.resource.stealth || 0) + (reward.resource.fighting || 0)) + ' resource' +
+          ((reward.resource.stealth || 0) && (reward.resource.fighting || 0) ? 's' : '') + ' every turn'
+        : null;
+      body.appendChild(el('p', null, 'Reward: ' + reward.name + (bonus ? ' (' + bonus + ')' : '') + ' — it goes to your Equip Area, where it stays until you use it.'));
+    }
+    if (next) {
+      const newObstacles = (next.obstaclesIntroduced || []).map(function (id) {
+        const d = registry[id];
+        return d ? d.name + ' (alarm ' + d.alarm + ')' : id;
+      });
+      body.appendChild(el('p', 'fanfare-next', next.name + ' — ' + (registry[next.goalCardId] ? registry[next.goalCardId].goalText : '')));
+      if (newObstacles.length) body.appendChild(el('p', null, 'They send in: ' + newObstacles.join(', ') + '.'));
+      body.appendChild(el('p', null, CHALLENGE[next.index] || 'The complex is on alert.'));
+    }
+    openOverlay(completed.name + ' complete', body, [{ label: 'Continue', action: function () { closeOverlay(); } }], registry[completed.goalCardId].art[0]);
   }
 
   function endTurn() {
