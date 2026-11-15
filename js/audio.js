@@ -9,6 +9,7 @@ const Sound = (function () {
   let musicOn = false;
   let scheduler = null;
   let nextTime = 0;
+  let step = 0;
   let tension = 0;
 
   const BASS = [110, 0, 110, 110, 0, 130.8, 0, 110, 98, 0, 110, 130.8, 146.4, 0, 110, 82.4];
@@ -161,23 +162,31 @@ const Sound = (function () {
     osc.stop(at + 0.26);
   }
 
-  function scheduleBar() {
+  /* Keep a rolling window of notes scheduled ahead of the clock: each tick
+     schedules everything that falls inside the next LOOKAHEAD seconds. */
+  const LOOKAHEAD = 1.2;
+
+  function scheduleAhead() {
     const ctx = ensureContext();
-    if (!ctx || !musicOn) return;
+    if (!ctx || !musicOn || muted) return;
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
     const eighth = 60 / bpm() / 2;
     if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
-    for (let i = 0; i < 16; i++) {
-      const at = nextTime + i * eighth;
-      if (at > ctx.currentTime + 0.6) break;
+    const horizon = ctx.currentTime + LOOKAHEAD;
+    let guard = 0;
+    while (nextTime < horizon && guard < 64) {
+      const i = step % 16;
+      const at = nextTime;
       if (i % 4 === 0) kick(at);
       if (i % 2 === 1) hat(at);
       if (BASS[i]) bassNote(at, BASS[i]);
       if (STAB[i]) tone(STAB[i], 0.14, 'triangle', 0.045, at);
       if (tension >= 30 && i % 4 === 2) tone(BASS[i] * 4, 0.08, 'square', 0.02, at);
       if (tension >= 42 && i % 8 === 4) tone(880, 0.1, 'square', 0.03, at);
+      nextTime += eighth;
+      step += 1;
+      guard += 1;
     }
-    nextTime += 16 * eighth;
   }
 
   function startMusic() {
@@ -186,11 +195,14 @@ const Sound = (function () {
     if (!ctx) return;
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
     nextTime = ctx.currentTime + 0.05;
-    scheduleBar();
-    scheduler = setInterval(scheduleBar, 250);
+    step = 0;
+    scheduleAhead();
+    scheduler = setInterval(scheduleAhead, 250);
   }
 
   function stopMusic() {
+    nextTime = 0;
+    step = 0;
     if (scheduler) {
       clearInterval(scheduler);
       scheduler = null;
