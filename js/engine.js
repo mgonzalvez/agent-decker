@@ -70,7 +70,8 @@ const Engine = (function () {
         const neighbour = state.line[n];
         if (!neighbour) return;
         const e = def(neighbour, registry).effect;
-        if (e && e.type === 'adjacentCostModifier') extra += e.amount;
+        if (state.faceDown[neighbour.uid]) return;
+      if (e && e.type === 'adjacentCostModifier') extra += e.amount;
       });
     }
     return {
@@ -82,12 +83,14 @@ const Engine = (function () {
     };
   }
 
+  /* An equipped item pays an interaction only when its printed icon matches the
+     obstacle's type icon. A missing targetType is a data bug, never a wildcard. */
   function itemPayments(state, registry, card) {
     const targetType = def(card, registry).obstacleType;
     return state.equip.filter(function (c) {
       const reward = def(c, registry).reward;
       const e = reward && reward.effect;
-      return e && e.type === 'discardToInteract' && (!e.targetType || e.targetType === targetType);
+      return e && e.type === 'discardToInteract' && e.targetType === targetType;
     });
   }
 
@@ -129,8 +132,12 @@ const Engine = (function () {
     }
 
     if (d.effect && d.effect.type === 'interactOnlyIfOnlyTypeInLine') {
-      const people = state.line.filter(function (c) { return def(c, registry).obstacleType === 'person'; }).length;
-      if (people > 1) return { ok: false, reason: d.name + ' can only be interacted with if it is the only ' + d.effect.targetType + ' in the line' };
+      const matching = state.line.filter(function (c) {
+        return !state.faceDown[c.uid] && def(c, registry).obstacleType === d.effect.targetType;
+      }).length;
+      if (matching > 1) {
+        return { ok: false, reason: d.name + ' can only be interacted with while it is the only ' + d.effect.targetType + ' in the line (' + matching + ' are face up)' };
+      }
     }
 
     const items = itemPayments(state, registry, card);
@@ -227,6 +234,7 @@ const Engine = (function () {
       const from = idx;
       let target = -1;
       for (let i = idx + 1; i < state.line.length; i++) {
+        if (state.faceDown[state.line[i].uid]) continue;
         if (def(state.line[i], registry).obstacleType === e.targetType) { target = i; break; }
       }
       if (target > idx) {
@@ -237,7 +245,7 @@ const Engine = (function () {
     } else if (e.type === 'slideTypeToSelf') {
       const from = idx;
       const moved = state.line.filter(function (c) {
-        return c.uid !== card.uid && def(c, registry).obstacleType === e.targetType;
+        return c.uid !== card.uid && !state.faceDown[c.uid] && def(c, registry).obstacleType === e.targetType;
       });
       state.line = state.line.filter(function (c) { return moved.indexOf(c) < 0; });
       const pos = state.line.indexOf(card);
@@ -368,7 +376,7 @@ const Engine = (function () {
 
     if (item) {
       const ieffect = def(item, registry).reward && def(item, registry).reward.effect;
-      if (!ieffect || ieffect.type !== 'discardToInteract' || (ieffect.targetType && ieffect.targetType !== d.obstacleType)) {
+      if (!ieffect || ieffect.type !== 'discardToInteract' || ieffect.targetType !== d.obstacleType) {
         throw new Error(def(item, registry).name + ' cannot be used on ' + d.name);
       }
       removeFrom(s, 'equip', item.uid);
@@ -431,6 +439,7 @@ const Engine = (function () {
   /* ---------- 3. Line Scroll ---------- */
   function hasFaceDownStasis(state, registry) {
     return state.line.some(function (c) {
+      if (state.faceDown[c.uid]) return false;
       const e = def(c, registry).effect;
       return e && e.type === 'faceDownCardsDoNotScroll';
     });

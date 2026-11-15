@@ -15,6 +15,12 @@ const UI = (function () {
 
   function defOf(card) { return registry[card.defId]; }
 
+  function typeLabel(def) {
+    if (def.obstacleType) return def.obstacleType;
+    if (def.isGoal) return 'mission';
+    return 'agent';
+  }
+
   function costLabel(card) {
     const c = Engine.effectiveCost(state, registry, card);
     const parts = [];
@@ -45,6 +51,9 @@ const UI = (function () {
     if (zone === 'equip') {
       const d = defOf(card);
       const effect = d.reward && d.reward.effect;
+      if (effect && effect.type === 'discardToInteract') {
+        div.appendChild(el('span', 'equip-note', 'works on ' + effect.targetType));
+      }
       if (effect && effect.type === 'usedCardToObstacleDiscard') {
         const button = el('button', 'use-btn');
         button.type = 'button';
@@ -98,7 +107,7 @@ const UI = (function () {
       const img = el('img');
       img.src = def.art[0];
       img.alt = cardAlt(def);
-      slot.setAttribute('aria-label', def.name + ' — ' + (state.faceDown[card.uid] ? 'knocked out' : costLabel(card) + ', alarm ' + def.alarm));
+      slot.setAttribute('aria-label', def.name + ' (' + typeLabel(def) + ') — ' + (state.faceDown[card.uid] ? 'knocked out' : costLabel(card) + ', alarm ' + def.alarm));
       slot.appendChild(img);
       slot.appendChild(el('span', 'slot-meta' + (payable ? ' meta-afford' : ''), state.faceDown[card.uid]
         ? def.name + ' — knocked out'

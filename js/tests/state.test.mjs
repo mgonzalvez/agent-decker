@@ -70,3 +70,17 @@ test('no card instance appears in two zones at setup', () => {
     .map((c) => c.uid);
   assert.strictEqual(new Set(all).size, all.length);
 });
+
+test('every type-based effect names a real printed icon', () => {
+  const registry = AgentDecker.buildRegistry(cards.cards);
+  assert.deepStrictEqual(AgentDecker.validateTypes(registry), []);
+});
+
+test('the Keycard targets doors, not people', () => {
+  const registry = AgentDecker.buildRegistry(cards.cards);
+  const keycard = registry.obs_sleeping_guard.reward.effect;
+  assert.strictEqual(keycard.type, 'discardToInteract');
+  assert.strictEqual(keycard.targetType, 'door');
+  assert.strictEqual(registry.obs_infimary.reward.effect.targetType, 'person');
+  assert.strictEqual(registry.obs_engineering_bay.reward.effect.targetType, 'equipment');
+});
