@@ -519,6 +519,25 @@ const UI = (function () {
       return;
     }
 
+    if (choice.kind === 'choice') {
+      const picks = [];
+      const res = def.reward.resource;
+      if (res && (res.stealth || res.fighting)) {
+        picks.push({
+          label: 'Take ' + [res.stealth ? res.stealth + ' Stealth' : '', res.fighting ? res.fighting + ' Fighting' : ''].filter(Boolean).join(' + '),
+          action: function () { apply(Actions.play(state, card.uid, registry, { choice: 'resource' }), def.name + ' played', 'play', true); }
+        });
+      }
+      if (def.reward.effect && def.reward.effect.type === 'draw') {
+        picks.push({
+          label: 'Draw ' + def.reward.effect.n + ' card' + (def.reward.effect.n === 1 ? '' : 's'),
+          action: function () { apply(Actions.play(state, card.uid, registry, { choice: 'draw' }), def.name + ' played', 'play', true); }
+        });
+      }
+      openOverlay(def.name, choice.label, picks, def.art[0]);
+      return;
+    }
+
     if (choice.kind === 'order') {
       const order = [];
       function redrawOrder() {

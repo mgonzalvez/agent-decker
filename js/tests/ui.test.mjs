@@ -443,3 +443,18 @@ test('Flammable Barrel opens the Bin over the discard pile', () => {
   picks[0].children.find(function (b) { return b.className === 'bin-btn'; }).click();
   assert.strictEqual(UI.getState().discard.length, 0, 'the binned discard card is gone for good');
 });
+
+test('Throw a Rock asks the player to choose instead of defaulting', () => {
+  UI.init(cardDefs, missions, 4);
+  const state = UI.getState();
+  state.hand = [{ uid: 'obs_yard_door_0', defId: 'obs_yard_door' }];
+  UI.setState(state);
+  map['hand'].children[0].children.find(function (b) { return b.className === 'play-btn'; }).click();
+  const labels = map['modal-choices'].children.map(function (b) { return b.textContent; });
+  assert.ok(labels.some(function (l) { return l.indexOf('Take 1 Fighting') >= 0; }), 'the Fighting option is offered');
+  assert.ok(labels.some(function (l) { return l.indexOf('Draw 1 card') >= 0; }), 'the draw option is offered');
+  map['modal-choices'].children.find(function (b) { return b.textContent.indexOf('Draw 1 card') >= 0; }).click();
+  const after = UI.getState();
+  assert.strictEqual(after.resources.fighting, 0, 'taking the draw means no Fighting');
+  assert.strictEqual(after.hand.length, 1, 'a card was drawn instead');
+});
