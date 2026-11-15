@@ -653,3 +653,11 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .log-stamp { font-family: var(--mono); font-size: 11px; color: var(--amber); }
 .log-line { border-left-color: #5f8fa8; }
 .log-mission { border-left-color: var(--safe); }
+
+#equip-area-cards { grid-template-columns: repeat(auto-fill, minmax(var(--card-h), 1fr)); }
+.thumb.goal-card { width: var(--card-h); height: var(--card-w); }
+.thumb.goal-card .thumb-face { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.thumb.goal-card img { width: var(--card-w); height: var(--card-h); transform: rotate(-90deg); }
+.thumb.goal-card .thumb-face:hover img { transform: translateY(-3px) rotate(-90deg); }
+.fanfare-head { font-family: var(--font-display); font-size: 20px; color: var(--amber); margin: 0 0 6px; }
+.fanfare-next { font-weight: 600; color: var(--ink); }

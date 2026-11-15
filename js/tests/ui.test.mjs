@@ -92,7 +92,8 @@ globalThis.__storage = {
   removeItem(key) { delete this.items[key]; }
 };
 globalThis.Save = require('../save.js');
-globalThis.Sound = { play: function () {}, toggle: function () { return true; }, toggleMusic: function () { return true; }, setTension: function () {}, isMuted: function () { return false; } };
+const playedSounds = [];
+globalThis.Sound = { play: function (name) { playedSounds.push(name); }, toggle: function () { return true; }, toggleMusic: function () { return true; }, setTension: function () {}, isMuted: function () { return false; } };
 globalThis.AgentDecker = require('../state.js');
 globalThis.Engine = require('../engine.js');
 globalThis.Actions = require('../actions.js');
@@ -309,4 +310,28 @@ test('the mission log groups entries by turn and stamps each one', () => {
   assert.ok(log.children.some(function (c) { return c.className === 'log-turn'; }), 'there is a turn heading');
   assert.ok(textOf(log).indexOf('T') >= 0, 'entries carry a turn stamp');
   assert.ok(log.children.some(function (c) { return c.className.indexOf('log-entry') >= 0; }), 'entries are rendered as list items');
+});
+
+test('a successful mission check plays a fanfare and briefs the next mission', () => {
+  const state = UI.getState();
+  state.resources = { stealth: 6, fighting: 0 };
+  UI.missionCheck();
+  assert.ok(playedSounds.indexOf('fanfare') >= 0, 'the fanfare fires on a mission completion');
+  assert.ok(map['modal-title'].textContent.indexOf('Mission One complete') >= 0);
+  const body = textOf(map['modal-body']);
+  assert.ok(body.indexOf('Nice work, Agent') >= 0, 'the agent is congratulated');
+  assert.ok(body.indexOf('Mission Two') >= 0, 'the next mission is named');
+  assert.ok(body.indexOf('They send in') >= 0, 'the new obstacles are described');
+  assert.ok(body.indexOf('Equip Area') >= 0, 'the reward is explained');
+  const thumbs = map['equip-area-cards'].children;
+  assert.ok(thumbs.some(function (c) { return c.className.indexOf('goal-card') >= 0; }), 'the completed mission card is laid sideways in the Equip Area');
+});
+
+test('the mission log reads newest event first', () => {
+  const log = map['log'];
+  const stamps = log.children
+    .filter(function (c) { return c.className.indexOf('log-entry') >= 0; })
+    .map(function (c) { return Number(textOf(c).match(/T(\d+)/)[1]); });
+  assert.ok(stamps.length > 1, 'there are log entries to order');
+  assert.ok(stamps.every(function (value, i) { return i === 0 || stamps[i - 1] >= value; }), 'turn stamps descend');
 });

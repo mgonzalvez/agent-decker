@@ -614,6 +614,7 @@ const Engine = (function () {
     resetEvents(s);
     const mission = missions[s.missionIndex];
     s.missionAlarms.push(s.alarm);
+    log(s, 'mission', missions[s.missionIndex].name + ' complete — alarm ' + s.alarm + ' goes on the score');
 
     const goalCard = findZone(s, 'missionDeck', mission.goalCardId + '_0');
     if (goalCard) {
@@ -665,7 +666,7 @@ const Engine = (function () {
     s.interactionsLeft = s.rules.interactionLimit;
     s.resources = { stealth: 0, fighting: 0 };
     applyEquipPassives(s, registry);
-    log(s, 'mission', 'mission complete — ' + missions[s.missionIndex].name + ' begins');
+    log(s, 'mission', missions[s.missionIndex].name + ' begins: ' + missions[s.missionIndex].goalText);
     return s;
   }
 
