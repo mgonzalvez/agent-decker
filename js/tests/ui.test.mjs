@@ -368,3 +368,10 @@ test('the music select switches the bed', () => {
   assert.strictEqual(Sound.currentTrack(), 'blackout');
   assert.strictEqual(__storage.items['agent-decker.music-track'], 'blackout');
 });
+
+test('every asset is cache-busted with the same token', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const tokens = html.match(/[?&]v=(\d+)/g).map(function (t) { return t.split('=')[1]; });
+  assert.ok(tokens.length >= 10, 'assets must carry a cache token');
+  assert.strictEqual(new Set(tokens).size, 1, 'mixed cache tokens: ' + Array.from(new Set(tokens)).join(', '));
+});
