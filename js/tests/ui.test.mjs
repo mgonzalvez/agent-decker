@@ -301,3 +301,12 @@ test('the Quick Hands toggle flips the house rule and its label', () => {
   map['quick-hands'].click();
   assert.ok(!UI.getState().rules.quickHands);
 });
+
+test('the mission log groups entries by turn and stamps each one', () => {
+  const state = UI.getState ? UI.getState() : null;
+  assert.ok(state, 'the UI exposes its state in tests');
+  const log = map['log'];
+  assert.ok(log.children.some(function (c) { return c.className === 'log-turn'; }), 'there is a turn heading');
+  assert.ok(textOf(log).indexOf('T') >= 0, 'entries carry a turn stamp');
+  assert.ok(log.children.some(function (c) { return c.className.indexOf('log-entry') >= 0; }), 'entries are rendered as list items');
+});

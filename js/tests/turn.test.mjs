@@ -570,3 +570,38 @@ test('completing a mission re-deals the line from the right', () => {
   assert.strictEqual(state.events.filter(function (e) { return e.type === 'dealLine'; }).length, 6);
   assertClean(state);
 });
+
+test('the mission log stamps every entry with its turn and its kind', () => {
+  let state = placeInLine(fresh(76), [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_patrolling_guard_0', defId: 'obs_patrolling_guard' }
+  ]);
+  const dog = state.obstacleDeck.find(function (c) { return c.defId === 'obs_guard_dog'; });
+  if (dog) {
+    state.obstacleDeck = state.obstacleDeck.filter(function (c) { return c.uid !== dog.uid; });
+    state.obstacleDeck.push(dog);
+    Engine.dealLine(state, registry, 1);
+  }
+  assert.ok(state.log.some(function (e) {
+    return e.kind === 'line' && e.turn === 1 && e.text.indexOf('Guard Dog') >= 0;
+  }), 'the Guard Dog slide is recorded as a line event on turn 1');
+
+  state = placeInLine(fresh(76), [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_sentry_gun_0', defId: 'obs_sentry_gun' }
+  ]);
+  state = Engine.playCard(state, state.hand[0].uid, registry, {});
+  const target = state.line.find(function (c) { return Engine.canInteract(state, registry, c).ok; });
+  if (target) state = Engine.interact(state, target.uid, 'knockOut', registry);
+  state = Engine.endTurn(state, registry);
+
+  assert.ok(state.log.every(function (e) { return typeof e.turn === 'number' && e.text; }));
+  assert.ok(state.log.some(function (e) { return e.turn === 1 && e.kind === 'agent'; }));
+  assert.ok(state.log.some(function (e) { return e.turn === 1 && e.kind === 'line'; }));
+  assert.ok(state.log.some(function (e) { return e.text.indexOf('scrolls one step') >= 0; }));
+  assert.ok(state.log.some(function (e) { return e.text.indexOf('alarm') >= 0; }));
+  assert.strictEqual(state.turn, 2);
+  state = Engine.playCard(state, state.hand[0].uid, registry, {});
+  assert.ok(state.log.some(function (e) { return e.turn === 2; }), 'the next turn gets its own stamp');
+});

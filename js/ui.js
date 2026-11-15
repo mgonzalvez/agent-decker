@@ -235,10 +235,32 @@ const UI = (function () {
     fillArea('play-area-cards', state.playArea, 'play');
     fillArea('equip-area-cards', state.equip, 'equip');
 
+    renderLog();
+  }
+
+  function renderLog() {
     const log = document.getElementById('log');
     log.innerHTML = '';
-    state.log.slice(-8).reverse().forEach(function (entry) {
-      log.appendChild(el('li', null, entry));
+    const entries = state.log.slice(-60).map(function (entry) {
+      if (typeof entry === 'string') return { turn: state.turn, kind: 'system', text: entry };
+      return entry;
+    });
+
+    /* Newest turn first; inside a turn, chronological order. */
+    const groups = [];
+    entries.forEach(function (entry) {
+      const last = groups[groups.length - 1];
+      if (last && last.turn === entry.turn) last.items.push(entry);
+      else groups.push({ turn: entry.turn, items: [entry] });
+    });
+    groups.reverse().forEach(function (group) {
+      log.appendChild(el('div', 'log-turn', 'Turn ' + group.turn));
+      group.items.forEach(function (entry) {
+        const li = el('li', 'log-entry log-' + (entry.kind || 'system'));
+        li.appendChild(el('span', 'log-stamp', 'T' + entry.turn));
+        li.appendChild(el('span', 'log-text', entry.text));
+        log.appendChild(li);
+      });
     });
   }
 
