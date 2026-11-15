@@ -43,6 +43,48 @@ const Sound = (function () {
     osc.stop(at + duration + 0.02);
   }
 
+  function flick(gain) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const start = ctx.currentTime;
+    const source = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const env = ctx.createGain();
+    source.type = 'square';
+    source.frequency.setValueAtTime(900, start);
+    source.frequency.exponentialRampToValueAtTime(240, start + 0.05);
+    filter.type = 'highpass';
+    filter.frequency.value = 260;
+    env.gain.setValueAtTime(gain || 0.05, start);
+    env.gain.exponentialRampToValueAtTime(0.0001, start + 0.07);
+    source.connect(filter);
+    filter.connect(env);
+    env.connect(ctx.destination);
+    source.start(start);
+    source.stop(start + 0.09);
+  }
+
+  function whoosh(duration, gain) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    const start = ctx.currentTime;
+    const source = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const env = ctx.createGain();
+    source.type = 'sawtooth';
+    source.frequency.setValueAtTime(220, start);
+    source.frequency.exponentialRampToValueAtTime(120, start + duration);
+    filter.type = 'lowpass';
+    filter.frequency.value = 600;
+    env.gain.setValueAtTime(gain || 0.05, start);
+    env.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    source.connect(filter);
+    filter.connect(env);
+    env.connect(ctx.destination);
+    source.start(start);
+    source.stop(start + duration + 0.02);
+  }
+
   function burst(duration, gain) {
     const ctx = ensureContext();
     if (!ctx) return;
@@ -139,7 +181,7 @@ const Sound = (function () {
   }
 
   function startMusic() {
-    if (musicOn || scheduler) return;
+    if (scheduler) return;
     const ctx = ensureContext();
     if (!ctx) return;
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
@@ -168,6 +210,16 @@ const Sound = (function () {
     } else if (name === 'alarm') {
       const level = Math.max(0, Math.min(50, intensity || 0));
       tone(180 + level * 6, 0.2, 'sawtooth', 0.06 + level * 0.002);
+    } else if (name === 'deal' || name === 'draw') {
+      flick(0.05);
+    } else if (name === 'slide') {
+      whoosh(0.2, 0.05);
+    } else if (name === 'scroll') {
+      flick(0.035);
+    } else if (name === 'exit') {
+      burst(0.26, 0.09);
+    } else if (name === 'flip') {
+      flick(0.04);
     } else if (name === 'mission') {
       [392, 494, 587, 784].forEach(function (f, i) { tone(f, 0.18, 'triangle', 0.12, i * 0.12); });
     } else if (name === 'fanfare') {

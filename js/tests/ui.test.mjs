@@ -58,7 +58,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'replay-seed', 'quick-hands', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'replay-seed', 'quick-hands', 'fast-table', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -98,6 +98,7 @@ globalThis.AgentDecker = require('../state.js');
 globalThis.Engine = require('../engine.js');
 globalThis.Actions = require('../actions.js');
 globalThis.Tutorial = require('../tutorial.js');
+globalThis.Table = require('../table.js');
 const UI = require('../ui.js');
 
 const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
@@ -334,4 +335,17 @@ test('the mission log reads newest event first', () => {
     .map(function (c) { return Number(textOf(c).match(/T(\d+)/)[1]); });
   assert.ok(stamps.length > 1, 'there are log entries to order');
   assert.ok(stamps.every(function (value, i) { return i === 0 || stamps[i - 1] >= value; }), 'turn stamps descend');
+});
+
+test('the Fast table switch turns the animation layer off', () => {
+  map['fast-table'].click();
+  assert.strictEqual(Table.isFast(), true, 'fast table on');
+  assert.strictEqual(map['fast-table'].textContent, 'Fast table: on');
+  map['fast-table'].click();
+  assert.strictEqual(Table.isFast(), false, 'fast table off again');
+});
+
+test('line cards carry their uid so the table layer can track them', () => {
+  const line = map['line'];
+  assert.ok(line.children.some(function (c) { return c['data-uid']; }), 'line slots are addressable by uid');
 });
