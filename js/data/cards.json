@@ -357,7 +357,7 @@
         "resource": null,
         "effect": {
           "type": "discardToInteract",
-          "targetType": "person"
+          "targetType": "door"
         }
       },
       "effect": null,
@@ -365,7 +365,7 @@
       "art": [
         "assets/cards/027.jpg"
       ],
-      "topText": "Keycard (KEEP) \u2014 place Keycard in your discard to interact with a person.",
+      "topText": "Keycard (KEEP) \u2014 place Keycard in your discard to interact with a door.",
       "bottomText": ""
     },
     {

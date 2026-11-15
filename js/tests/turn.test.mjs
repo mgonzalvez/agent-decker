@@ -172,24 +172,91 @@ test('the campaign ends in game over when the alarm hits 50', () => {
   assert.strictEqual(state.gameOver, 'alarm');
 });
 
-test('an equipped KEEP item can pay an interaction instead of resources, and goes to the discard', () => {
-  let state = fresh(7);
-  const keycard = state.obstacleDeck.find((c) => c.defId === 'obs_sleeping_guard');
-  if (!keycard) return;
-  state.obstacleDeck = state.obstacleDeck.filter((c) => c.uid !== keycard.uid);
-  state.equip.push(keycard);
+/* Put a known set of obstacles in the line without losing a single card:
+   the previous line goes back to the Obstacles Deck, the wanted uids are pulled
+   out of every zone first. */
+function stripZone(state, uid) {
+  ['line', 'obstacleDeck', 'missionDeck', 'hand', 'deck', 'discard', 'playArea', 'equip'].forEach(function (zone) {
+    state[zone] = state[zone].filter(function (c) { return c.uid !== uid; });
+  });
+}
+
+function equipItem(state, defId) {
+  const uid = defId + '_0';
+  stripZone(state, uid);
+  state.equip.push({ uid: uid, defId: defId });
+  return uid;
+}
+
+function placeInLine(state, cards) {
+  const uids = cards.map(function (c) { return c.uid; });
+  state.obstacleDeck = state.obstacleDeck.concat(state.line);
+  state.missionDeck = state.missionDeck.filter(function (c) { return uids.indexOf(c.uid) < 0; });
+  state.obstacleDeck = state.obstacleDeck.filter(function (c) { return uids.indexOf(c.uid) < 0; });
+  state.line = cards;
+  return state;
+}
+
+test('items pay only for the obstacle type printed on them', () => {
+  const lineCards = function () {
+    return [
+      { uid: 'obs_guard_0', defId: 'obs_guard' },
+      { uid: 'obs_patrolling_guard_0', defId: 'obs_patrolling_guard' },
+      { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+      { uid: 'obs_sentry_gun_0', defId: 'obs_sentry_gun' }
+    ];
+  };
+
+  let state = placeInLine(fresh(76), lineCards());
   state.resources = { stealth: 0, fighting: 0 };
-
-  const person = state.line.find((c) => registry[c.defId].obstacleType === 'person');
-  const door = state.line.find((c) => registry[c.defId].obstacleType === 'door');
-  assert.ok(Engine.canInteract(state, registry, person).ok, 'Keycard makes a person interactable with no resources');
-  if (door) assert.strictEqual(Engine.canInteract(state, registry, door).ok, false, 'Keycard only works on people');
-
-  state = Engine.interact(state, person.uid, 'disarm', registry, { itemUid: keycard.uid });
+  equipItem(state, 'obs_sleeping_guard'); // Keycard — door icon
+  assert.strictEqual(Engine.canInteract(state, registry, state.line[0]).ok, false, 'Keycard cannot open a person');
+  assert.strictEqual(Engine.canInteract(state, registry, state.line[1]).ok, false, 'the Patrolling Guard loophole is closed');
+  assert.ok(Engine.canInteract(state, registry, state.line[2]).ok, 'Keycard opens a door');
+  state = Engine.interact(state, 'obs_yard_door_0', 'knockOut', registry, { itemUid: 'obs_sleeping_guard_0' });
+  assert.ok(state.discard.some(function (c) { return c.uid === 'obs_sleeping_guard_0'; }), 'the item goes to the discard');
   assertClean(state);
-  assert.ok(state.discard.some((c) => c.uid === keycard.uid), 'the item is placed in the discard');
-  assert.ok(!state.equip.some((c) => c.uid === keycard.uid));
-  assert.ok(state.playArea.some((c) => c.uid === person.uid), 'the person is disarmed');
+
+  state = placeInLine(fresh(76), lineCards());
+  state.resources = { stealth: 0, fighting: 0 };
+  equipItem(state, 'obs_infimary'); // Chloroform — person icon
+  assert.ok(Engine.canInteract(state, registry, state.line[0]).ok, 'Chloroform works on a person');
+  assert.strictEqual(Engine.canInteract(state, registry, state.line[3]).ok, false, 'Chloroform does not work on equipment');
+
+  state = placeInLine(fresh(76), lineCards());
+  state.resources = { stealth: 0, fighting: 0 };
+  equipItem(state, 'obs_engineering_bay'); // E.M.P. — equipment icon
+  assert.ok(Engine.canInteract(state, registry, state.line[3]).ok, 'E.M.P. works on equipment');
+  assert.strictEqual(Engine.canInteract(state, registry, state.line[2]).ok, false, 'E.M.P. does not work on a door');
+  let thrown = false;
+  try {
+    Engine.interact(state, 'obs_yard_door_0', 'knockOut', registry, { itemUid: 'obs_engineering_bay_0' });
+  } catch (err) { thrown = true; }
+  assert.ok(thrown, 'the engine rejects an item whose icon does not match the obstacle');
+});
+
+test('a knocked-out card has no type and no effect', () => {
+  let state = placeInLine(fresh(76), [
+    { uid: 'obs_watchtower_0', defId: 'obs_watchtower' },
+    { uid: 'obs_sleeping_guard_0', defId: 'obs_sleeping_guard' }
+  ]);
+  state.resources = { stealth: 3, fighting: 0 };
+  assert.strictEqual(Engine.canAfford(state, registry, state.line[1]), false, 'an awake Watchtower makes the Sleeping Guard cost 5 Stealth');
+  state.faceDown['obs_watchtower_0'] = true;
+  assert.ok(Engine.canAfford(state, registry, state.line[1]), 'a knocked-out Watchtower has no effect');
+  assertClean(state);
+});
+
+test('a knocked-out Dormitory no longer stops the line from scrolling', () => {
+  let state = placeInLine(fresh(76), [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_dormitory_0', defId: 'obs_dormitory' }
+  ]);
+  state.faceDown['obs_dormitory_0'] = true;
+  state = Engine.lineScroll(state, registry);
+  assert.ok(state.line.some(function (c) { return c.uid === 'obs_guard_0'; }), 'the Guard scrolls normally instead of being held by a dead Dormitory');
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_dormitory_0'; }), 'the face-down Dormitory leaves the line');
+  assertClean(state);
 });
 
 test('only a card with the right effect may knock out an adjacent card instead of itself', () => {

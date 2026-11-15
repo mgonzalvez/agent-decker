@@ -100,6 +100,33 @@ const AgentDecker = (function () {
     return state;
   }
 
+  /* The five printed obstacle icons. Any effect that names a type must name one
+     of these; an item without a declared type is a data bug, not a wildcard. */
+  const OBSTACLE_TYPES = ['person', 'animal', 'door', 'location', 'equipment'];
+
+  function validateTypes(registry) {
+    const problems = [];
+    Object.keys(registry).forEach(function (id) {
+      const d = registry[id];
+      if (d.obstacleType && OBSTACLE_TYPES.indexOf(d.obstacleType) < 0) {
+        problems.push(d.name + ' has an unknown obstacle type: ' + d.obstacleType);
+      }
+      const effects = [d.effect, d.reward && d.reward.effect].filter(Boolean);
+      effects.forEach(function (e) {
+        if (e.targetType && OBSTACLE_TYPES.indexOf(e.targetType) < 0) {
+          problems.push(d.name + ' targets an unknown type: ' + e.targetType);
+        }
+        if (e.type === 'discardToInteract' && !e.targetType) {
+          problems.push(d.name + ' is an interaction item with no printed type');
+        }
+        if ((e.type === 'slideRightToType' || e.type === 'slideTypeToSelf' || e.type === 'interactOnlyIfOnlyTypeInLine') && !e.targetType) {
+          problems.push(d.name + ' has a type-based effect with no targetType');
+        }
+      });
+    });
+    return problems;
+  }
+
   function checkInvariants(state, registry) {
     const zones = [state.line, state.hand, state.deck, state.discard, state.playArea, state.equip, state.saved,
       state.obstacleDeck, state.obstacleDiscard, state.missionDeck];
@@ -128,7 +155,7 @@ const AgentDecker = (function () {
     return problems;
   }
 
-  return { makeRng, shuffle, buildRegistry, createInitialState, checkInvariants };
+  return { makeRng, shuffle, buildRegistry, createInitialState, checkInvariants, validateTypes, OBSTACLE_TYPES };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = AgentDecker;
