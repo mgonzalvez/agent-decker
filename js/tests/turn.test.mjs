@@ -378,3 +378,25 @@ test('a scripted 40-turn bot keeps every invariant and terminates', () => {
   }
   assert.ok(state.gameOver, 'the bot should eventually win or lose');
 });
+
+test('Quick Hands grants an extra interaction when an item is equipped', () => {
+  let state = fresh(42);
+  state.line[0] = { uid: 'test_sleeping_guard', defId: 'obs_sleeping_guard' };
+  state.resources = { stealth: 3, fighting: 0 };
+  state.rules.quickHands = true;
+  state = Engine.interact(state, 'test_sleeping_guard', 'disarm', registry);
+  assertClean(state);
+  assert.ok(state.equip.some((c) => c.defId === 'obs_sleeping_guard'));
+  assert.strictEqual(state.interactionsLeft, 1, 'the disarm spent one, Quick Hands gave one back');
+  state.resources = { stealth: 9, fighting: 0 };
+  const target = state.line.find((c) => !state.faceDown[c.uid]);
+  state = Engine.interact(state, target.uid, 'knockOut', registry);
+  assertClean(state);
+  assert.strictEqual(state.interactionsLeft, 0);
+
+  let off = fresh(42);
+  off.line[0] = { uid: 'test_sleeping_guard', defId: 'obs_sleeping_guard' };
+  off.resources = { stealth: 3, fighting: 0 };
+  off = Engine.interact(off, 'test_sleeping_guard', 'disarm', registry);
+  assert.strictEqual(off.interactionsLeft, 0, 'the printed rules give no extra interaction');
+});

@@ -58,7 +58,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'replay-seed', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'replay-seed', 'quick-hands', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -289,4 +289,14 @@ test('cards you can afford light up in the line', () => {
   state.resources = { stealth: 0, fighting: 0 };
   UI.setState(state);
   assert.ok(map['line'].children.every((slot) => !slot.className.includes('can-interact')));
+});
+
+test('the Quick Hands toggle flips the house rule and its label', () => {
+  UI.init(cardDefs, missions, 42);
+  assert.ok(!UI.getState().rules.quickHands);
+  map['quick-hands'].click();
+  assert.ok(UI.getState().rules.quickHands);
+  assert.strictEqual(map['quick-hands'].textContent, 'Quick hands: on');
+  map['quick-hands'].click();
+  assert.ok(!UI.getState().rules.quickHands);
 });

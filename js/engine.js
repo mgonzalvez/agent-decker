@@ -118,11 +118,21 @@ const Engine = (function () {
     return drawn;
   }
 
+  /* Putting an item on the table. The optional "Quick Hands" house rule makes
+     every newly equipped item grant one extra interaction that turn. */
+  function equipCard(state, registry, card) {
+    state.equip.push(card);
+    if (state.rules.quickHands) {
+      state.interactionsLeft += 1;
+      state.log.push('Quick Hands — ' + def(card, registry).name + ' equipped, +1 interaction');
+    }
+  }
+
   /* Cards entering the hand: an item (KEEP) goes straight to the Equip Area
      instead of occupying a hand slot, so the hand is still filled to its size. */
   function enterHand(state, registry, card) {
     if (!card) return;
-    if (def(card, registry).keep) state.equip.push(card);
+    if (def(card, registry).keep) equipCard(state, registry, card);
     else state.hand.push(card);
   }
 
@@ -324,7 +334,7 @@ const Engine = (function () {
       s.faceDown[card.uid] = true;
     } else if (choice === 'disarm') {
       removeFrom(s, 'line', card.uid);
-      if (d.keep) s.equip.push(card);
+      if (d.keep) equipCard(s, registry, card);
       else s.playArea.push(card);
     } else {
       throw new Error('unknown interaction: ' + choice);
@@ -432,12 +442,12 @@ const Engine = (function () {
     if (s.gameOver) return s;
 
     s.hand.forEach(function (card) {
-      if (def(card, registry).keep) s.equip.push(card);
+      if (def(card, registry).keep) equipCard(s, registry, card);
       else s.discard.push(card);
     });
     const persistent = [];
     s.playArea.forEach(function (card) {
-      if (def(card, registry).keep) { s.equip.push(card); return; }
+      if (def(card, registry).keep) { equipCard(s, registry, card); return; }
       s.discard.push(card);
     });
     s.playArea = persistent;
