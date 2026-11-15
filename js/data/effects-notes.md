@@ -46,6 +46,7 @@ This file is the engine-facing rules reference. Per `AGENTS.md`, ambiguous readi
   - **[I]** No person-type card to its right → it simply stays.
 - **Patrolling Guard** — during Line Scroll it moves **2 spaces right** (1 normal + 1 extra, swapping with the card to its right each space). If this pushes it **off the line, it leaves and raises the Alarm by its value (5)** — i.e. it can exit in the same scroll as a normal card. **[C5]**
 - All other line-altering effects follow the same pattern: activate **on appearance** (as the card is placed) or **during Line Scroll**, per their printed text. Verify each during M4.
+- **[I] The line is dealt from the right.** rules.md **C3**: "draw six cards. Place them in a line, starting from the right. Read the cards as you draw them". So the *first* card drawn sits in the rightmost slot and the line grows leftward; each card's appearance effect resolves against the **partial** line at the moment it lands, in draw order. `Engine.dealLine()` models this (it `unshift`s each drawn card); the UI renders a short line right-aligned so the first card visibly lands on the exit end.
 
 ## 6. "New rules" cards (deck-entered rule changes)
 

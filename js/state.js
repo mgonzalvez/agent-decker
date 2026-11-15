@@ -61,15 +61,15 @@ const AgentDecker = (function () {
     const playerCards = shuffle(expand('starting', registry), rng);
     const obstacleCards = shuffle(expand('obstacle', registry), rng);
 
-    return {
+    const state = {
       seed: seed,
       rngState: (seed >>> 0) || 1,
       missionIndex: 0,
       alarm: 0,
       missionAlarms: [],
       resources: { stealth: 0, fighting: 0 },
-      line: obstacleCards.slice(0, 6),
-      obstacleDeck: obstacleCards.slice(6),
+      line: [],
+      obstacleDeck: obstacleCards,
       obstacleDiscard: [],
       hand: playerCards.slice(0, 4),
       deck: playerCards.slice(4),
@@ -85,8 +85,19 @@ const AgentDecker = (function () {
       phase: 'useCards',
       gameOver: null,
       turn: 1,
-      log: []
+      log: [],
+      events: []
     };
+
+    /* Rules C3: the line is built one card at a time, starting from the right,
+       reading each card as it lands (Guard Dog, Radio Tower, etc. move things). */
+    if (typeof globalThis.Engine !== 'undefined' && globalThis.Engine.dealLine) {
+      globalThis.Engine.dealLine(state, registry, 6);
+    } else {
+      state.line = obstacleCards.slice(0, 6).reverse();
+      state.obstacleDeck = obstacleCards.slice(6);
+    }
+    return state;
   }
 
   function checkInvariants(state, registry) {

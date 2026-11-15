@@ -1,6 +1,8 @@
 # Table Physics — spec for animating the deal, the scroll and the draw
 
-**Status:** proposal, not implemented. Goal: make the browser feel like handling physical cards, without changing a single rule.
+**Status:** PR 1 implemented (engine event stream + right-to-left line dealing). PR 2–4 (line animation, hand animation, table-speed control) are still to do.
+
+Goal: make the browser feel like handling physical cards, without changing a single rule.
 
 ## 1. Principles
 
@@ -13,7 +15,7 @@
 
 | # | Issue | Fix |
 |---|---|---|
-| A | Setup deals the line left→right (`state.js: line: obstacleCards.slice(0, 6)`), but rules.md **C3** says "draw six cards. Place them in a line, **starting from the right**." | Deal one card at a time, inserting at the **right**, running `applyAppearance()` after each placement. The final line is the reverse of the draw order. |
+| A | Setup dealt the line left→right, but rules.md **C3** says "draw six cards. Place them in a line, **starting from the right**." | Done: `Engine.dealLine()` takes one card at a time and the first drawn lands in the rightmost slot, running `applyAppearance()` after each placement. The final array is the reverse of the draw order. |
 | B | Appearance effects (Guard Dog slides right to the first person; Radio Tower pulls people to itself) currently run after the whole line exists in setup. | Run them in draw order, exactly as a human reads each card as it lands. |
 | C | Refill after a scroll already uses `unshift` (left) + `applyAppearance` — correct. | Keep, but emit events. |
 
@@ -22,7 +24,7 @@
 `state.events` (transient, reset on each action; persisted only for the current action) contains:
 
 ```js
-{ type: 'dealLine',  card: uid, slot: 5 }          // card lands in the rightmost free slot
+{ type: 'dealLine',  card: uid, index: 0, slot: 5 } // slot = 6 - line.length; the UI right-aligns a short line
 { type: 'moveCard',  card: uid, from: 2, to: 4, reason: 'Guard Dog' }
 { type: 'scroll',    exiting: uid, shift: [uid…] } // every card slides one slot right
 { type: 'exitLine',  card: uid, alarm: 8 }         // card leaves the line → Obstacles Discard
@@ -38,7 +40,7 @@ Engine functions that currently mutate quietly (`refillLine`, `lineScroll`, `app
 
 ## 4. The table layer (`js/table.js`)
 
-- **Slot geometry.** The line has 6 fixed slot positions (left→right). A "tray" for the Obstacles Deck sits to the left, the Obstacles Discard to the right. The hand has up to 7 slots; the Play Area and Equip Area are trays.
+- **Slot geometry.** The line has 6 fixed slot positions (left→right), and a line with fewer than 6 cards is **right-aligned** — that is exactly what "dealt from the right" looks like, and it also matches the conveyor after a scroll. A "tray" for the Obstacles Deck sits to the left, the Obstacles Discard to the right. The hand has up to 7 slots; the Play Area and Equip Area are trays.
 - **FLIP animation.** On each event: record each element's bounding box, apply the new position, then animate the delta with a CSS transform. One shared `--card-w` grid makes the math trivial.
 - **Event queue.** Events from one action run sequentially, with a small overlap for parallel slides:
   - `dealLine` 260 ms, staggered 120 ms apart
@@ -78,7 +80,7 @@ SFX volume is independent of the music bed; the music tempo already follows the 
 ## 7. Implementation phases
 
 1. **PR 1 — engine events + setup deal order.** Pure engine change plus tests; no visual change. (~1 day)
-2. **PR 2 — table layer for the line.** Deal, scroll, move, exit animations. Sound hooks.
+2. **PR 2 — table layer for the line.** Deal, scroll, move, exit animations. Sound hooks. (Engine events are already emitted: `dealLine`, `scroll`, `exitLine`, `alarm`, `moveCard`, `flipUp`, `knockOut`, `disarm`, `play`, `draw`, `discard`, `mission`.)
 3. **PR 3 — hand/Play Area/Equip animations.** Draw flicks, play arcs, KO rotation.
 4. **PR 4 — Fast table toggle + reduced-motion path,** and a "Table speed" control in the top bar.
 

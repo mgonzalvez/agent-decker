@@ -435,3 +435,71 @@ test('a Stealth-only cost cannot be paid with Fighting', () => {
   mixed = Engine.interact(mixed, 'waste_2', 'disarm', registry);
   assert.strictEqual(mixed.resources.stealth + mixed.resources.fighting, 0);
 });
+
+test('the line is dealt one card at a time, starting from the right (rules C3)', () => {
+  const state = fresh(76);
+  const deck = ['obs_guard_dog_0', 'obs_guard_0', 'obs_patrolling_guard_0'];
+  state.line = [];
+  state.obstacleDeck = deck.map(function (uid) {
+    return { uid: uid, defId: uid.split('_').slice(0, -1).join('_') === 'obs_guard_dog' ? 'obs_guard_dog' : uid.slice(0, -2) };
+  });
+  state.obstacleDiscard = [];
+  state.events = [];
+  Engine.dealLine(state, registry, 3);
+  assert.deepStrictEqual(state.line.map(function (c) { return c.uid; }),
+    ['obs_guard_0', 'obs_guard_dog_0', 'obs_patrolling_guard_0']);
+  assert.strictEqual(state.events[0].type, 'dealLine');
+  assert.strictEqual(state.events[0].slot, 5);
+  assert.strictEqual(state.events[1].slot, 4);
+  assert.strictEqual(state.events[2].slot, 3);
+  assert.ok(state.events.some(function (e) { return e.type === 'moveCard'; }));
+});
+
+test('appearance effects run in draw order, on the partial line', () => {
+  const state = fresh(76);
+  state.line = [];
+  state.obstacleDeck = [
+    { uid: 'obs_guard_dog_0', defId: 'obs_guard_dog' },
+    { uid: 'obs_guard_0', defId: 'obs_guard' }
+  ];
+  state.obstacleDiscard = [];
+  state.events = [];
+  Engine.dealLine(state, registry, 2);
+  assert.deepStrictEqual(state.line.map(function (c) { return c.uid; }), ['obs_guard_0', 'obs_guard_dog_0']);
+  assert.ok(state.events.some(function (e) { return e.type === 'moveCard' && e.reason === 'Guard Dog'; }));
+});
+
+test('every visible action produces an event stream', () => {
+  let state = fresh(76);
+  state = Engine.playCard(state, state.hand[0].uid, registry, {});
+  assert.ok(state.events.some(function (e) { return e.type === 'play'; }));
+
+  const target = state.line.find(function (c) { return Engine.canInteract(state, registry, c).ok; });
+  if (target) {
+    state = Engine.interact(state, target.uid, 'knockOut', registry);
+    assert.ok(state.events.some(function (e) { return e.type === 'knockOut'; }));
+  }
+
+  state = Engine.endTurn(state, registry);
+  const types = state.events.map(function (e) { return e.type; });
+  assert.ok(types.includes('scroll'), 'the line scroll is an event');
+  assert.ok(types.includes('exitLine'), 'the exiting card is an event');
+  assert.ok(types.includes('draw'), 'the hand redraw is an event');
+});
+
+test('events describe only the action just taken', () => {
+  let state = fresh(76);
+  state = Engine.playCard(state, state.hand[0].uid, registry, {});
+  assert.ok(state.events.length >= 1);
+  state = Engine.endTurn(state, registry);
+  assert.ok(!state.events.some(function (e) { return e.type === 'play'; }));
+});
+
+test('completing a mission re-deals the line from the right', () => {
+  let state = fresh(76);
+  state = Engine.completeMission(state, registry, missions);
+  assert.strictEqual(state.line.length, 6);
+  assert.ok(state.events.some(function (e) { return e.type === 'mission'; }));
+  assert.strictEqual(state.events.filter(function (e) { return e.type === 'dealLine'; }).length, 6);
+  assertClean(state);
+});
