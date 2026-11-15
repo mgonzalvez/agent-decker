@@ -1,6 +1,7 @@
 'use strict';
 
 const UI = (function () {
+  const TRAINING_SEED = 19;
   let state = null;
   let registry = {};
   let missions = [];
@@ -446,12 +447,12 @@ const UI = (function () {
   }
 
   function startTraining() {
-    state = AgentDecker.createInitialState(Object.keys(registry).map(function (id) { return registry[id]; }), missions, 17);
+    state = AgentDecker.createInitialState(Object.keys(registry).map(function (id) { return registry[id]; }), missions, TRAINING_SEED);
     state.tutorial = true;
     if (typeof window !== 'undefined') window.gameState = state;
     if (typeof Save !== 'undefined') Save.clearGame();
     render();
-    setSaveNote('training run · seed 17');
+    setSaveNote('training run · seed ' + TRAINING_SEED);
   }
 
   function exitTraining() {

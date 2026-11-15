@@ -41,6 +41,20 @@ const Engine = (function () {
     state.resources.fighting += res.fighting || 0;
   }
 
+  /* Every mutation the player can see is recorded as an event so the table layer
+     can replay it as animation. Events are transient: each action starts fresh. */
+  function event(state, type, data) {
+    if (!state.events) state.events = [];
+    const e = { type: type, turn: state.turn };
+    if (data) Object.keys(data).forEach(function (k) { e[k] = data[k]; });
+    state.events.push(e);
+    return e;
+  }
+
+  function resetEvents(state) {
+    state.events = [];
+  }
+
   function lineIndexOf(state, uid) {
     return state.line.findIndex(function (c) { return c.uid === uid; });
   }
@@ -172,6 +186,7 @@ const Engine = (function () {
         state.discard = [];
       }
       const card = state.deck.pop();
+      event(state, 'draw', { card: card.uid, from: 'deck' });
       if (def(card, registry).keep) state.equip.push(card);
       else {
         state.hand.push(card);
@@ -209,6 +224,7 @@ const Engine = (function () {
     const idx = lineIndexOf(state, card.uid);
 
     if (e.type === 'slideRightToType') {
+      const from = idx;
       let target = -1;
       for (let i = idx + 1; i < state.line.length; i++) {
         if (def(state.line[i], registry).obstacleType === e.targetType) { target = i; break; }
@@ -216,33 +232,46 @@ const Engine = (function () {
       if (target > idx) {
         state.line.splice(idx, 1);
         state.line.splice(target, 0, card);
+        event(state, 'moveCard', { card: card.uid, from: from, to: target, reason: def(card, registry).name });
       }
     } else if (e.type === 'slideTypeToSelf') {
+      const from = idx;
       const moved = state.line.filter(function (c) {
         return c.uid !== card.uid && def(c, registry).obstacleType === e.targetType;
       });
       state.line = state.line.filter(function (c) { return moved.indexOf(c) < 0; });
       const pos = state.line.indexOf(card);
       moved.forEach(function (c, k) { state.line.splice(pos + 1 + k, 0, c); });
+      event(state, 'moveCard', { card: card.uid, from: from, to: pos, reason: def(card, registry).name, pulled: moved.map(function (c) { return c.uid; }) });
     }
   }
 
-  function refillLine(state, registry) {
-    while (state.line.length < 6) {
+  /* Cards enter the line one at a time. Setup deals from the right (rules C3):
+     the first card drawn lands in the rightmost slot and the line grows leftward.
+     A refill enters at the left of a five-card line. Either way the array is
+     contiguous and the UI right-aligns a line that has fewer than six cards. */
+  function dealLine(state, registry, count) {
+    for (let i = 0; i < count; i++) {
       const card = drawObstacle(state);
       if (!card) {
         state.gameOver = 'time';
         return;
       }
       state.line.unshift(card);
+      event(state, 'dealLine', { card: card.uid, index: 0, slot: 6 - state.line.length });
       applyAppearance(state, registry, card);
     }
+  }
+
+  function refillLine(state, registry) {
+    dealLine(state, registry, 6 - state.line.length);
   }
 
   /* ---------- 1. Use Cards ---------- */
   function playCard(state, uid, registry, options) {
     options = options || {};
     const s = clone(state);
+    resetEvents(s);
     const card = removeFrom(s, 'hand', uid);
     if (!card) throw new Error('card is not in hand: ' + uid);
     const d = def(card, registry);
@@ -307,9 +336,16 @@ const Engine = (function () {
     }
 
     const routesToObstacles = d.reward && d.reward.effect && d.reward.effect.type === 'usedCardToObstacleDiscard';
-    if (routesToObstacles) s.obstacleDiscard.push(card);
-    else if (d.keep) s.equip.push(card);
-    else s.playArea.push(card);
+    if (routesToObstacles) {
+      s.obstacleDiscard.push(card);
+      event(s, 'play', { card: card.uid, to: 'obstacleDiscard' });
+    } else if (d.keep) {
+      equipCard(s, registry, card);
+      event(s, 'play', { card: card.uid, to: 'equip' });
+    } else {
+      s.playArea.push(card);
+      event(s, 'play', { card: card.uid, to: 'playArea' });
+    }
 
     s.log.push('played ' + d.name);
     return s;
@@ -319,6 +355,7 @@ const Engine = (function () {
   function interact(state, uid, choice, registry, options) {
     options = options || {};
     const s = clone(state);
+    resetEvents(s);
     const card = findZone(s, 'line', uid);
     if (!card) throw new Error('card is not in the line: ' + uid);
     const check = canInteract(s, registry, card);
@@ -352,6 +389,7 @@ const Engine = (function () {
       if (!d.effect || d.effect.type !== 'knockOutAdjacentInsteadOfInteract') {
         throw new Error(d.name + ' does not let you knock out an adjacent card');
       }
+      event(s, 'knockOutAdjacent', { card: options.uid, by: card.uid });
       const target = findZone(s, 'line', options.uid);
       if (!target) throw new Error('target is not in the line');
       if (Math.abs(lineIndexOf(s, card.uid) - lineIndexOf(s, target.uid)) !== 1) {
@@ -363,11 +401,19 @@ const Engine = (function () {
     }
 
     if (choice === 'knockOut') {
+      const slot = lineIndexOf(s, card.uid);
       s.faceDown[card.uid] = true;
+      event(s, 'knockOut', { card: card.uid, slot: slot });
     } else if (choice === 'disarm') {
+      const slot = lineIndexOf(s, card.uid);
       removeFrom(s, 'line', card.uid);
-      if (d.keep) equipCard(s, registry, card);
-      else s.playArea.push(card);
+      if (d.keep) {
+        equipCard(s, registry, card);
+        event(s, 'disarm', { card: card.uid, from: slot, to: 'equip' });
+      } else {
+        s.playArea.push(card);
+        event(s, 'disarm', { card: card.uid, from: slot, to: 'playArea' });
+      }
     } else {
       throw new Error('unknown interaction: ' + choice);
     }
@@ -394,6 +440,8 @@ const Engine = (function () {
     const d = def(card, registry);
     const alarm = state.faceDown[card.uid] ? 0 : d.alarm;
     state.obstacleDiscard.push(card);
+    event(state, 'exitLine', { card: card.uid, alarm: alarm, total: Math.min(50, state.alarm + alarm) });
+    if (alarm) event(state, 'alarm', { amount: alarm, total: Math.min(50, state.alarm + alarm) });
     state.alarm = Math.min(50, state.alarm + alarm);
     if (state.alarm >= 50) state.gameOver = 'alarm';
     state.log.push(d.name + ' left the line (alarm +' + alarm + ')');
@@ -411,6 +459,7 @@ const Engine = (function () {
       const last = state.line[state.line.length - 1];
       if (last && state.faceDown[last.uid]) {
         state.faceDown[last.uid] = false;
+        event(state, 'flipUp', { card: last.uid, reason: def(card, registry).name });
         state.log.push(def(last, registry).name + ' was flipped face up by ' + def(card, registry).name);
         applyAppearance(state, registry, last);
       }
@@ -419,6 +468,7 @@ const Engine = (function () {
 
   function lineScroll(state, registry) {
     const s = clone(state);
+    resetEvents(s);
     if (!s.line.length) return s;
     applyScrollTriggers(s, registry);
 
@@ -436,6 +486,7 @@ const Engine = (function () {
     }
 
     const exiting = s.line.splice(exitingIndex, 1)[0];
+    event(s, 'scroll', { shift: s.line.map(function (c) { return c.uid; }), exiting: exiting.uid });
     exitLine(s, exiting, registry);
     if (s.gameOver) return s;
     if (!s.line.length) {
@@ -470,17 +521,19 @@ const Engine = (function () {
   /* ---------- 4. Card Refresh ---------- */
   function refresh(state, registry) {
     const s = clone(state);
+    if (!s.events) s.events = [];
     refillLine(s, registry);
     if (s.gameOver) return s;
 
     s.hand.forEach(function (card) {
       if (def(card, registry).keep) equipCard(s, registry, card);
-      else s.discard.push(card);
+      else { s.discard.push(card); event(s, 'discard', { card: card.uid, from: 'hand' }); }
     });
     const persistent = [];
     s.playArea.forEach(function (card) {
       if (def(card, registry).keep) { equipCard(s, registry, card); return; }
       s.discard.push(card);
+      event(s, 'discard', { card: card.uid, from: 'playArea' });
     });
     s.playArea = persistent;
     s.hand = [];
@@ -520,6 +573,7 @@ const Engine = (function () {
 
   function completeMission(state, registry, missions) {
     const s = clone(state);
+    resetEvents(s);
     const mission = missions[s.missionIndex];
     s.missionAlarms.push(s.alarm);
 
@@ -548,15 +602,11 @@ const Engine = (function () {
       }
     });
 
+    event(s, 'mission', { missionIndex: s.missionIndex, reward: goalCard ? goalCard.uid : null });
     s.obstacleDeck = shuffleInPlace(s.obstacleDeck.concat(s.obstacleDiscard, s.line), s);
     s.obstacleDiscard = [];
     s.line = [];
-    for (let i = 0; i < 6; i++) {
-      const card = s.obstacleDeck.pop();
-      if (!card) { s.gameOver = 'time'; break; }
-      s.line.push(card);
-      applyAppearance(s, registry, card);
-    }
+    dealLine(s, registry, 6);
     s.alarm = 0;
     s.faceDown = {};
 
@@ -584,6 +634,7 @@ const Engine = (function () {
   /* Deliberately using an equipped item: it leaves the Equip Area for its effect. */
   function useItem(state, uid, registry) {
     const s = clone(state);
+    resetEvents(s);
     const card = findZone(s, 'equip', uid);
     if (!card) throw new Error('item is not equipped: ' + uid);
     const d = def(card, registry);
@@ -597,7 +648,8 @@ const Engine = (function () {
 
   return {
     clone, def, effectiveCost, costBreakdown, canAfford, canInteract, goalSatisfied,
-    playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem
+    playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem,
+    dealLine, event
   };
 })();
 
