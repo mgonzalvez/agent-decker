@@ -7,9 +7,9 @@
         dog barks, a radio tower hisses, a prison door clangs. The engine records
         what happened in state.events and js/table.js plays the cue for each card
         as it moves.
-     2. A four-channel PSG-style bed (pulse lead, pulse arps, triangle bass,
-        quantised noise drums) with two phrases per track and a feedback delay,
-        in the spirit of 16-bit chip music. Five tracks, chosen from the top bar.
+     2. The score: five driving spy grooves (syncopated pulse bass, chord stabs,
+        a hooky lead with vibrato and pitch bends, backbeat drums), two phrases
+        each, in the Jan Hammer / Crockett vein. Chosen from the top bar.
 
    Music is off by default; the board is silent until the player turns audio on. */
 const Sound = (function () {
@@ -24,69 +24,113 @@ const Sound = (function () {
 
   const LOOKAHEAD = 1.2;
 
-  /* Five beds, each two phrases long. Notes are written as
-     [step, midi, length-in-eighths] so lines can hold for whole bars — a spy
-     bed is carried by long, dark sustained notes, not by machine-gun
-     sixteenths. `chords` are pitch classes and also voice the pad. */
+  /* Five beds, two phrases each. The grid is a sixteenth note, so the lines can
+     syncopate; notes are [step, midi, length] and an optional fourth value is the
+     pitch a note bends *in* from — that slide is the Crockett signature. */
   const TRACKS = {
     nightline: {
-      name: 'Nightline Shunt', bpm: 92, steps: 32, swing: 0, echo: 0.32, leadDuty: 0.25,
-      drums: { kick: [0, 16], snare: [8, 24], hat: [4, 12, 20, 28] },
+      name: 'Nightline Shunt', bpm: 116, steps: 32, swing: 0.06, echo: 0.22, leadDuty: 0.3,
+      drums: { kick: [0, 6, 8, 16, 22, 24], snare: [8, 24], ghost: [4, 12, 20, 28], hat: [2, 4, 6, 10, 12, 14, 18, 20, 22, 26, 28, 30] },
+      stab: [3, 7, 11, 15, 19, 23, 27, 31],
       phrases: [
-        { chords: [[9, 0, 4, 7], [5, 9, 0, 4], [2, 5, 9, 0], [4, 8, 11, 2]],
-          bass: [[0, 45, 8], [8, 41, 8], [16, 38, 8], [24, 40, 4], [28, 44, 4]],
-          lead: [[2, 69, 2], [4, 67, 2], [6, 72, 4], [10, 65, 2], [12, 69, 4], [18, 74, 2], [20, 69, 2], [22, 72, 4], [26, 68, 2], [28, 71, 4], [30, 64, 2]] },
+        { chords: [[9, 0, 4, 7], [9, 0, 4, 7], [5, 9, 0, 4], [4, 8, 11, 2]],
+          bass: [[0, 45, 2], [2, 45, 1], [3, 45, 1], [4, 45, 2], [6, 45, 1], [7, 45, 1],
+                 [8, 45, 2], [10, 45, 1], [11, 45, 1], [12, 45, 2], [14, 52, 1], [15, 45, 1],
+                 [16, 41, 2], [18, 41, 1], [19, 41, 1], [20, 41, 2], [22, 41, 1], [23, 41, 1],
+                 [24, 40, 2], [26, 40, 1], [27, 40, 1], [28, 40, 2], [30, 44, 1], [31, 40, 1]],
+          lead: [[0, 69, 2], [2, 67, 2], [4, 69, 2], [6, 72, 2, 69], [8, 69, 2], [10, 72, 2], [12, 69, 2], [14, 67, 2],
+                 [16, 65, 2], [18, 69, 2], [20, 72, 2], [22, 69, 2], [24, 64, 2], [26, 68, 2], [28, 71, 2], [30, 68, 2]] },
         { chords: [[9, 0, 4, 7], [2, 5, 9, 0], [5, 9, 0, 4], [4, 8, 11, 2]],
-          bass: [[0, 45, 8], [8, 38, 8], [16, 41, 8], [24, 40, 4], [28, 44, 4]],
-          lead: [[2, 76, 2], [4, 72, 2], [6, 69, 4], [10, 65, 2], [12, 69, 4], [18, 65, 2], [20, 72, 2], [22, 69, 4], [26, 64, 2], [28, 68, 2], [30, 71, 2]] }
+          bass: [[0, 45, 2], [2, 45, 1], [3, 45, 1], [4, 45, 2], [6, 45, 1], [7, 45, 1],
+                 [8, 38, 2], [10, 38, 1], [11, 38, 1], [12, 38, 2], [14, 45, 1], [15, 38, 1],
+                 [16, 41, 2], [18, 41, 1], [19, 41, 1], [20, 41, 2], [22, 41, 1], [23, 41, 1],
+                 [24, 40, 2], [26, 40, 1], [27, 40, 1], [28, 40, 2], [30, 44, 1], [31, 40, 1]],
+          lead: [[0, 72, 2], [2, 69, 2], [4, 72, 2], [6, 72, 2, 69], [8, 74, 2], [10, 72, 2], [12, 69, 2], [14, 72, 2],
+                 [16, 65, 2], [18, 69, 2], [20, 65, 2], [22, 69, 2], [24, 68, 2], [26, 71, 2], [28, 64, 2], [30, 68, 2]] }
       ]
     },
     waltz: {
-      name: 'Cold War Waltz', bpm: 84, steps: 24, swing: 0, echo: 0.38, leadDuty: 0.3,
-      drums: { kick: [0, 12], snare: [3, 9, 15, 21], hat: [5, 11, 17, 23] },
+      name: 'Cold War Chase', bpm: 112, steps: 32, swing: 0, echo: 0.24, leadDuty: 0.25,
+      drums: { kick: [0, 8, 12, 16, 24, 28], snare: [8, 24], ghost: [6, 14, 22, 30], hat: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30] },
+      stab: [5, 13, 21, 29],
       phrases: [
-        { chords: [[2, 5, 9, 0], [10, 2, 5, 9], [9, 0, 4, 7]],
-          bass: [[0, 50, 3], [3, 57, 3], [6, 50, 2], [8, 46, 3], [11, 53, 3], [14, 46, 2], [16, 45, 3], [19, 52, 3], [22, 45, 2]],
-          lead: [[1, 74, 2], [5, 69, 1], [7, 77, 3], [9, 70, 2], [11, 74, 2], [13, 65, 1], [15, 77, 3], [17, 69, 2], [19, 72, 2], [21, 76, 3], [23, 69, 1]] },
-        { chords: [[2, 5, 9, 0], [10, 2, 5, 9], [9, 0, 4, 7]],
-          bass: [[0, 50, 3], [3, 57, 3], [6, 53, 2], [8, 41, 3], [11, 46, 3], [14, 41, 2], [16, 45, 3], [19, 52, 3], [22, 48, 2]],
-          lead: [[1, 77, 2], [5, 74, 1], [7, 69, 3], [9, 65, 2], [11, 70, 2], [13, 74, 1], [15, 70, 3], [17, 72, 2], [19, 69, 2], [21, 76, 3], [23, 76, 1]] }
+        { chords: [[2, 5, 9, 0], [2, 5, 9, 0], [7, 10, 2, 5], [0, 4, 7, 11]],
+          bass: [[0, 50, 2], [2, 50, 1], [3, 50, 1], [4, 50, 2], [6, 50, 1], [7, 50, 1],
+                 [8, 50, 2], [10, 50, 1], [11, 50, 1], [12, 50, 2], [14, 57, 1], [15, 50, 1],
+                 [16, 43, 2], [18, 43, 1], [19, 43, 1], [20, 43, 2], [22, 43, 1], [23, 43, 1],
+                 [24, 48, 2], [26, 48, 1], [27, 48, 1], [28, 48, 2], [30, 55, 1], [31, 48, 1]],
+          lead: [[0, 74, 2], [2, 77, 2], [4, 74, 2], [6, 69, 2], [8, 69, 2], [10, 74, 2], [12, 77, 2], [14, 74, 2],
+                 [16, 67, 2], [18, 70, 2], [20, 74, 2], [22, 70, 2], [24, 72, 2], [26, 76, 2], [28, 72, 2], [30, 67, 2]] },
+        { chords: [[2, 5, 9, 0], [7, 10, 2, 5], [0, 4, 7, 11], [9, 1, 4, 6]],
+          bass: [[0, 50, 2], [2, 50, 1], [3, 50, 1], [4, 50, 2], [6, 50, 1], [7, 50, 1],
+                 [8, 43, 2], [10, 43, 1], [11, 43, 1], [12, 43, 2], [14, 50, 1], [15, 43, 1],
+                 [16, 48, 2], [18, 48, 1], [19, 48, 1], [20, 48, 2], [22, 48, 1], [23, 48, 1],
+                 [24, 45, 2], [26, 45, 1], [27, 45, 1], [28, 45, 2], [30, 52, 1], [31, 45, 1]],
+          lead: [[0, 69, 2], [2, 74, 2], [4, 69, 2], [6, 77, 2, 74], [8, 70, 2], [10, 74, 2], [12, 70, 2], [14, 67, 2],
+                 [16, 72, 2], [18, 76, 2], [20, 72, 2], [22, 67, 2], [24, 69, 2], [26, 73, 2], [28, 76, 2], [30, 73, 2]] }
       ]
     },
     deaddrop: {
-      name: 'Dead Drop', bpm: 76, steps: 32, swing: 0, echo: 0.42, leadDuty: 0.125,
-      drums: { kick: [0, 16], snare: [], hat: [8, 24] },
+      name: 'Dead Drop', bpm: 104, steps: 32, swing: 0.08, echo: 0.28, leadDuty: 0.3,
+      drums: { kick: [0, 8, 16, 24], snare: [8, 24], ghost: [4, 20], hat: [4, 12, 20, 28] },
+      stab: [6, 14, 22, 30],
       phrases: [
-        { chords: [[9, 0, 4, 7], [2, 5, 9, 0]],
-          bass: [[0, 45, 16], [16, 38, 16]],
-          lead: [[6, 76, 4], [14, 69, 4], [22, 72, 4], [28, 65, 4]] },
-        { chords: [[2, 5, 9, 0], [9, 0, 4, 7]],
-          bass: [[0, 38, 16], [16, 45, 16]],
-          lead: [[6, 65, 4], [14, 74, 4], [22, 69, 4], [28, 72, 4]] }
+        { chords: [[9, 0, 4, 7], [9, 0, 4, 7], [5, 9, 0, 4], [5, 9, 0, 4]],
+          bass: [[0, 45, 2], [2, 45, 1], [3, 45, 1], [4, 45, 2], [6, 45, 1], [7, 45, 1],
+                 [8, 45, 2], [10, 45, 1], [11, 45, 1], [12, 45, 2], [14, 52, 1], [15, 45, 1],
+                 [16, 41, 2], [18, 41, 1], [19, 41, 1], [20, 41, 2], [22, 41, 1], [23, 41, 1],
+                 [24, 41, 2], [26, 41, 1], [27, 41, 1], [28, 41, 2], [30, 45, 1], [31, 41, 1]],
+          lead: [[0, 69, 2], [2, 72, 2], [4, 69, 2], [6, 76, 2, 72], [8, 72, 2], [10, 69, 2], [12, 72, 2], [14, 67, 2],
+                 [16, 65, 2], [18, 69, 2], [20, 72, 2], [22, 69, 2], [24, 65, 2], [26, 69, 2], [28, 72, 2], [30, 69, 2]] },
+        { chords: [[2, 5, 9, 0], [2, 5, 9, 0], [9, 0, 4, 7], [5, 9, 0, 4]],
+          bass: [[0, 38, 2], [2, 38, 1], [3, 38, 1], [4, 38, 2], [6, 38, 1], [7, 38, 1],
+                 [8, 38, 2], [10, 38, 1], [11, 38, 1], [12, 38, 2], [14, 45, 1], [15, 38, 1],
+                 [16, 45, 2], [18, 45, 1], [19, 45, 1], [20, 45, 2], [22, 45, 1], [23, 45, 1],
+                 [24, 41, 2], [26, 41, 1], [27, 41, 1], [28, 41, 2], [30, 45, 1], [31, 41, 1]],
+          lead: [[0, 74, 2], [2, 69, 2], [4, 74, 2], [6, 72, 2], [8, 69, 2], [10, 74, 2], [12, 77, 2], [14, 74, 2],
+                 [16, 69, 2], [18, 72, 2], [20, 76, 2], [22, 72, 2], [24, 65, 2], [26, 69, 2], [28, 72, 2], [30, 69, 2]] }
       ]
     },
     safehouse: {
-      name: 'Safehouse Nocturne', bpm: 96, steps: 32, swing: 0.14, echo: 0.28, leadDuty: 0.25,
-      drums: { kick: [0, 8, 16, 24], snare: [16], hat: [4, 12, 20, 28] },
+      name: 'Safehouse Boogie', bpm: 124, steps: 32, swing: 0.1, echo: 0.18, leadDuty: 0.25,
+      drums: { kick: [0, 6, 8, 16, 22, 24], snare: [8, 24], ghost: [2, 10, 18, 26], hat: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30] },
+      stab: [4, 12, 20, 28],
       phrases: [
-        { chords: [[2, 5, 9, 0], [7, 10, 2, 5], [0, 4, 7, 11], [9, 1, 4, 6]],
-          bass: [[0, 50, 8], [8, 43, 8], [16, 48, 8], [24, 45, 4], [28, 52, 4]],
-          lead: [[0, 74, 3], [3, 69, 1], [4, 77, 4], [8, 70, 2], [10, 74, 4], [14, 65, 3], [17, 67, 3], [20, 76, 4], [24, 69, 2], [26, 73, 3], [29, 76, 2], [31, 69, 1]] },
-        { chords: [[2, 5, 9, 0], [9, 1, 4, 6], [7, 10, 2, 5], [0, 4, 7, 11]],
-          bass: [[0, 50, 8], [8, 45, 8], [16, 43, 8], [24, 48, 4], [28, 55, 4]],
-          lead: [[0, 77, 3], [3, 74, 1], [4, 69, 4], [8, 73, 2], [10, 76, 4], [14, 69, 3], [17, 70, 3], [20, 74, 4], [24, 67, 2], [26, 72, 3], [29, 64, 2], [31, 76, 1]] }
+        { chords: [[4, 8, 11, 2], [9, 0, 4, 7], [2, 5, 9, 0], [5, 9, 0, 4]],
+          bass: [[0, 40, 2], [2, 40, 1], [3, 40, 1], [4, 40, 2], [6, 40, 1], [7, 40, 1],
+                 [8, 45, 2], [10, 45, 1], [11, 45, 1], [12, 45, 2], [14, 52, 1], [15, 45, 1],
+                 [16, 38, 2], [18, 38, 1], [19, 38, 1], [20, 38, 2], [22, 38, 1], [23, 38, 1],
+                 [24, 41, 2], [26, 41, 1], [27, 41, 1], [28, 41, 2], [30, 45, 1], [31, 41, 1]],
+          lead: [[0, 64, 2], [2, 68, 2], [4, 71, 2], [6, 68, 2], [8, 69, 2], [10, 72, 2], [12, 76, 2], [14, 72, 2],
+                 [16, 74, 2], [18, 69, 2], [20, 72, 2], [22, 69, 2], [24, 65, 2], [26, 69, 2], [28, 72, 2], [30, 69, 2]] },
+        { chords: [[4, 8, 11, 2], [2, 5, 9, 0], [9, 0, 4, 7], [5, 9, 0, 4]],
+          bass: [[0, 40, 2], [2, 40, 1], [3, 40, 1], [4, 40, 2], [6, 44, 1], [7, 40, 1],
+                 [8, 38, 2], [10, 38, 1], [11, 38, 1], [12, 38, 2], [14, 45, 1], [15, 38, 1],
+                 [16, 45, 2], [18, 45, 1], [19, 45, 1], [20, 45, 2], [22, 45, 1], [23, 45, 1],
+                 [24, 41, 2], [26, 41, 1], [27, 41, 1], [28, 41, 2], [30, 45, 1], [31, 41, 1]],
+          lead: [[0, 68, 2], [2, 71, 2], [4, 68, 2], [6, 64, 2], [8, 74, 2], [10, 69, 2], [12, 72, 2], [14, 69, 2],
+                 [16, 69, 2], [18, 72, 2], [20, 76, 2], [22, 72, 2], [24, 65, 2], [26, 69, 2], [28, 72, 2], [30, 65, 2]] }
       ]
     },
     blackout: {
-      name: 'Blackout March', bpm: 100, steps: 32, swing: 0, echo: 0.24, leadDuty: 0.3,
-      drums: { kick: [0, 8, 16, 24], snare: [4, 12, 20, 28], hat: [] },
+      name: 'Blackout March', bpm: 112, steps: 32, swing: 0, echo: 0.20, leadDuty: 0.3,
+      drums: { kick: [0, 4, 8, 12, 16, 20, 24, 28], snare: [8, 24], ghost: [6, 14, 22, 30], hat: [2, 6, 10, 14, 18, 22, 26, 30] },
+      stab: [2, 10, 18, 26],
       phrases: [
         { chords: [[5, 9, 0, 3], [1, 5, 8, 0], [5, 9, 0, 3], [0, 4, 7, 11]],
-          bass: [[0, 41, 8], [8, 49, 8], [16, 41, 8], [24, 48, 8]],
-          lead: [[0, 65, 4], [4, 63, 2], [6, 69, 4], [12, 60, 4], [16, 65, 4], [20, 63, 2], [22, 69, 2], [26, 60, 2], [28, 64, 4], [30, 67, 2]] },
+          bass: [[0, 41, 2], [2, 41, 1], [3, 41, 1], [4, 41, 2], [6, 41, 1], [7, 41, 1],
+                 [8, 49, 2], [10, 49, 1], [11, 49, 1], [12, 49, 2], [14, 41, 1], [15, 49, 1],
+                 [16, 41, 2], [18, 41, 1], [19, 41, 1], [20, 41, 2], [22, 41, 1], [23, 41, 1],
+                 [24, 48, 2], [26, 48, 1], [27, 48, 1], [28, 48, 2], [30, 55, 1], [31, 48, 1]],
+          lead: [[0, 65, 2], [2, 69, 2], [4, 65, 2], [6, 63, 2], [8, 60, 2], [10, 68, 2], [12, 60, 2], [14, 68, 2],
+                 [16, 65, 2], [18, 63, 2], [20, 69, 2], [22, 65, 2], [24, 60, 2], [26, 64, 2], [28, 67, 2], [30, 64, 2]] },
         { chords: [[5, 9, 0, 3], [0, 4, 7, 11], [1, 5, 8, 0], [5, 9, 0, 3]],
-          bass: [[0, 41, 8], [8, 48, 8], [16, 49, 8], [24, 41, 8]],
-          lead: [[0, 69, 4], [4, 65, 2], [6, 60, 4], [12, 64, 4], [16, 61, 4], [20, 68, 4], [24, 65, 2], [26, 63, 2], [28, 60, 4], [30, 65, 2]] }
+          bass: [[0, 41, 2], [2, 41, 1], [3, 41, 1], [4, 41, 2], [6, 41, 1], [7, 41, 1],
+                 [8, 48, 2], [10, 48, 1], [11, 48, 1], [12, 48, 2], [14, 48, 1], [15, 48, 1],
+                 [16, 49, 2], [18, 49, 1], [19, 49, 1], [20, 49, 2], [22, 49, 1], [23, 49, 1],
+                 [24, 41, 2], [26, 41, 1], [27, 41, 1], [28, 41, 2], [30, 45, 1], [31, 41, 1]],
+          lead: [[0, 65, 2], [2, 69, 2], [4, 65, 2], [6, 63, 2], [8, 60, 2], [10, 64, 2], [12, 67, 2], [14, 64, 2],
+                 [16, 61, 2], [18, 68, 2], [20, 61, 2], [22, 68, 2], [24, 65, 2], [26, 69, 2], [28, 65, 2], [30, 63, 2]] }
       ]
     }
   };
@@ -544,11 +588,10 @@ const Sound = (function () {
   function track() { return TRACKS[trackName]; }
 
   function bpm() {
-    return track().bpm + Math.min(10, Math.round(tension * 0.35));
+    return track().bpm + Math.min(8, Math.round(tension * 0.25));
   }
 
-  /* The pad: the whole chord held, swelling slowly, plus a root an octave
-     lower that is barely audible. This is the body of the bed. */
+  /* The bed: the chord held quietly under everything, so the groove has a floor. */
   function padChord(at, pcs, gate) {
     const ctx = ensureContext();
     if (!ctx) return;
@@ -558,41 +601,51 @@ const Sound = (function () {
       osc.type = 'sine';
       osc.frequency.value = midiToFreq(48 + pc) * (1 + (k % 2 ? 0.004 : -0.003));
       env.gain.setValueAtTime(0, at);
-      env.gain.linearRampToValueAtTime(0.022, at + gate * 0.35);
-      env.gain.linearRampToValueAtTime(0.015, at + gate * 0.8);
+      env.gain.linearRampToValueAtTime(0.016, at + gate * 0.3);
+      env.gain.linearRampToValueAtTime(0.011, at + gate * 0.85);
       env.gain.linearRampToValueAtTime(0, at + gate);
       osc.connect(env);
       env.connect(musicBus(ctx));
       osc.start(at);
       osc.stop(at + gate + 0.05);
     });
-    const drone = ctx.createOscillator();
-    const dEnv = ctx.createGain();
-    drone.type = 'triangle';
-    drone.frequency.value = midiToFreq(36 + pcs[0]);
-    dEnv.gain.setValueAtTime(0, at);
-    dEnv.gain.linearRampToValueAtTime(0.03, at + gate * 0.3);
-    dEnv.gain.linearRampToValueAtTime(0, at + gate);
-    drone.connect(dEnv);
-    dEnv.connect(musicBus(ctx));
-    drone.start(at);
-    drone.stop(at + gate + 0.05);
   }
 
+  /* Funky chord stabs on the off beats — the driving part of the bed. */
+  function stab(at, pcs, gate) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    pcs.forEach(function (pc) {
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      const wave = pulseWave(ctx, 0.4);
+      if (wave) osc.setPeriodicWave(wave);
+      osc.frequency.value = midiToFreq(60 + pc);
+      env.gain.setValueAtTime(0, at);
+      env.gain.linearRampToValueAtTime(0.024, at + 0.012);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + gate);
+      osc.connect(env);
+      env.connect(musicBus(ctx));
+      osc.start(at);
+      osc.stop(at + gate + 0.02);
+    });
+  }
+
+  /* Syncopated pulse bass with a lowpass: the groove's engine. */
   function bassNote(at, note, gate) {
     const ctx = ensureContext();
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
     const cut = ctx.createBiquadFilter();
-    osc.type = 'triangle';
+    const wave = pulseWave(ctx, 0.5);
+    if (wave) osc.setPeriodicWave(wave);
     osc.frequency.value = midiToFreq(note);
     cut.type = 'lowpass';
-    cut.frequency.value = 320;
+    cut.frequency.value = 420;
     env.gain.setValueAtTime(0, at);
-    env.gain.linearRampToValueAtTime(0.10, at + 0.03);
-    env.gain.setValueAtTime(0.09, at + gate * 0.65);
-    env.gain.linearRampToValueAtTime(0, at + gate);
+    env.gain.linearRampToValueAtTime(0.13, at + 0.012);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + gate);
     osc.connect(cut);
     cut.connect(env);
     env.connect(musicBus(ctx));
@@ -600,30 +653,34 @@ const Sound = (function () {
     osc.stop(at + gate + 0.02);
   }
 
-  /* Soft pulse with a slow vibrato: a cheap stand-in for a bowed string. */
-  function leadNote(at, note, gate, duty, gain) {
+  /* The hook: a pulse lead with vibrato, and an optional slide in from a lower
+     pitch — the Jan Hammer move. */
+  function leadNote(at, note, gate, duty, gain, from) {
     const ctx = ensureContext();
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
     const wave = pulseWave(ctx, duty);
     if (wave) osc.setPeriodicWave(wave);
-    osc.frequency.value = midiToFreq(note);
-    env.gain.setValueAtTime(0, at);
-    env.gain.linearRampToValueAtTime(gain, at + 0.04);
-    env.gain.setValueAtTime(gain * 0.85, at + gate * 0.7);
-    env.gain.linearRampToValueAtTime(0, at + gate);
-    if (gate > 0.3) {
-      const lfo = ctx.createOscillator();
-      const lfoGain = ctx.createGain();
-      lfo.type = 'sine';
-      lfo.frequency.value = 4.5;
-      lfoGain.gain.value = 2.5;
-      lfo.connect(lfoGain);
-      lfoGain.connect(osc.frequency);
-      lfo.start(at);
-      lfo.stop(at + gate);
+    if (from !== undefined) {
+      osc.frequency.setValueAtTime(midiToFreq(from), at);
+      osc.frequency.linearRampToValueAtTime(midiToFreq(note), at + 0.05);
+    } else {
+      osc.frequency.value = midiToFreq(note);
     }
+    env.gain.setValueAtTime(0, at);
+    env.gain.linearRampToValueAtTime(gain, at + 0.02);
+    env.gain.setValueAtTime(gain * 0.8, at + gate * 0.7);
+    env.gain.linearRampToValueAtTime(0, at + gate);
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = 5.5;
+    lfoGain.gain.value = 3;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    lfo.start(at);
+    lfo.stop(at + gate);
     osc.connect(env);
     env.connect(musicBus(ctx));
     osc.start(at);
@@ -636,17 +693,17 @@ const Sound = (function () {
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(120, at);
-    osc.frequency.exponentialRampToValueAtTime(38, at + 0.14);
-    env.gain.setValueAtTime(0.13, at);
-    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+    osc.frequency.setValueAtTime(150, at);
+    osc.frequency.exponentialRampToValueAtTime(45, at + 0.09);
+    env.gain.setValueAtTime(0.16, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.13);
     osc.connect(env);
     env.connect(musicBus(ctx));
     osc.start(at);
-    osc.stop(at + 0.25);
+    osc.stop(at + 0.18);
   }
 
-  function snare(at) {
+  function snare(at, gain) {
     const ctx = ensureContext();
     if (!ctx) return;
     const src = ctx.createBufferSource();
@@ -654,33 +711,32 @@ const Sound = (function () {
     const filter = ctx.createBiquadFilter();
     const env = ctx.createGain();
     filter.type = 'bandpass';
-    filter.frequency.value = 1200;
-    env.gain.setValueAtTime(0.045, at);
-    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.12);
+    filter.frequency.value = 1800;
+    env.gain.setValueAtTime(gain, at);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.1);
     src.connect(filter);
     filter.connect(env);
     env.connect(musicBus(ctx));
     src.start(at);
-    src.stop(at + 0.16);
+    src.stop(at + 0.14);
   }
 
-  /* A quiet clock ticking, not a hi-hat. */
-  function tick(at) {
+  function hat(at, gain) {
     const ctx = ensureContext();
     if (!ctx) return;
     const src = ctx.createBufferSource();
     src.buffer = noiseBuffer(ctx);
     const filter = ctx.createBiquadFilter();
     const env = ctx.createGain();
-    filter.type = 'bandpass';
-    filter.frequency.value = 2600;
-    env.gain.setValueAtTime(0.012, at);
+    filter.type = 'highpass';
+    filter.frequency.value = 5000;
+    env.gain.setValueAtTime(gain, at);
     env.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
     src.connect(filter);
     filter.connect(env);
     env.connect(musicBus(ctx));
     src.start(at);
-    src.stop(at + 0.08);
+    src.stop(at + 0.07);
   }
 
   /* Distant radio blip: only once the alarm is already high. */
@@ -752,29 +808,28 @@ const Sound = (function () {
     src.stop(at + 0.06);
   }
 
-  function playStep(t, i, at, eighth) {
+  function playStep(t, i, at, grid) {
     const phrase = t.phrases[Math.floor(step / t.steps) % t.phrases.length];
     const span = t.steps / phrase.chords.length;
     const chord = phrase.chords[Math.floor(i / span)];
 
-    /* One chord held for a whole span: that is the bed. */
-    if (i % span === 0) padChord(at, chord, span * eighth);
+    if (i % span === 0) padChord(at, chord, span * grid);
+    if (t.stab && t.stab.indexOf(i) >= 0) stab(at, chord, grid * 2);
 
     phrase.bass.forEach(function (n) {
-      if (n[0] === i) bassNote(at, n[1], n[2] * eighth);
+      if (n[0] === i) bassNote(at, n[1], n[2] * grid);
     });
     phrase.lead.forEach(function (n) {
-      if (n[0] === i) leadNote(at, n[1], n[2] * eighth, t.leadDuty, 0.05);
+      if (n[0] === i) leadNote(at, n[1], n[2] * grid, t.leadDuty, 0.06, n[3]);
     });
 
     if (t.drums.kick.indexOf(i) >= 0) kick(at);
-    if (t.drums.snare.indexOf(i) >= 0) snare(at);
-    if (t.drums.hat.indexOf(i) >= 0) tick(at);
+    if (t.drums.snare.indexOf(i) >= 0) snare(at, 0.07);
+    if (t.drums.ghost && t.drums.ghost.indexOf(i) >= 0) snare(at, 0.03);
+    if (t.drums.hat.indexOf(i) >= 0) hat(at, 0.018);
 
-    /* The alarm thins the bed out into nervous chatter, then distant blips. */
-    if (tension >= 30 && i % 4 === 2) {
-      leadNote(at, chord[(i / 2) % chord.length] + 36, eighth * 0.6, 0.125, 0.022);
-    }
+    /* The alarm pushes the groove: extra stabs, then distant radio blips. */
+    if (tension >= 30 && i % 4 === 2) stab(at, chord, grid * 2);
     if (tension >= 42 && i % 8 === 6) blip(at);
   }
 
@@ -785,15 +840,15 @@ const Sound = (function () {
     if (!ctx || !musicOn || muted) return;
     if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
     const t = track();
-    const eighth = 60 / bpm() / 2;
+    const grid = 60 / bpm() / 4;
     if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
     const horizon = ctx.currentTime + LOOKAHEAD;
     let guard = 0;
-    while (nextTime < horizon && guard < 96) {
+    while (nextTime < horizon && guard < 128) {
       const i = step % t.steps;
-      const at = (i % 2 === 1) ? nextTime + t.swing * eighth : nextTime;
-      playStep(t, i, at, eighth);
-      nextTime += eighth;
+      const at = (i % 2 === 1) ? nextTime + t.swing * grid : nextTime;
+      playStep(t, i, at, grid);
+      nextTime += grid;
       step += 1;
       guard += 1;
     }
@@ -807,7 +862,7 @@ const Sound = (function () {
     const busGain = applyEcho(ctx);
     busGain.gain.cancelScheduledValues(ctx.currentTime);
     busGain.gain.setValueAtTime(0, ctx.currentTime);
-    busGain.gain.linearRampToValueAtTime(0.7, ctx.currentTime + 1.2);
+    busGain.gain.linearRampToValueAtTime(0.55, ctx.currentTime + 0.8);
     nextTime = ctx.currentTime + 0.05;
     step = 0;
     scheduleAhead();
@@ -962,6 +1017,8 @@ const Sound = (function () {
           name: TRACKS[id].name,
           bpm: TRACKS[id].bpm,
           steps: TRACKS[id].steps,
+          drums: TRACKS[id].drums,
+          stab: TRACKS[id].stab,
           phrases: TRACKS[id].phrases.length,
           data: TRACKS[id].phrases
         };
