@@ -178,6 +178,14 @@ button { font: inherit; }
   color: var(--ink);
 }
 .slot:hover { border-color: var(--accent); }
+.slot-empty {
+  background: transparent;
+  border: 1px dashed var(--line);
+  cursor: default;
+  min-height: 64px;
+  opacity: .55;
+}
+.slot-empty .slot-meta { font-size: 10px; }
 .slot img {
   width: 100%;
   height: auto;

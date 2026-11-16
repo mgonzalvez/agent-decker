@@ -4,7 +4,9 @@
    Every action clones the state, so the caller keeps the previous state (undo/save). */
 const Engine = (function () {
   function clone(state) {
-    return JSON.parse(JSON.stringify(state));
+    const copy = JSON.parse(JSON.stringify(state));
+    copy.line = normalizeLine(copy.line);
+    return copy;
   }
 
   function def(card, registry) {
@@ -27,12 +29,20 @@ const Engine = (function () {
   }
 
   function findZone(state, zone, uid) {
-    return state[zone].find(function (c) { return c.uid === uid; });
+    return state[zone].find(function (c) { return c && c.uid === uid; });
   }
 
   function removeFrom(state, zone, uid) {
-    const idx = state[zone].findIndex(function (c) { return c.uid === uid; });
-    return idx < 0 ? null : state[zone].splice(idx, 1)[0];
+    const idx = state[zone].findIndex(function (c) { return c && c.uid === uid; });
+    if (idx < 0) return null;
+    /* A card removed from the line leaves its slot empty: the conveyor keeps its
+       six positions and the hole is only filled when new obstacles are drawn. */
+    if (zone === 'line') {
+      const card = state[zone][idx];
+      state[zone][idx] = null;
+      return card;
+    }
+    return state[zone].splice(idx, 1)[0];
   }
 
   function addResource(state, res) {
@@ -77,8 +87,31 @@ const Engine = (function () {
     return parts.join(' + ') || 'nothing';
   }
 
+  /* The line is six conveyor slots. Slots can be empty: a disarmed card leaves a
+     hole, and the hole is only filled when new obstacles are drawn. A hand-built
+     line of fewer than six cards is right-aligned, i.e. it sits at the exit end. */
+  const LINE_SIZE = 6;
+
+  function normalizeLine(line) {
+    line = line || [];
+    if (line.length === LINE_SIZE) return line;
+    if (line.length > LINE_SIZE) return line.slice(0, LINE_SIZE);
+    const gaps = [];
+    for (let i = 0; i < LINE_SIZE - line.length; i++) gaps.push(null);
+    return gaps.concat(line);
+  }
+
+  function lineCards(state) {
+    return state.line.filter(Boolean);
+  }
+
   function lineIndexOf(state, uid) {
-    return state.line.findIndex(function (c) { return c.uid === uid; });
+    return state.line.findIndex(function (c) { return c && c.uid === uid; });
+  }
+
+  function rightmostIndex(state) {
+    for (let i = state.line.length - 1; i >= 0; i--) if (state.line[i]) return i;
+    return -1;
   }
 
   /* ---------- costs & passive line effects ---------- */
@@ -145,7 +178,7 @@ const Engine = (function () {
     if (lineIndexOf(state, card.uid) < 0) return { ok: false, reason: 'not in the line' };
 
     const hawk = state.line.some(function (c) {
-      if (state.faceDown[c.uid]) return false;
+      if (!c || state.faceDown[c.uid]) return false;
       const e = def(c, registry).effect;
       return e && e.type === 'blockStealthOnlyInteracts';
     });
@@ -155,7 +188,7 @@ const Engine = (function () {
 
     if (d.effect && d.effect.type === 'interactOnlyIfOnlyTypeInLine') {
       const matching = state.line.filter(function (c) {
-        return !state.faceDown[c.uid] && def(c, registry).obstacleType === d.effect.targetType;
+        return c && !state.faceDown[c.uid] && def(c, registry).obstacleType === d.effect.targetType;
       }).length;
       if (matching > 1) {
         return { ok: false, reason: d.name + ' can only be interacted with while it is the only ' + d.effect.targetType + ' in the line (' + matching + ' are face up)' };
@@ -273,7 +306,7 @@ const Engine = (function () {
       const from = idx;
       let target = -1;
       for (let i = idx + 1; i < state.line.length; i++) {
-        if (state.faceDown[state.line[i].uid]) continue;
+        if (!state.line[i] || state.faceDown[state.line[i].uid]) continue;
         if (def(state.line[i], registry).obstacleType === e.targetType) { target = i; break; }
       }
       /* "Slide it all the way until it's adjacent to it": the dog stops in the
@@ -291,7 +324,7 @@ const Engine = (function () {
          targets on the right immediately to its right. */
       const from = idx;
       const isTarget = function (c) {
-        return c.uid !== card.uid && !state.faceDown[c.uid] && def(c, registry).obstacleType === e.targetType;
+        return c && c.uid !== card.uid && !state.faceDown[c.uid] && def(c, registry).obstacleType === e.targetType;
       };
       const left = state.line.slice(0, idx);
       const right = state.line.slice(idx + 1);
@@ -300,11 +333,11 @@ const Engine = (function () {
       const leftRest = left.filter(function (c) { return !isTarget(c); });
       const rightRest = right.filter(function (c) { return !isTarget(c); });
       const before = {};
-      state.line.forEach(function (c, i) { before[c.uid] = i; });
+      state.line.forEach(function (c, i) { if (c) before[c.uid] = i; });
       const moved = leftTargets.concat(rightTargets);
       state.line = leftRest.concat(leftTargets, [card], rightTargets, rightRest);
       state.line.forEach(function (c, i) {
-        if (before[c.uid] !== i) {
+        if (c && before[c.uid] !== i) {
           event(state, 'moveCard', { card: c.uid, from: before[c.uid], to: i, reason: def(card, registry).name });
         }
       });
@@ -317,22 +350,34 @@ const Engine = (function () {
      A refill enters at the left of a five-card line. Either way the array is
      contiguous and the UI right-aligns a line that has fewer than six cards. */
   function dealLine(state, registry, count) {
-    for (let i = 0; i < count; i++) {
+    state.line = normalizeLine(state.line);
+    /* Rules C3: the opening line is built from the right. After that, new cards
+       enter at the left end of the conveyor and the holes stay where they are.
+       The slot is chosen for each card, because an appearance effect (Guard Dog,
+       Radio Tower) can rearrange the line between draws. */
+    const opening = !lineCards(state).length;
+    for (let n = 0; n < count; n++) {
       const card = drawObstacle(state);
       if (!card) {
         state.gameOver = 'time';
         return;
       }
-      state.line.unshift(card);
-      const enteredAtLeft = state.line.length > 1;
-      event(state, 'dealLine', { card: card.uid, index: 0, slot: 6 - state.line.length });
-      log(state, 'line', def(card, registry).name + (enteredAtLeft ? ' enters the line at the left' : ' is placed at the right end of the line'));
+      let slot = -1;
+      if (opening) {
+        for (let i = LINE_SIZE - 1; i >= 0; i--) if (!state.line[i]) { slot = i; break; }
+      } else {
+        for (let i = 0; i < LINE_SIZE; i++) if (!state.line[i]) { slot = i; break; }
+      }
+      if (slot < 0) return;
+      state.line[slot] = card;
+      event(state, 'dealLine', { card: card.uid, index: slot, slot: slot });
+      log(state, 'line', def(card, registry).name + (slot === LINE_SIZE - 1 && opening ? ' is placed at the right end of the line' : ' enters the line'));
       applyAppearance(state, registry, card);
     }
   }
 
   function refillLine(state, registry) {
-    dealLine(state, registry, 6 - state.line.length);
+    dealLine(state, registry, LINE_SIZE - lineCards(state).length);
   }
 
   /* ---------- 1. Use Cards ---------- */
@@ -390,8 +435,21 @@ const Engine = (function () {
         } else if (e.type === 'moveObstacleToStartOfLine') {
           const target = options.uid ? findZone(s, 'line', options.uid) : null;
           if (target) {
-            removeFrom(s, 'line', target.uid);
-            s.line.unshift(target);
+            const from = lineIndexOf(s, target.uid);
+            /* "Pull an obstacle back to the start of the line" = the back of the
+               conveyor, as if it were the newest card to appear. Everything
+               between the start and its old slot shifts one place to the right. */
+            s.line[from] = null;
+            for (let i = from; i >= 1; i--) {
+              if (!s.line[i] && s.line[i - 1]) {
+                s.line[i] = s.line[i - 1];
+                s.line[i - 1] = null;
+              }
+            }
+            const slot = s.line.findIndex(function (c) { return !c; });
+            s.line[slot < 0 ? 0 : slot] = target;
+            event(s, 'moveCard', { card: target.uid, from: from, to: slot < 0 ? 0 : slot, reason: def(card, registry).name });
+            log(s, 'agent', def(card, registry).name + ' drags ' + def(target, registry).name + ' to the back of the line');
           }
         } else if (e.type === 'reshuffleObstacleDiscardIntoDeck') {
           s.obstacleDeck = shuffleInPlace(s.obstacleDeck.concat(s.obstacleDiscard), s);
@@ -537,7 +595,7 @@ const Engine = (function () {
   /* ---------- 3. Line Scroll ---------- */
   function hasFaceDownStasis(state, registry) {
     return state.line.some(function (c) {
-      if (state.faceDown[c.uid]) return false;
+      if (!c || state.faceDown[c.uid]) return false;
       const e = def(c, registry).effect;
       return e && e.type === 'faceDownCardsDoNotScroll';
     });
@@ -556,18 +614,18 @@ const Engine = (function () {
     /* A knocked-out card "ignores its Type and Effect", so a face-down Siren
        does not flush the line. */
     if (!down && d.effect && d.effect.type === 'flushLineToDiscardOnExit') {
-      state.line.forEach(function (c) { state.obstacleDiscard.push(c); });
-      state.line = [];
+      state.line.forEach(function (c) { if (c) state.obstacleDiscard.push(c); });
+      state.line = normalizeLine([]);
       log(state, 'line', 'the Siren dumps the whole line on the obstacles discard');
     }
   }
 
   function applyScrollTriggers(state, registry) {
     state.line.forEach(function (card) {
-      if (state.faceDown[card.uid]) return;
+      if (!card || state.faceDown[card.uid]) return;
       const e = def(card, registry).effect;
       if (!e || e.type !== 'flipLastLineCardFaceUp') return;
-      const last = state.line[state.line.length - 1];
+      const last = state.line[rightmostIndex(state)];
       if (last && state.faceDown[last.uid]) {
         state.faceDown[last.uid] = false;
         event(state, 'flipUp', { card: last.uid, reason: def(card, registry).name });
@@ -583,24 +641,34 @@ const Engine = (function () {
     if (!s.line.length) return s;
     applyScrollTriggers(s, registry);
 
+    if (rightmostIndex(s) < 0) return s;
     const stasis = hasFaceDownStasis(s, registry);
     /* Line Scroll discards the last card of the line. A knocked-out card raises
        no alarm on the way out (rules: "they won't raise the alarm during the
        Line Scroll"), and Dormitory — the only card that says face-down cards
        don't slide — keeps them in the line entirely. */
-    let exitingIndex = s.line.length - 1;
-    if (stasis && s.faceDown[s.line[exitingIndex].uid]) exitingIndex = -1;
-    if (exitingIndex < 0) {
+    let exitingIndex = rightmostIndex(s);
+    if (stasis && s.faceDown[s.line[exitingIndex].uid]) {
       log(s, 'line', 'the Dormitory jams the conveyor — the card at the exit is knocked out, so nothing slides');
       return s;
     }
 
-    const exiting = s.line.splice(exitingIndex, 1)[0];
-    event(s, 'scroll', { shift: s.line.map(function (c) { return c.uid; }), exiting: exiting.uid });
+    const exiting = s.line[exitingIndex];
+    s.line[exitingIndex] = null;
+    const shifted = [];
+    for (let i = exitingIndex - 1; i >= 0; i--) {
+      if (!s.line[i]) continue;
+      if (!s.line[i + 1]) {
+        s.line[i + 1] = s.line[i];
+        s.line[i] = null;
+        shifted.push(s.line[i + 1].uid);
+      }
+    }
+    event(s, 'scroll', { shift: shifted, exiting: exiting.uid });
     log(s, 'line', 'the line scrolls one step right; ' + def(exiting, registry).name + ' exits');
     exitLine(s, exiting, registry);
     if (s.gameOver) return s;
-    if (!s.line.length) {
+    if (!lineCards(s).length) {
       if (s.alarm >= 50) s.gameOver = 'alarm';
       return s;
     }
@@ -616,7 +684,7 @@ const Engine = (function () {
       for (let step = 0; step < e.n; step++) {
         const next = pos + 1;
         if (next < s.line.length) {
-          if (stasis && s.faceDown[s.line[next].uid]) {
+          if (s.line[next] && stasis && s.faceDown[s.line[next].uid]) {
             log(s, 'line', def(card, registry).name + ' is blocked by a knocked-out card and cannot slide further');
             break;
           }
@@ -627,7 +695,8 @@ const Engine = (function () {
           event(s, 'moveCard', { card: card.uid, from: next - 1, to: next, reason: def(card, registry).name });
           log(s, 'line', def(card, registry).name + ' moves an extra space right');
         } else {
-          const slid = s.line.splice(pos, 1)[0];
+          const slid = s.line[pos];
+          s.line[pos] = null;
           log(s, 'line', def(slid, registry).name + ' scrolls off the end of the line');
           exitLine(s, slid, registry);
           break;
@@ -698,7 +767,10 @@ const Engine = (function () {
     const mission = missions[state.missionIndex];
     const g = mission.goal;
     if (g.handSize) return state.hand.length >= g.handSize;
-    if (g.knockOutWholeLine) return state.line.length === 6 && state.line.every(function (c) { return state.faceDown[c.uid]; });
+    if (g.knockOutWholeLine) {
+      const cards = lineCards(state);
+      return cards.length === LINE_SIZE && cards.every(function (c) { return state.faceDown[c.uid]; });
+    }
     const itemsOk = (g.itemsRequired || []).every(function (id) {
       return state.equip.some(function (c) { return c.defId === id; });
     });

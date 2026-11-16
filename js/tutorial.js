@@ -8,7 +8,12 @@ const Tutorial = (function () {
   }
 
   function live(state) {
-    return state.line.filter(function (card) { return !state.faceDown[card.uid]; });
+    return state.line.filter(function (card) { return card && !state.faceDown[card.uid]; });
+  }
+
+  function exitingCard(state) {
+    for (let i = state.line.length - 1; i >= 0; i--) if (state.line[i]) return state.line[i];
+    return null;
   }
 
   function goalResource(mission) {
@@ -32,6 +37,8 @@ const Tutorial = (function () {
     });
     const helpers = options.filter(function (card) { return helpsGoal(registry[card.defId], want); });
     const pool = helpers.length ? helpers : options;
+    /* Take the highest-alarm thing you can afford; the card at the right end of
+       the line is worth disarming too, because removing it means no alarm. */
     return pool.sort(function (a, b) {
       return registry[b.defId].alarm - registry[a.defId].alarm ||
         Engine.effectiveCost(state, registry, b).total - Engine.effectiveCost(state, registry, a).total;
@@ -69,7 +76,7 @@ const Tutorial = (function () {
       };
     }
 
-    const exiting = state.line[state.line.length - 1];
+    const exiting = exitingCard(state);
 
     if (state.hand.length > 0) {
       return {
@@ -85,6 +92,19 @@ const Tutorial = (function () {
       const want = goalResource(missions[state.missionIndex]);
       const disarm = bestDisarm(state, registry, missions);
       const knockOut = bestKnockOut(state, registry);
+
+      if (exiting && interactable(state, registry, exiting)) {
+        const cost = Engine.effectiveCost(state, registry, exiting);
+        if (affordable(state, registry, exiting) && (!disarm || !helpsGoal(registry[disarm.defId], want))) {
+          return {
+            id: 'disarm',
+            title: 'Take the card off the end of the line',
+            text: registry[exiting.defId].name + ' is about to leave the line and raise ' + registry[exiting.defId].alarm + ' alarm. You can afford to disarm it (' + cost.total + ') — take it out of the line and it never raises the alarm, and it joins your deck for later turns.',
+            allowed: { interact: true },
+            highlight: { disarm: exiting.uid, exiting: exiting.uid }
+          };
+        }
+      }
 
       if (disarm && helpsGoal(registry[disarm.defId], want)) {
         const cost = Engine.effectiveCost(state, registry, disarm);

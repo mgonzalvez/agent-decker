@@ -9,6 +9,8 @@ const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.me
 const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
 const registry = AgentDecker.buildRegistry(cardDefs);
 
+function lineCards(state) { return (state.line || []).filter(Boolean); }
+
 function fresh(seed) {
   return AgentDecker.createInitialState(cardDefs, missions, seed);
 }
@@ -27,7 +29,7 @@ function playChoice(state, card) {
     return { choice: wantsFighting ? 'resource' : 'draw' };
   }
   if (choice.kind === 'line') {
-    const target = state.line.filter((c) => !state.faceDown[c.uid]).sort((a, b) => registry[b.defId].alarm - registry[a.defId].alarm)[0];
+    const target = lineCards(state).filter((c) => !state.faceDown[c.uid]).sort((a, b) => registry[b.defId].alarm - registry[a.defId].alarm)[0];
     return target ? { uid: target.uid } : {};
   }
   if (choice.kind === 'keep') {
@@ -57,7 +59,7 @@ function botTurn(state) {
   const goal = missions[state.missionIndex].goal;
   const want = goalType(goal);
   while (state.interactionsLeft > 0) {
-    const targets = state.line.filter((c) => !state.faceDown[c.uid] && Engine.canInteract(state, registry, c).ok);
+    const targets = lineCards(state).filter((c) => !state.faceDown[c.uid] && Engine.canInteract(state, registry, c).ok);
     if (!targets.length) break;
 
     if (goal.knockOutWholeLine) {
@@ -204,13 +206,13 @@ test('mission 5 is won by knocking out the whole line, and Dormitory keeps knock
   state = Engine.interact(state, 'g2_x', 'knockOut', registry);
   state = Engine.interact(state, 'g3_x', 'knockOut', registry);
   state = Engine.endTurn(state, registry);
-  assert.strictEqual(state.line.length, 6);
-  assert.ok(state.line.some((c) => c.uid === 'dorm_x'), 'Dormitory stays in the line');
-  assert.strictEqual(state.line.filter((c) => state.faceDown[c.uid]).length, 3, 'the knocked-out cards did not scroll away');
+  assert.strictEqual(lineCards(state).length, 6);
+  assert.ok(lineCards(state).some((c) => c.uid === 'dorm_x'), 'Dormitory stays in the line');
+  assert.strictEqual(lineCards(state).filter((c) => state.faceDown[c.uid]).length, 3, 'the knocked-out cards did not scroll away');
 
   state.interactionsLeft = 3;
   state.resources = { stealth: 30, fighting: 30 };
-  state.line.filter((c) => !state.faceDown[c.uid]).slice(0, 3).forEach((c) => {
+  lineCards(state).filter((c) => !state.faceDown[c.uid]).slice(0, 3).forEach((c) => {
     state = Engine.interact(state, c.uid, 'knockOut', registry);
   });
   assert.strictEqual(Engine.goalSatisfied(state, registry, missions), true);
@@ -226,7 +228,7 @@ test('running out of obstacle cards ends the game as "time", not as a win', () =
   state.line = line(['obs_guard', 'obs_guard', 'obs_guard']);
   state = Engine.refresh(state, registry);
   assert.strictEqual(state.gameOver, 'time');
-  assert.ok(state.line.length < 6);
+  assert.ok(lineCards(state).length < 6);
 });
 
 test('the final score is the sum of the alarm at each mission end', () => {

@@ -129,9 +129,19 @@ const UI = (function () {
     const p = plan();
     const mark = p && p.highlight ? p.highlight : {};
     const canAct = state.interactionsLeft > 0 && !state.gameOver;
+    let lastSlot = -1;
+    for (let i = state.line.length - 1; i >= 0; i--) if (state.line[i]) { lastSlot = i; break; }
     state.line.forEach(function (card, index) {
+      if (!card) {
+        const hole = el('div', 'slot slot-empty');
+        hole.style.gridColumn = String(index + 1);
+        hole.setAttribute('aria-hidden', 'true');
+        hole.appendChild(el('span', 'slot-meta', 'empty slot'));
+        line.appendChild(hole);
+        return;
+      }
       const def = defOf(card);
-      const isLast = index === state.line.length - 1;
+      const isLast = index === lastSlot;
       let extra = isLast ? ' exiting' : '';
       if (mark.disarm === card.uid) extra += ' tut-disarm';
       if (mark.knockOut === card.uid) extra += ' tut-knock';
@@ -142,7 +152,7 @@ const UI = (function () {
       const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
       slot.type = 'button';
       slot.setAttribute('data-uid', card.uid);
-      slot.style.gridColumn = String(7 - state.line.length + index);
+      slot.style.gridColumn = String(index + 1);
       const img = el('img');
       img.src = def.art[0];
       img.alt = cardAlt(def);
@@ -437,7 +447,7 @@ const UI = (function () {
       state.obstacleDiscard, state.obstacleDeck, state.discard, state.saved, state.removed];
     for (let i = 0; i < zones.length; i++) {
       for (let j = 0; j < zones[i].length; j++) {
-        if (zones[i][j].uid === uid) return registry[zones[i][j].defId];
+        if (zones[i][j] && zones[i][j].uid === uid) return registry[zones[i][j].defId];
       }
     }
     return null;
@@ -511,7 +521,7 @@ const UI = (function () {
       ? state.hand.filter(function (c) { return c.uid !== card.uid; })
       : choice.kind === 'discard' ? state.discard.slice()
       : choice.kind === 'deck' ? state.deck.slice()
-      : choice.kind === 'line' ? state.line.slice()
+      : choice.kind === 'line' ? state.line.filter(Boolean).slice()
       : state.deck.slice(-(choice.n || 5)).reverse();
 
     if (!pool.length) {

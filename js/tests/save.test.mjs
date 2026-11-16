@@ -15,6 +15,8 @@ const storage = {
 globalThis.__storage = storage;
 const Save = require('../save.js');
 
+function lineCards(state) { return (state.line || []).filter(Boolean); }
+
 const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
 const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
 
@@ -25,7 +27,7 @@ test('a game can be saved and resumed', () => {
   assert.ok(loaded, 'the save can be read back');
   assert.strictEqual(loaded.state.seed, 1234);
   assert.strictEqual(loaded.state.turn, 1);
-  assert.deepStrictEqual(loaded.state.line.map((c) => c.uid), state.line.map((c) => c.uid));
+  assert.deepStrictEqual(lineCards(loaded.state).map((c) => c.uid), lineCards(state).map((c) => c.uid));
 });
 
 test('finished games are not kept as a resumable save but are logged as scores', () => {

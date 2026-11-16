@@ -37,7 +37,7 @@ const Actions = (function () {
   }
 
   function neighbours(state, registry, uid) {
-    const i = state.line.findIndex(function (c) { return c.uid === uid; });
+    const i = state.line.findIndex(function (c) { return c && c.uid === uid; });
     return [state.line[i - 1], state.line[i + 1]].filter(Boolean);
   }
 

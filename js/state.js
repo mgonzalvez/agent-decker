@@ -137,13 +137,15 @@ const AgentDecker = (function () {
 
     zones.forEach(function (zone) {
       zone.forEach(function (card) {
+        if (!card) return;   /* the line is six slots; empty ones are null */
         if (seen.has(card.uid)) problems.push('duplicate card instance: ' + card.uid);
         seen.add(card.uid);
       });
     });
     (state.removed || []).forEach(function (entry) { seen.add(typeof entry === 'string' ? entry : entry.uid); });
 
-    if (!state.gameOver && state.line.length > 6) problems.push('line cannot exceed 6 cards (found ' + state.line.length + ')');
+    const lineCards = (state.line || []).filter(Boolean).length;
+    if (!state.gameOver && lineCards > 6) problems.push('line cannot exceed 6 cards (found ' + lineCards + ')');
     if (state.hand.length > 12) problems.push('hand is implausibly large (' + state.hand.length + ')');
     if (state.alarm > 50) problems.push('alarm cannot exceed 50');
     if (!state.gameOver && state.alarm >= 50) problems.push('alarm reached 50 without ending the game');
