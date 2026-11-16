@@ -103,15 +103,16 @@ Source: the BGE clarifications thread by rkonigsberg (with gr9yfox and the desig
 | Save Bullets | The saved card does not count against the draw. | OK |
 | Patrolling Guard | Scrolls one extra space, swapping with the card in front of it. | OK |
 
-## 5. Still open
+## 5. The line is a six-slot conveyor (implemented 2026-11-16)
 
-1. **Physical gaps in the line.** You confirmed that a disarmed card leaves a hole rather than the line closing up.
-   The engine currently models the line as a contiguous array, so "adjacent" always means "next card in the array".
-   A true six-slot conveyor (with empty slots) would change which cards count as adjacent for Watchtower, Clumsy
-   Guard and Guard Dog, and how Dormitory blocks the scroll. This is a real refactor of `engine.js`, `ui.js` and
-   `table.js` — say the word and I will do it.
-2. **Dormitory's exact value.** Under the general rule (face-down cards still leave the line, silently), Dormitory is
-   the only card that keeps them in place. Is that the intended reading, or do face-down cards never leave the line
-   at all?
-3. **Patrolling Guard at the exit.** If it is already the last card when it gets its extra step, it scrolls off and
-   raises its alarm (our reading of clarification C5). BGE flags this as an open question.
+`state.line` is six positions, and an empty position is `null`:
+
+- Disarming a card leaves its slot empty; the hole does not close up.
+- At the Line Scroll the **rightmost occupied** card is discarded (alarm unless it is face-down), then every card
+  slides one place right into any hole. Refill happens at Card Refresh and enters at the **left** end.
+- Adjacency (Watchtower +2, Clumsy Guard, Guard Dog) is measured in slots, so a hole breaks adjacency.
+- Dormitory (face-up in the line) means face-down cards do not slide: if one is sitting at the exit the conveyor is
+  jammed and nothing is discarded that scroll. Knock it out or disarm it and the effect stops.
+
+Confirmed rulings that this pass settled: Dormitory's effect only applies while it is in the line and face up; a
+Patrolling Guard that is already at the exit does leave the line on its extra step and raises its alarm.

@@ -112,6 +112,8 @@ globalThis.Tutorial = require('../tutorial.js');
 globalThis.Table = require('../table.js');
 const UI = require('../ui.js');
 
+function lineCards(state) { return (state.line || []).filter(Boolean); }
+
 const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
 const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
 

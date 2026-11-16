@@ -109,7 +109,7 @@ Full card-by-card table in `docs/card-effect-audit.md`. What changed in the engi
 - **Optic Camouflage**'s printed 4 Stealth is now granted when the item is used from the Equip Area (Q5).
 - **Per-turn item resources** (`oncePerTurn`) are limited to Map, Guard Uniform and Prisoner. Cards whose printed number is a one-shot use (Bazooka, Optic Camouflage) no longer generate that resource every turn.
 
-Open rulings still unresolved (Q1–Q14 in `docs/card-effect-audit.md`): Guard Dog looking left, Radio Tower direction, whether the line keeps physical gaps, whether Keycard/Chloroform/E.M.P. replace or add to the cost, Optic Camouflage's 4 Stealth, Inspector timing, Distraction re-triggering appearance effects, Mission 5's "six cards", Watchtower's +2 resource type, and when a mid-turn equipped item starts paying.
+**The line is a six-slot conveyor** (`state.line` has six entries; an empty slot is `null`): a disarmed card leaves a hole, the rightmost *occupied* card is discarded at the Line Scroll, everything then slides one place right to fill the hole, and new obstacles enter at the left end at Card Refresh. Adjacency (Watchtower, Clumsy Guard, Guard Dog) is measured in slots, so a hole breaks adjacency. Rulings from the BoardGameGeek clarification thread are recorded in `docs/card-effect-audit.md` §4.
 
 ---
 
