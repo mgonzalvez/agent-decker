@@ -52,8 +52,8 @@ test('a knocked-out card raises no alarm when it leaves the line', () => {
   ];
   state.faceDown['obs_yard_door_0'] = true;
   state = Engine.lineScroll(state, registry);
-  assert.strictEqual(state.alarm, 0, 'the knocked-out card exits silently');
-  assert.strictEqual(state.obstacleDiscard.length, 1);
+  assert.strictEqual(state.alarm, 0, 'a knocked-out card raises no alarm on the way out');
+  assert.strictEqual(state.obstacleDiscard.length, 1, 'it still leaves the line');
 });
 
 test('only one interaction is allowed per turn at the start of the campaign', () => {
@@ -271,7 +271,7 @@ test('a knocked-out Dormitory no longer stops the line from scrolling', () => {
   state.faceDown['obs_dormitory_0'] = true;
   state = Engine.lineScroll(state, registry);
   assert.ok(state.line.some(function (c) { return c.uid === 'obs_guard_0'; }), 'the Guard scrolls normally instead of being held by a dead Dormitory');
-  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_dormitory_0'; }), 'the face-down Dormitory leaves the line');
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_dormitory_0'; }), 'the face-down Dormitory leaves the line, silently');
   assertClean(state);
 });
 
@@ -402,6 +402,17 @@ test('Bazooka and Optic Camouflage go to the obstacles discard when used, not to
   assertClean(state);
   assert.ok(state.obstacleDiscard.some((c) => c.uid === camouflage.uid));
   assert.ok(!state.equip.some((c) => c.uid === camouflage.uid));
+  assert.strictEqual(state.resources.stealth, 4, 'Optic Camouflage prints 4 Stealth');
+});
+
+test('an item equipped during the turn pays its per-turn resource straight away', () => {
+  let state = placeInLine(fresh(76), [{ uid: 'obs_locker_room_0', defId: 'obs_locker_room' }]);
+  state.interactionsLeft = 1;
+  state.resources = { stealth: 0, fighting: 8 };
+  state = Engine.interact(state, 'obs_locker_room_0', 'disarm', registry);
+  assert.ok(state.equip.some((c) => c.uid === 'obs_locker_room_0'), 'the Guard Uniform is equipped');
+  assert.strictEqual(state.resources.stealth, 1, 'Guard Uniform gives its Stealth the moment it hits the table');
+  assertClean(state);
 });
 
 function takeFromAny(state, defId, zone) {

@@ -192,6 +192,7 @@ const Engine = (function () {
      every newly equipped item grant one extra interaction that turn. */
   function equipCard(state, registry, card) {
     state.equip.push(card);
+    fireEquipPassive(state, registry, card);
     if (state.rules.quickHands) {
       state.interactionsLeft += 1;
       log(state, 'agent', 'Quick Hands — ' + def(card, registry).name + ' equipped, +1 interaction');
@@ -227,11 +228,25 @@ const Engine = (function () {
   /* Equipped items: resources printed "once per turn", and Siren's extra draws.
      A printed number on a card whose text is a one-shot use (Bazooka, Optic
      Camouflage) is not a per-turn passive — it is paid when the card is used. */
+  /* An item that prints a per-turn resource pays it as soon as it hits the
+     table, and again at every Card Refresh after that. `state.passives` keeps
+     track of which items already paid in the current refresh so an item
+     equipped during the refresh is not counted twice. */
+  function fireEquipPassive(state, registry, card) {
+    const d = def(card, registry);
+    if (!d.reward || !d.reward.oncePerTurn) return;
+    state.passives = state.passives || {};
+    if (state.passives[card.uid]) return;
+    state.passives[card.uid] = true;
+    addResource(state, d.reward.resource);
+    log(state, 'agent', d.name + ' equipped — ' + resourceText(d.reward.resource));
+  }
+
   function applyEquipPassives(state, registry) {
     const keeps = state.equip.filter(function (c) { return def(c, registry).keep; });
     keeps.forEach(function (card) {
+      fireEquipPassive(state, registry, card);
       const d = def(card, registry);
-      if (d.reward && d.reward.oncePerTurn) addResource(state, d.reward.resource);
       const e = d.reward && d.reward.effect;
       if (e && e.type === 'drawPerEquippedKeep') {
         drawToHand(state, registry, Math.min(e.max || 3, keeps.length));
@@ -270,15 +285,30 @@ const Engine = (function () {
         log(state, 'line', def(card, registry).name + ' slides right until it is next to the first ' + e.targetType + ' on its right');
       }
     } else if (e.type === 'slideTypeToSelf') {
+      /* "Slide all <type> all the way next to it": every target card moves
+         toward the tower and stops as close as it can get, without ever
+         crossing it. Targets on the left pack up immediately to its left,
+         targets on the right immediately to its right. */
       const from = idx;
-      const moved = state.line.filter(function (c) {
+      const isTarget = function (c) {
         return c.uid !== card.uid && !state.faceDown[c.uid] && def(c, registry).obstacleType === e.targetType;
+      };
+      const left = state.line.slice(0, idx);
+      const right = state.line.slice(idx + 1);
+      const leftTargets = left.filter(isTarget);
+      const rightTargets = right.filter(isTarget);
+      const leftRest = left.filter(function (c) { return !isTarget(c); });
+      const rightRest = right.filter(function (c) { return !isTarget(c); });
+      const before = {};
+      state.line.forEach(function (c, i) { before[c.uid] = i; });
+      const moved = leftTargets.concat(rightTargets);
+      state.line = leftRest.concat(leftTargets, [card], rightTargets, rightRest);
+      state.line.forEach(function (c, i) {
+        if (before[c.uid] !== i) {
+          event(state, 'moveCard', { card: c.uid, from: before[c.uid], to: i, reason: def(card, registry).name });
+        }
       });
-      state.line = state.line.filter(function (c) { return moved.indexOf(c) < 0; });
-      const pos = state.line.indexOf(card);
-      moved.forEach(function (c, k) { state.line.splice(pos + 1 + k, 0, c); });
-      event(state, 'moveCard', { card: card.uid, from: from, to: pos, reason: def(card, registry).name, pulled: moved.map(function (c) { return c.uid; }) });
-      log(state, 'line', def(card, registry).name + ' pulls ' + moved.map(function (c) { return def(c, registry).name; }).join(', ') + ' next to itself');
+      log(state, 'line', def(card, registry).name + ' drags ' + moved.map(function (c) { return def(c, registry).name; }).join(', ') + ' right next to itself');
     }
   }
 
@@ -554,8 +584,10 @@ const Engine = (function () {
     applyScrollTriggers(s, registry);
 
     const stasis = hasFaceDownStasis(s, registry);
-    /* With a Dormitory in the line, knocked-out cards hold their slot. If one
-       is sitting at the exit, the conveyor is jammed and nothing leaves. */
+    /* Line Scroll discards the last card of the line. A knocked-out card raises
+       no alarm on the way out (rules: "they won't raise the alarm during the
+       Line Scroll"), and Dormitory — the only card that says face-down cards
+       don't slide — keeps them in the line entirely. */
     let exitingIndex = s.line.length - 1;
     if (stasis && s.faceDown[s.line[exitingIndex].uid]) exitingIndex = -1;
     if (exitingIndex < 0) {
@@ -610,6 +642,7 @@ const Engine = (function () {
   function refresh(state, registry) {
     const s = clone(state);
     if (!s.events) s.events = [];
+    s.passives = {};   /* every equipped item pays its once-per-turn bonus again */
     refillLine(s, registry);
     if (s.gameOver) return s;
 
