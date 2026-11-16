@@ -10,7 +10,8 @@ const Actions = (function () {
     if (e.type === 'saveHandCardForNextTurn') return { kind: 'hand', label: 'Choose a card to save for the next turn', single: true };
     if (e.type === 'discardToHand') return { kind: 'discard', label: 'Choose a card from your discard pile to put in your hand', single: true };
     if (e.type === 'searchDeckToTop') return { kind: 'deck', label: 'Choose a card from your deck to put on top of it', single: true };
-    if (e.type === 'scoutDeck' || e.type === 'reorderTopOfDeck') return { kind: 'order', n: e.n, label: 'Look at the top ' + e.n + ' cards of your deck and put them back in any order' };
+    if (e.type === 'reorderTopOfDeck') return { kind: 'order', n: e.n, label: 'Look at the top ' + e.n + ' cards of your deck and put them back in any order (first = next drawn)' };
+    if (e.type === 'scoutDeck') return { kind: 'keep', n: e.n, label: 'Look at the top ' + e.n + ' cards of your deck: keep one, put the rest back in any order' };
     if (e.type === 'moveObstacleToStartOfLine') return { kind: 'line', label: 'Choose an obstacle in the line to pull back to the start of it', single: true };
     return null;
   }

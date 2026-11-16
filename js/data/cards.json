@@ -2,7 +2,7 @@
   "meta": {
     "game": "Agent Decker",
     "source": "upstream/AgentDecker_cards_full_art.pdf (2016 edition, 7 pages, 54 card fronts)",
-    "credit": "Agent Decker by Manuel Correia — gamesbymanuel.com — CC BY-NC 4.0",
+    "credit": "Agent Decker by Manuel Correia \u2014 gamesbymanuel.com \u2014 CC BY-NC 4.0",
     "notes": "Unique definitions with a copies count. cost.either means the cost can be paid with any mix of Stealth and Fighting.",
     "totals": {
       "starting": 8,
@@ -115,7 +115,7 @@
         "assets/cards/011.jpg",
         "assets/cards/012.jpg"
       ],
-      "topText": "Gun — gain 2 Fighting.",
+      "topText": "Gun \u2014 gain 2 Fighting.",
       "bottomText": "",
       "sound": "steps"
     },
@@ -150,7 +150,7 @@
         "assets/cards/013.jpg",
         "assets/cards/014.jpg"
       ],
-      "topText": "Interrogate — Draw two cards.",
+      "topText": "Interrogate \u2014 Draw two cards.",
       "bottomText": "During the Line Scroll, Patrolling Guard slides forward one more position.",
       "sound": "steps"
     },
@@ -180,7 +180,7 @@
       "art": [
         "assets/cards/015.jpg"
       ],
-      "topText": "Don't Move — gain 3 Stealth when played from hand; inert in the line.",
+      "topText": "Don't Move \u2014 gain 3 Stealth when played from hand; inert in the line.",
       "bottomText": "",
       "sound": "ping"
     },
@@ -213,7 +213,7 @@
         "assets/cards/016.jpg",
         "assets/cards/017.jpg"
       ],
-      "topText": "Bin — take any number of cards from your hand and remove them from the game.",
+      "topText": "Bin \u2014 take any number of cards from your hand and remove them from the game.",
       "bottomText": "",
       "sound": "drip"
     },
@@ -248,7 +248,7 @@
         "assets/cards/018.jpg",
         "assets/cards/019.jpg"
       ],
-      "topText": "Follow — Draw a card.",
+      "topText": "Follow \u2014 Draw a card.",
       "bottomText": "When Guard Dog appears, if there is a person on the line, slide it all the way until it is adjacent to it.",
       "sound": "bark"
     },
@@ -278,7 +278,7 @@
       "art": [
         "assets/cards/020.jpg"
       ],
-      "topText": "Machine Gun — gain 3 Fighting.",
+      "topText": "Machine Gun \u2014 gain 3 Fighting.",
       "bottomText": "",
       "sound": "servo"
     },
@@ -312,7 +312,7 @@
         "assets/cards/024.jpg",
         "assets/cards/025.jpg"
       ],
-      "topText": "Out of Sight — gain 2 Stealth.",
+      "topText": "Out of Sight \u2014 gain 2 Stealth.",
       "bottomText": "",
       "sound": "cam"
     },
@@ -343,7 +343,7 @@
       "art": [
         "assets/cards/026.jpg"
       ],
-      "topText": "Flashy Move — gain 1 Fighting for every two cards in your discard pile, rounded down.",
+      "topText": "Flashy Move \u2014 gain 1 Fighting for every two cards in your discard pile, rounded down.",
       "bottomText": "",
       "sound": "clang"
     },
@@ -373,7 +373,7 @@
       "art": [
         "assets/cards/027.jpg"
       ],
-      "topText": "Keycard (KEEP) — place Keycard in your discard to interact with a door.",
+      "topText": "Keycard (KEEP) \u2014 place Keycard in your discard to interact with a door.",
       "bottomText": "",
       "sound": "snore"
     },
@@ -403,7 +403,7 @@
       "art": [
         "assets/cards/028.jpg"
       ],
-      "topText": "Chloroform (KEEP) — place Chloroform in your discard to interact with a person.",
+      "topText": "Chloroform (KEEP) \u2014 place Chloroform in your discard to interact with a person.",
       "bottomText": "",
       "sound": "beep"
     },
@@ -438,7 +438,7 @@
         "assets/cards/029.jpg",
         "assets/cards/030.jpg"
       ],
-      "topText": "Throw a Rock — 1 Fighting or draw a card.",
+      "topText": "Throw a Rock \u2014 1 Fighting or draw a card.",
       "bottomText": "",
       "sound": "latch"
     },
@@ -472,7 +472,7 @@
       "art": [
         "assets/cards/031.jpg"
       ],
-      "topText": "Misdirect — place any number of cards from your hand in the Play Area and get 2 Stealth for each.",
+      "topText": "Misdirect \u2014 place any number of cards from your hand in the Play Area and get 2 Stealth for each.",
       "bottomText": "When Radio Tower appears, slide all person cards all the way next to it.",
       "sound": "hiss"
     },
@@ -506,7 +506,7 @@
       "art": [
         "assets/cards/033.jpg"
       ],
-      "topText": "Gear Up! (KEEP) — draw a card for every KEEP you have currently equipped, to a maximum of three.",
+      "topText": "Gear Up! (KEEP) \u2014 draw a card for every KEEP you have currently equipped, to a maximum of three.",
       "bottomText": "When discarded, place every card in the line on the Obstacles Discard. Only raise the alarm for the Siren.",
       "sound": "siren"
     },
@@ -529,14 +529,15 @@
           "stealth": 1,
           "fighting": 0
         },
-        "effect": null
+        "effect": null,
+        "oncePerTurn": true
       },
       "effect": null,
       "missionLetter": "B",
       "art": [
         "assets/cards/034.jpg"
       ],
-      "topText": "Guard Uniform (KEEP) — 1 Stealth, once per turn.",
+      "topText": "Guard Uniform (KEEP) \u2014 1 Stealth, once per turn.",
       "bottomText": "",
       "sound": "latch"
     },
@@ -570,7 +571,7 @@
       "art": [
         "assets/cards/035.jpg"
       ],
-      "topText": "Recall — take a card from your discard pile to your hand.",
+      "topText": "Recall \u2014 take a card from your discard pile to your hand.",
       "bottomText": "At the Line Scroll, Inspector flips the last card in the line face up. 'When appears' effects activate.",
       "sound": "whistle"
     },
@@ -601,7 +602,7 @@
       "art": [
         "assets/cards/037.jpg"
       ],
-      "topText": "Plan Ahead — look at the top three cards of your deck, keep one, put the rest back in any order.",
+      "topText": "Plan Ahead \u2014 look at the top three cards of your deck, keep one, put the rest back in any order.",
       "bottomText": "",
       "sound": "latch"
     },
@@ -634,7 +635,7 @@
       "art": [
         "assets/cards/038.jpg"
       ],
-      "topText": "Distraction — pull an obstacle card back to the start of the line.",
+      "topText": "Distraction \u2014 pull an obstacle card back to the start of the line.",
       "bottomText": "At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do.",
       "sound": "snore"
     },
@@ -664,7 +665,7 @@
       "art": [
         "assets/cards/039.jpg"
       ],
-      "topText": "E.M.P. (KEEP) — place E.M.P. in your discard to interact with an equipment.",
+      "topText": "E.M.P. (KEEP) \u2014 place E.M.P. in your discard to interact with an equipment.",
       "bottomText": "",
       "sound": "clank"
     },
@@ -693,7 +694,7 @@
       "art": [
         "assets/cards/040.jpg"
       ],
-      "topText": "Retrace Steps — shuffle the obstacles discard with the obstacles deck to form a new obstacles deck.",
+      "topText": "Retrace Steps \u2014 shuffle the obstacles discard with the obstacles deck to form a new obstacles deck.",
       "bottomText": "",
       "sound": "cam"
     },
@@ -725,7 +726,7 @@
       "art": [
         "assets/cards/042.jpg"
       ],
-      "topText": "Just The Thing — search your deck for a card, shuffle it, then place it on top.",
+      "topText": "Just The Thing \u2014 search your deck for a card, shuffle it, then place it on top.",
       "bottomText": "Sniper can't be interacted with unless it is the only person in the line.",
       "sound": "shot"
     },
@@ -758,7 +759,7 @@
       "art": [
         "assets/cards/043.jpg"
       ],
-      "topText": "Foresight — look at the top five cards of your deck and put them back in any order.",
+      "topText": "Foresight \u2014 look at the top five cards of your deck and put them back in any order.",
       "bottomText": "Watchtower increases the cost of adjacent cards by 2.",
       "sound": "sweep"
     },
@@ -781,14 +782,15 @@
           "stealth": 0,
           "fighting": 1
         },
-        "effect": null
+        "effect": null,
+        "oncePerTurn": true
       },
       "effect": null,
       "missionLetter": "F",
       "art": [
         "assets/cards/044.jpg"
       ],
-      "topText": "Prisoner (KEEP) — 1 Fighting, once per turn.",
+      "topText": "Prisoner (KEEP) \u2014 1 Fighting, once per turn.",
       "bottomText": "",
       "sound": "clang"
     },
@@ -823,7 +825,7 @@
       "art": [
         "assets/cards/045.jpg"
       ],
-      "topText": "Burn — pick up to two cards from your discard pile and remove them from the game.",
+      "topText": "Burn \u2014 pick up to two cards from your discard pile and remove them from the game.",
       "bottomText": "When you interact with Flammable Barrel, knock out the cards adjacent to it.",
       "sound": "sizzle"
     },
@@ -848,14 +850,15 @@
         },
         "effect": {
           "type": "usedCardToObstacleDiscard"
-        }
+        },
+        "oncePerTurn": false
       },
       "effect": null,
       "missionLetter": "F",
       "art": [
         "assets/cards/046.jpg"
       ],
-      "topText": "Bazooka — 5 Fighting. When Bazooka is used, it is discarded to the obstacles discard instead of your own.",
+      "topText": "Bazooka \u2014 5 Fighting. When Bazooka is used, it is discarded to the obstacles discard instead of your own.",
       "bottomText": "",
       "sound": "boom"
     },
@@ -874,17 +877,21 @@
       "keep": true,
       "reward": {
         "name": "Optic Camouflage",
-        "resource": null,
+        "resource": {
+          "stealth": 4,
+          "fighting": 0
+        },
         "effect": {
           "type": "usedCardToObstacleDiscard"
-        }
+        },
+        "oncePerTurn": false
       },
       "effect": null,
       "missionLetter": "H",
       "art": [
         "assets/cards/048.jpg"
       ],
-      "topText": "Optic Camouflage (KEEP) — when used, it is discarded to the obstacles discard instead of your own.",
+      "topText": "Optic Camouflage (KEEP) \u2014 4 Stealth; when used it is discarded to the obstacles discard instead of your own.",
       "bottomText": "",
       "sound": "beep"
     },
@@ -914,7 +921,7 @@
       "art": [
         "assets/cards/049.jpg"
       ],
-      "topText": "Save Bullets — save an unused card for the next turn.",
+      "topText": "Save Bullets \u2014 save an unused card for the next turn.",
       "bottomText": "",
       "sound": "rattle"
     },
@@ -944,7 +951,7 @@
       "art": [
         "assets/cards/050.jpg"
       ],
-      "topText": "Superspeed — draw three cards.",
+      "topText": "Superspeed \u2014 draw three cards.",
       "bottomText": "",
       "sound": "hum"
     },
@@ -978,7 +985,7 @@
       "art": [
         "assets/cards/051.jpg"
       ],
-      "topText": "Heavy Hand — 3 Fighting.",
+      "topText": "Heavy Hand \u2014 3 Fighting.",
       "bottomText": "When you interact with Clumsy Guard, you may instead knock out an adjacent card.",
       "sound": "stumble"
     },
@@ -1008,7 +1015,7 @@
       "art": [
         "assets/cards/052.jpg"
       ],
-      "topText": "Auto Rifle — 4 Fighting.",
+      "topText": "Auto Rifle \u2014 4 Fighting.",
       "bottomText": "",
       "sound": "clank"
     },
@@ -1040,7 +1047,7 @@
       "art": [
         "assets/cards/053.jpg"
       ],
-      "topText": "Swap — swap your deck with your discard.",
+      "topText": "Swap \u2014 swap your deck with your discard.",
       "bottomText": "When Hawk is faceup in the line, you can't interact with cards that cost only Stealth.",
       "sound": "screech"
     },
@@ -1059,7 +1066,8 @@
           "stealth": 1,
           "fighting": 0
         },
-        "effect": null
+        "effect": null,
+        "oncePerTurn": true
       },
       "effect": null,
       "missionLetter": "A",
@@ -1069,7 +1077,7 @@
       "art": [
         "assets/cards/032.jpg"
       ],
-      "topText": "Map (KEEP) — 1 Stealth, once per turn.",
+      "topText": "Map (KEEP) \u2014 1 Stealth, once per turn.",
       "bottomText": "GOAL: Get 6 Stealth."
     },
     {
@@ -1097,7 +1105,7 @@
       "art": [
         "assets/cards/036.jpg"
       ],
-      "topText": "New Rule — you can now interact with up to TWO obstacles per turn.",
+      "topText": "New Rule \u2014 you can now interact with up to TWO obstacles per turn.",
       "bottomText": "GOAL: Get 6 Fighting and the Guard Uniform."
     },
     {
@@ -1125,7 +1133,7 @@
       "art": [
         "assets/cards/041.jpg"
       ],
-      "topText": "New Rule — at the start of the turn, draw FIVE cards instead of four.",
+      "topText": "New Rule \u2014 at the start of the turn, draw FIVE cards instead of four.",
       "bottomText": "GOAL: Hold seven cards in your hand."
     },
     {
@@ -1153,7 +1161,7 @@
       "art": [
         "assets/cards/047.jpg"
       ],
-      "topText": "New Rule — you can now interact with up to THREE obstacles per turn.",
+      "topText": "New Rule \u2014 you can now interact with up to THREE obstacles per turn.",
       "bottomText": "GOAL: Get 18 (any mix) and the Prisoner."
     },
     {

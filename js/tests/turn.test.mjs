@@ -79,10 +79,9 @@ test('disarming a card with the KEEP icon equips it instead of sending it to the
   assert.ok(!state.playArea.some((c) => c.uid === keep.uid));
 });
 
-test('guard dog slides right to the first person in the line when it appears', () => {
+test('guard dog slides right until it is adjacent to the first person on its right', () => {
   let state = fresh(5);
   state.line = [
-    { uid: 'obs_guard_0', defId: 'obs_guard' },
     { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
     { uid: 'obs_yard_door_1', defId: 'obs_yard_door' },
     { uid: 'obs_guard_1', defId: 'obs_guard' },
@@ -91,11 +90,27 @@ test('guard dog slides right to the first person in the line when it appears', (
   ];
   state.obstacleDeck = [{ uid: 'obs_guard_dog_0', defId: 'obs_guard_dog' }];
   state.obstacleDiscard = [];
-  state.line.pop();
   state = Engine.refresh(state, registry);
   const dogIndex = state.line.findIndex((c) => c.defId === 'obs_guard_dog');
-  assert.ok(dogIndex > 0);
-  assert.strictEqual(registry[state.line[dogIndex - 1].defId].obstacleType, 'person');
+  assert.strictEqual(dogIndex, 2, 'the dog stops in front of the first person, not past it');
+  assert.strictEqual(state.line[dogIndex + 1].defId, 'obs_guard');
+  assert.strictEqual(state.line[dogIndex - 1].defId, 'obs_yard_door');
+});
+
+test('guard dog does not move if it is already next to a person', () => {
+  let state = fresh(5);
+  state.line = [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_yard_door_1', defId: 'obs_yard_door' },
+    { uid: 'obs_waste_room_0', defId: 'obs_waste_room' },
+    { uid: 'obs_security_camera_0', defId: 'obs_security_camera' }
+  ];
+  state.obstacleDeck = [{ uid: 'obs_guard_dog_0', defId: 'obs_guard_dog' }];
+  state.obstacleDiscard = [];
+  state = Engine.refresh(state, registry);
+  assert.strictEqual(state.line[0].defId, 'obs_guard_dog');
+  assert.ok(!state.events.some((e) => e.type === 'moveCard'), 'the dog is already adjacent, so it stays put');
 });
 
 test('the patrolling guard slides two spaces per scroll and exits with its alarm', () => {
@@ -344,13 +359,17 @@ test('Recall (Inspector) moves a chosen discard card into your hand', () => {
   assert.ok(!state.discard.some((c) => c.uid === recycled.uid));
 });
 
-test('Plan Ahead (Archive Door) reorders the top of the deck as chosen', () => {
+test('Plan Ahead (Archive Door) keeps one card in hand and puts the rest back in order', () => {
   let state = fresh(7);
   const door = giveToHand(state, 'obs_archive_door');
-  const top = state.deck.slice(-3).map((c) => c.uid);
-  state = Engine.playCard(state, door.uid, registry, { order: top.slice().reverse() });
+  const top = state.deck.slice(-3).map((c) => c.uid);   // last of these is the top card
+  const beforeHand = state.hand.length;
+  state = Engine.playCard(state, door.uid, registry, { keep: top[2], order: [top[2], top[0], top[1]] });
   assertClean(state);
-  assert.deepStrictEqual(state.deck.slice(-3).map((c) => c.uid), top.slice().reverse());
+  assert.strictEqual(state.hand.length, beforeHand, 'the door left hand, the kept card came in');
+  assert.ok(state.hand.some((c) => c.uid === top[2]), 'the chosen card is in hand');
+  const rest = state.deck.slice(-2).map((c) => c.uid);
+  assert.deepStrictEqual(rest, [top[1], top[0]], 'the remaining two went back in the chosen order (top first)');
 });
 
 test('Just The Thing (Sniper) puts a chosen deck card on top and reshuffles the rest', () => {
@@ -515,26 +534,27 @@ test('the line is dealt one card at a time, starting from the right (rules C3)',
   state.events = [];
   Engine.dealLine(state, registry, 3);
   assert.deepStrictEqual(state.line.map(function (c) { return c.uid; }),
-    ['obs_guard_0', 'obs_guard_dog_0', 'obs_patrolling_guard_0']);
+    ['obs_guard_dog_0', 'obs_guard_0', 'obs_patrolling_guard_0']);
   assert.strictEqual(state.events[0].type, 'dealLine');
   assert.strictEqual(state.events[0].slot, 5);
   assert.strictEqual(state.events[1].slot, 4);
   assert.strictEqual(state.events[2].slot, 3);
-  assert.ok(state.events.some(function (e) { return e.type === 'moveCard'; }));
 });
 
-test('appearance effects run in draw order, on the partial line', () => {
+test('appearance effects resolve as cards enter, against the partial line', () => {
   const state = fresh(76);
   state.line = [];
   state.obstacleDeck = [
-    { uid: 'obs_guard_dog_0', defId: 'obs_guard_dog' },
+    { uid: 'obs_radio_tower_0', defId: 'obs_radio_tower' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
     { uid: 'obs_guard_0', defId: 'obs_guard' }
   ];
   state.obstacleDiscard = [];
   state.events = [];
-  Engine.dealLine(state, registry, 2);
-  assert.deepStrictEqual(state.line.map(function (c) { return c.uid; }), ['obs_guard_0', 'obs_guard_dog_0']);
-  assert.ok(state.events.some(function (e) { return e.type === 'moveCard' && e.reason === 'Guard Dog'; }));
+  Engine.dealLine(state, registry, 3);
+  assert.deepStrictEqual(state.line.map(function (c) { return c.uid; }),
+    ['obs_radio_tower_0', 'obs_guard_0', 'obs_yard_door_0']);
+  assert.ok(state.events.some(function (e) { return e.type === 'moveCard' && e.reason === 'Radio Tower'; }));
 });
 
 test('every visible action produces an event stream', () => {
@@ -663,4 +683,102 @@ test('Throw a Rock makes the player choose between 1 Fighting and drawing a card
   assert.strictEqual(drew.hand.length, 2, 'a card was drawn instead');
 
   assert.throws(function () { Engine.playCard(state, 'obs_yard_door_0', registry); }, /needs a choice/);
+});
+
+test('disarming the Flammable Barrel knocks out the cards beside it, not the wrong one', () => {
+  let state = fresh(11);
+  const barrel = state.missionDeck.find(function (c) { return c.defId === 'obs_flammable_barrel'; });
+  state.missionDeck = state.missionDeck.filter(function (c) { return c !== barrel; });
+  const five = state.line.slice(0, 5);
+  state.obstacleDeck.push(state.line[5]);   // make room for the barrel
+  state.line = [five[0], five[1], barrel, five[2], five[3], five[4]];
+  state.interactionsLeft = 1;
+  state.resources = { stealth: 0, fighting: 14 };
+  state = Engine.interact(state, barrel.uid, 'disarm', registry);
+  assertClean(state);
+  assert.ok(!state.line.some(function (c) { return c.uid === barrel.uid; }), 'the barrel is disarmed');
+  assert.ok(state.faceDown[five[1].uid] && state.faceDown[five[2].uid], 'the two cards beside the barrel are knocked out');
+  assert.ok(!state.faceDown[five[0].uid] && !state.faceDown[five[3].uid], 'cards two slots away are untouched');
+});
+
+test('a knocked-out Patrolling Guard loses its extra slide', () => {
+  let state = fresh(3);
+  state.line = [
+    { uid: 'obs_patrolling_guard_0', defId: 'obs_patrolling_guard' },
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_security_camera_0', defId: 'obs_security_camera' },
+    { uid: 'obs_waste_room_0', defId: 'obs_waste_room' },
+    { uid: 'obs_motion_sensor_hall_0', defId: 'obs_motion_sensor_hall' }
+  ];
+  state.faceDown.obs_patrolling_guard_0 = true;
+  state = Engine.lineScroll(state, registry);
+  assert.ok(state.line.some(function (c) { return c.uid === 'obs_patrolling_guard_0'; }), 'the knocked-out guard stayed put');
+  assert.strictEqual(state.line[0].uid, 'obs_patrolling_guard_0', 'it did not slide forward');
+  assert.ok(!state.line.some(function (c) { return c.uid === 'obs_motion_sensor_hall_0'; }), 'the rightmost card still exits');
+});
+
+test('a knocked-out Siren does not flush the line when it exits', () => {
+  let state = fresh(9);
+  state.line = [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_siren_0', defId: 'obs_siren' },
+    { uid: 'obs_locker_room_0', defId: 'obs_locker_room' },
+    { uid: 'obs_inspector_0', defId: 'obs_inspector' },
+    { uid: 'obs_guard_1', defId: 'obs_guard' }
+  ];
+  state.faceDown.obs_siren_0 = true;
+  state.obstacleDeck = [];
+  state.obstacleDiscard = [];
+  state = Engine.lineScroll(state, registry);
+  assert.strictEqual(state.line.length, 5, 'the line is intact — the face-down Siren has no effect');
+  assert.strictEqual(state.obstacleDiscard.length, 1);
+});
+
+test('a face-up Siren dumping the line raises the alarm for itself only', () => {
+  let state = fresh(9);
+  state.line = [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_guard_1', defId: 'obs_guard' },
+    { uid: 'obs_locker_room_0', defId: 'obs_locker_room' },
+    { uid: 'obs_inspector_0', defId: 'obs_inspector' },
+    { uid: 'obs_siren_0', defId: 'obs_siren' }
+  ];
+  state.obstacleDeck = [];
+  state.obstacleDiscard = [];
+  state.alarm = 0;
+  state = Engine.lineScroll(state, registry);
+  assert.strictEqual(state.line.length, 0, 'the whole line went to the obstacles discard');
+  assert.strictEqual(state.obstacleDiscard.length, 6);
+  assert.strictEqual(state.alarm, registry.obs_siren.alarm, 'only the Siren raises the alarm');
+});
+
+test('Dormitory jams the conveyor when the card at the exit is knocked out', () => {
+  let state = fresh(12);
+  state.line = [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_dormitory_0', defId: 'obs_dormitory' },
+    { uid: 'obs_guard_1', defId: 'obs_guard' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_guard_2', defId: 'obs_guard' },
+    { uid: 'obs_security_camera_0', defId: 'obs_security_camera' }
+  ];
+  state.faceDown.obs_security_camera_0 = true;
+  state.obstacleDeck = [];
+  state.obstacleDiscard = [];
+  state = Engine.lineScroll(state, registry);
+  assert.strictEqual(state.line.length, 6, 'nothing leaves the line');
+  assert.strictEqual(state.alarm, 0, 'no alarm is raised');
+});
+
+test('a mission goal printed as Fighting cannot be paid with Stealth', () => {
+  let state = fresh(12);
+  state.missionIndex = 1;
+  state.equip = [{ uid: 'obs_locker_room_0', defId: 'obs_locker_room' }];
+  state.resources = { stealth: 12, fighting: 0 };
+  assert.strictEqual(Engine.goalSatisfied(state, registry, missions), false, '12 Stealth is not 6 Fighting');
+  state.resources = { stealth: 0, fighting: 6 };
+  assert.strictEqual(Engine.goalSatisfied(state, registry, missions), true);
 });

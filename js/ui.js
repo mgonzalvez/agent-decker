@@ -538,24 +538,43 @@ const UI = (function () {
       return;
     }
 
-    if (choice.kind === 'order') {
+    if (choice.kind === 'order' || choice.kind === 'keep') {
       const order = [];
+      let keep = null;
       function redrawOrder() {
         const options = pool.map(function (c) {
           const at = order.indexOf(c.uid);
+          const tag = choice.kind === 'keep'
+            ? (keep === c.uid ? ' — kept' : '')
+            : (at >= 0 ? ' — position ' + (at + 1) : '');
           return {
-            label: defOf(c).name + (at >= 0 ? ' — position ' + (at + 1) : ''),
+            label: (keep === c.uid ? '✓ ' : '') + defOf(c).name + tag,
             action: function () {
-              if (at >= 0) order.splice(at, 1);
+              if (choice.kind === 'keep') {
+                if (keep === c.uid) keep = null;
+                else keep = c.uid;
+              } else if (at >= 0) order.splice(at, 1);
               else order.push(c.uid);
               redrawOrder();
             }
           };
         });
         options.push({
-          label: order.length === pool.length ? 'Put them back in this order' : 'Cancel',
+          label: choice.kind === 'keep'
+            ? (keep ? 'Keep it and put the rest back' : 'Choose one to keep')
+            : (order.length === pool.length ? 'Put them back in this order' : 'Cancel'),
           action: function () {
-            apply(Actions.play(state, card.uid, registry, order.length === pool.length ? { order: order } : {}), def.name + ' played', 'play', true);
+            if (choice.kind === 'keep') {
+              if (!keep) { apply(Actions.play(state, card.uid, registry), def.name + ' played (nothing kept)', 'play', true); return; }
+              const rest = pool.filter(function (c) { return c.uid !== keep; });
+              const back = order.filter(function (u) { return u !== keep; });
+              if (back.length !== rest.length) {
+                rest.forEach(function (c) { if (back.indexOf(c.uid) < 0) back.push(c.uid); });
+              }
+              apply(Actions.play(state, card.uid, registry, { keep: keep, order: back }), def.name + ' played', 'play', true);
+            } else {
+              apply(Actions.play(state, card.uid, registry, order.length === pool.length ? { order: order } : {}), def.name + ' played', 'play', true);
+            }
           }
         });
         openOverlay(def.name, choice.label, options);
