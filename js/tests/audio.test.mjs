@@ -68,9 +68,9 @@ test('all five beds are selectable', () => {
   const names = Sound.tracks().map(function (t) { return t.name; });
   assert.strictEqual(names.length, 5);
   assert.ok(names.indexOf('Nightline Shunt') >= 0);
-  assert.ok(names.indexOf('Cold War Waltz') >= 0);
+  assert.ok(names.indexOf('Cold War Chase') >= 0);
   assert.ok(names.indexOf('Dead Drop') >= 0);
-  assert.ok(names.indexOf('Safehouse Nocturne') >= 0);
+  assert.ok(names.indexOf('Safehouse Boogie') >= 0);
   assert.ok(names.indexOf('Blackout March') >= 0);
 });
 
@@ -79,7 +79,7 @@ test('the scheduler keeps feeding notes instead of stopping after one bar', asyn
   Sound.setTrack('nightline');
   Sound.toggleMusic();
   await sleep(1500);
-  assert.ok(notes.length >= 8, 'the loop scheduled only ' + notes.length + ' notes in 1.5 s');
+  assert.ok(notes.length >= 20, 'the loop scheduled only ' + notes.length + ' notes in 1.5 s');
 
   Sound.toggle();
   await sleep(700);
@@ -144,14 +144,33 @@ test('no melody or bass note clashes with the chord underneath it', () => {
   }
 });
 
-test('the beds are slow, held, and quiet enough to sit under play', () => {
+test('the beds are driving grooves with a hook and a backbeat', () => {
   for (const t of Sound.tracks()) {
-    assert.ok(t.bpm <= 100, t.name + ' is too fast at ' + t.bpm + ' bpm');
-    const notes = t.data.reduce(function (n, p) { return Math.max(n, p.bass.length + p.lead.length); }, 0);
-    const longest = t.data.reduce(function (n, p) {
-      return Math.max(n, p.lead.reduce(function (m, l) { return Math.max(m, l[2]); }, 0));
-    }, 0);
-    assert.ok(longest >= 2, t.name + ' has no sustained melodic note');
-    assert.ok(notes / t.steps <= 0.9, t.name + ' is too dense: ' + notes + ' notes in ' + t.steps + ' steps');
+    assert.ok(t.bpm >= 104, t.name + ' drags at ' + t.bpm + ' bpm');
+    assert.ok(t.drums.snare.length >= 2, t.name + ' has no backbeat');
+    assert.ok(t.drums.hat.length >= 4, t.name + ' has no hat groove');
+    assert.ok(t.stab.length >= 4, t.name + ' has no chord stabs');
+    const hook = t.data[0].lead.filter(function (n) { return n[2] === 2; });
+    const counts = {};
+    t.data.forEach(function (p) { p.lead.forEach(function (n) { counts[n[1]] = (counts[n[1]] || 0) + 1; }); });
+    assert.ok(Object.keys(counts).some(function (k) { return counts[k] >= 4; }), t.name + ' has no repeating hook note');
+    assert.ok(hook.length >= 8, t.name + ' has no eighth-note drive in the hook');
+  }
+});
+
+test('no lead note bends into a pitch outside its chord', () => {
+  const fits = function (note, chord) {
+    return chord.map(function (n) { return n % 12; }).indexOf(note % 12) >= 0;
+  };
+  for (const t of Sound.tracks()) {
+    for (const phrase of t.data) {
+      const span = t.steps / phrase.chords.length;
+      for (const [at, note, length, from] of phrase.lead) {
+        const chord = phrase.chords[Math.floor(at / span)];
+        if (from !== undefined) {
+          assert.ok(fits(from, chord), t.name + ' bend from ' + from + ' clashes at step ' + at);
+        }
+      }
+    }
   }
 });
