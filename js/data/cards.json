@@ -874,7 +874,7 @@
         "either": 10
       },
       "alarm": 5,
-      "keep": true,
+      "keep": false,
       "reward": {
         "name": "Optic Camouflage",
         "resource": {
@@ -891,7 +891,7 @@
       "art": [
         "assets/cards/048.jpg"
       ],
-      "topText": "Optic Camouflage (KEEP) \u2014 4 Stealth; when used it is discarded to the obstacles discard instead of your own.",
+      "topText": "Optic Camouflage \u2014 4 Stealth. When it is used it is discarded to the obstacles discard instead of your own.",
       "bottomText": "",
       "sound": "beep"
     },

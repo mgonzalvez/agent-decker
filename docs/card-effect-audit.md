@@ -39,7 +39,7 @@ Legend: **OK** = implemented and matches the print · **FIXED** = wrong before t
 | Prison Door → Prisoner (KEEP) | 1 Fighting, once per turn | per-turn passive | OK |
 | Flammable Barrel → Burn | Pick up to two cards from your discard and remove them from the game | Bin over the discard, capped at 2 | OK |
 | Guard with Bazooka → Bazooka | 5 Fighting; when used it goes to the **obstacles** discard | routed to `obstacleDiscard` on play | OK |
-| Tech Container → Optic Camouflage (KEEP) | **4** Stealth; when used it goes to the obstacles discard instead of your own | 4 Stealth on use, card → obstacles discard | **FIXED** (the printed 4 was missing) — see Q5 |
+| Tech Container → Optic Camouflage | **4** Stealth; when used it goes to the obstacles discard instead of your own | a regular player-deck card: 4 Stealth on play, then straight to the obstacles discard | **FIXED** (it was mis-flagged as a KEEP item and its 4 was never paid) |
 | Chain Link Fence → Save Bullets | Save an unused card for the next turn | `saved` zone, re-enters hand at refresh | OK |
 | Laser Hall → Superspeed | Draw three cards | `draw 3` | OK |
 | Clumsy Guard → Heavy Hand | 3 Fighting | on play | OK |
@@ -57,7 +57,7 @@ Legend: **OK** = implemented and matches the print · **FIXED** = wrong before t
 |---|---|---|---|
 | Guard Dog | When Guard Dog appears, if there is a person on the line, slide it all the way until it's **adjacent** to it | slides right and stops in the slot **immediately before** the first person to its right; does nothing if already adjacent | **FIXED** — it used to land on the far side of the person (Q1) |
 | Patrolling Guard | During the Line Scroll, slides forward one more position | 2 spaces per scroll; can exit the line and raise its 5 alarm (C5) | OK |
-| Radio Tower | When Radio Tower appears, slide all person cards all the way next to it | every face-up person is moved to the slots immediately right of the tower, in line order | OK **[I]** — see Q2 |
+| Radio Tower | When Radio Tower appears, slide all person cards all the way next to it | every face-up person slides toward the tower and stops as close as it can get, never crossing it | **FIXED** |
 | Siren | When discarded, place every card in the line on the Obstacles Discard. Only raise the alarm for the Siren | on exit: line → obstacles discard, alarm only for the Siren; a **face-down** Siren does nothing (knocked-out cards ignore their effects) | **FIXED** |
 | Inspector | At the Line Scroll, Inspector flips the last card in the line face up. "When appears" effects activate | flip happens before the exit, so the flipped card does raise its alarm; appearance effect re-runs | OK **[I]** — see Q7 |
 | Dormitory | At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do | if the card at the exit is face-down the conveyor is **jammed**: nothing exits, no alarm; extra slides are blocked by a face-down card | **FIXED** — it used to remove the rightmost face-up card regardless |
@@ -78,34 +78,40 @@ Legend: **OK** = implemented and matches the print · **FIXED** = wrong before t
 - Score = alarm at each mission end; alarm resets between missions — OK.
 - Card conservation is checked after every action by `checkInvariants` (54 cards, binned cards accounted for separately) — OK.
 
-## 4. Open questions for the designer
+## 4. Rulings adopted (designer / BoardGameGeek clarification thread, 2026-11-15)
 
-1. **Guard Dog with a person to its LEFT.** The print says "if there is a person on the line". We only look to the
-   right (the direction of the conveyor). If a person is left of the dog, does the dog still slide?
-2. **Radio Tower direction.** "Slide all person cards all the way next to it" — persons already to the *left* of the
-   tower would have to pass it. We move every face-up person to the tower's right side. Right?
-3. **Does the line have gaps?** Disarming a card leaves a hole in the conveyor or the line closes up? Our model closes
-   gaps, so adjacency (Watchtower, Clumsy Guard, Guard Dog) is always "next in the array". A strict conveyor would
-   keep the hole, which changes which cards are adjacent and how Dormitory blocks the scroll.
-4. **Keycard / Chloroform / E.M.P.** "Place <item> in your discard to interact with a door/person/equipment" — does
-   the item **replace** the printed cost, or is it *in addition* to paying it? And does that use still consume the
-   turn's interaction? We treat it as a replacement that still counts as the interaction.
-5. **Optic Camouflage's printed 4 Stealth.** Items never sit in hand in our model (a drawn KEEP goes straight to the
-   Equip Area). We now grant the 4 Stealth when the item is *used* from the Equip Area. Is that right — or should
-   KEEP items be playable from hand like normal cards?
-6. **Siren knocked out.** A face-down card "ignores its Type and Effect", so a knocked-out Siren no longer dumps the
-   line when it exits. Confirm.
-7. **Inspector timing.** Does the flip happen before the last card exits (so its alarm counts, our reading) or after
-   the scroll (so it matters only for the *next* scroll)?
-8. **Distraction.** When the pulled card lands at the start of the line, do its "when appears" effects trigger again
-   (e.g. pulling a Guard Dog out of position)?
-9. **Flammable Barrel's two knock-outs** — free bonus interactions, or do they eat the turn's interaction allowance?
-10. **Clumsy Guard** — "you may instead knock out an adjacent card": do you still pay the 8 Fighting, and does the
-    card you knock out cost anything? We pay the guard's cost and take the adjacent card for nothing.
-11. **Mission Five** — "Knock out the six cards in the line": must the line still contain exactly six cards (so
-    disarming any of them makes the goal impossible that mission)? We require exactly six, all face-down.
-12. **Watchtower +2** — is the extra 2 paid in the same resource the card's cost is printed in, or in any mix?
-13. **Items equipped mid-turn** — does Map/Guard Uniform/Prisoner give their resource in the turn they are acquired,
-    or only from the next Card Refresh onward? (We say next turn.)
-14. **Does the Bin accept KEEP items?** Printed: "any number of cards from your hand" — items never reach the hand in
-    our model, so effectively it only ever purges non-item cards.
+Source: the BGE clarifications thread by rkonigsberg (with gr9yfox and the designer's own answers).
+
+| Question | Ruling | Engine |
+|---|---|---|
+| Guard Dog — which persons? | Only persons **to its right** (the direction of the conveyor). "Slide it all the way next to it" = stop as close as possible, never jump over the target. | OK |
+| Radio Tower — direction | Every face-up person slides **toward** the tower and stops as close as it can get, without ever crossing it. Persons on the left pack immediately to its left, persons on the right immediately to its right. | **FIXED** (previously moved everyone to the right side only) |
+| Keycard / Chloroform / E.M.P. | The item **replaces** the printed cost and still counts as the turn's interaction. Items can be used from the Equip Area or from the hand; they go to the *discard*, not the Play Area. | OK |
+| Optic Camouflage | **Not a KEEP item** — it is a regular card in the player's deck. Played from hand it gives 4 Stealth, and when used it goes to the obstacles discard instead of the player discard. | **FIXED** (it was flagged `keep: true` and its 4 was unused) |
+| Inspector | Flip happens to the last card of the line, which then scrolls off and raises its alarm — the only reading in which waking a knocked-out card does anything. "When appears" effects activate. | OK |
+| Distraction | "The start of the line" = the back of the line, as if it were the newest card. Appearance effects of the pulled card do **not** re-trigger. | OK |
+| Mission 5 | "Knock out the six cards in the line" means all six line slots face-down. | OK |
+| Watchtower +2 | Paid in the resource the card's cost is printed in. | OK |
+| Flammable Barrel's two knock-outs | Free; the barrel is the only interaction spent. | OK |
+| Clumsy Guard | A choice: interact with Clumsy Guard itself for 8 Fighting, **or** pay 8 Fighting to knock out an adjacent card for nothing. | OK |
+| Items acquired mid-turn | Their once-per-turn resources apply **immediately** (Map, Guard Uniform, Prisoner). | **FIXED** |
+| Knocked-out cards at the Line Scroll | They are still discarded ("Add the last card in the line to the obstacles discard") but raise **no** alarm. Dormitory is the exception: while it is face-up, face-down cards do not slide at all. | OK |
+| Mission objectives | "Get 6 stealth" = play 6 stealth from hand to the Play Area. Objectives do **not** count against the interaction limit, and resources spent on obstacles cannot double-count toward the goal. | OK |
+| Bin | Purges any number of cards from the **hand** only; Bin itself is already in the Play Area, so it cannot bin itself. | OK |
+| Empty draw pile | Whenever a draw cannot be satisfied, shuffle the discard into the deck and draw the remainder. | OK |
+| Just The Thing | Take the chosen card, shuffle the deck, then put the card on top. | OK |
+| Save Bullets | The saved card does not count against the draw. | OK |
+| Patrolling Guard | Scrolls one extra space, swapping with the card in front of it. | OK |
+
+## 5. Still open
+
+1. **Physical gaps in the line.** You confirmed that a disarmed card leaves a hole rather than the line closing up.
+   The engine currently models the line as a contiguous array, so "adjacent" always means "next card in the array".
+   A true six-slot conveyor (with empty slots) would change which cards count as adjacent for Watchtower, Clumsy
+   Guard and Guard Dog, and how Dormitory blocks the scroll. This is a real refactor of `engine.js`, `ui.js` and
+   `table.js` — say the word and I will do it.
+2. **Dormitory's exact value.** Under the general rule (face-down cards still leave the line, silently), Dormitory is
+   the only card that keeps them in place. Is that the intended reading, or do face-down cards never leave the line
+   at all?
+3. **Patrolling Guard at the exit.** If it is already the last card when it gets its extra step, it scrolls off and
+   raises its alarm (our reading of clarification C5). BGE flags this as an open question.
