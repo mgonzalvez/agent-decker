@@ -90,10 +90,26 @@ These are the calls the engine makes where the printed rules are silent. Flagged
 - **[I] Mission 3 goal.** Checked as `hand.length >= 7` at Mission Check.
 - **[I] Keycard / Chloroform / E.M.P. (`discardToInteract`).** "Place <item> in your discard to interact with a person/equipment" is read as: the item **replaces the resource cost** of one interaction with a matching obstacle type (the interaction is still Disarm or Knock Out, and still consumes the turn's interaction). The item moves Equip Area → discard immediately. Requires a designer check: the printed wording could instead mean "in addition to paying the cost".
 - **[I] Inspector (`flipLastLineCardFaceUp`).** The flip happens **before** the exiting card leaves the line, so a knocked-out card that Inspector flips face up *does* raise its alarm on exit — that is the only reading that makes the effect do anything. "'When appears' effects activate" is implemented as re-running the card's appearance effect.
-- **[I] Dormitory (`faceDownCardsDoNotScroll`). "At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do." Implemented as: while Dormitory is face-up in the line, the card that leaves the line is the **rightmost face-up** card; face-down cards hold their position. Without this, knocked-out cards would leave the line and Mission 5 ("knock out the six cards in the line") would be unwinnable with only three interactions per turn.
+- **[I] Dormitory (`faceDownCardsDoNotScroll`). "At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do." Implemented as: while Dormitory is face-up in the line, the card that leaves the line is the **rightmost face-up** card; face-down cards hold their position. Without this, knocked-out cards would leave the line and Mission 5 ("knock out the six cards in the line") would be unwinnable with only three interactions per turn. **(Revised 2026-11-15: see §10 — the conveyor now jams when the card at the exit is face-down, and an extra slide is blocked if a face-down card sits in its way.)**
 - **[I] Clumsy Guard (`knockOutAdjacentInsteadOfInteract`).** You pay Clumsy Guard's cost, it stays in the line, and an **adjacent** card is knocked out instead. Only cards orthogonally adjacent in the line are legal targets; the engine rejects anything else.
 - **[I] Hand size.** The "draw four (or five)" rule caps the hand at the *start* of the turn; cards drawn mid-turn (Yard Door, Patrolling Guard, Laser Hall, Siren) can push it higher. The invariant therefore only flags implausibly large hands (> 12), not a hand above the draw size.
 - **[I] Line size during a turn.** Disarming removes a card from the line and the line is only refilled at Card Refresh, so the line can be shorter than 6 mid-turn. The invariant now checks "at most 6", not "exactly 6".
+
+## 10. Card-effect audit fixes (2026-11-15)
+
+Full card-by-card table in `docs/card-effect-audit.md`. What changed in the engine:
+
+- **Guard Dog** now stops in the slot *immediately before* the first face-up person to its right (it previously slid past that person). Still only looks right — see Q1.
+- **Flammable Barrel** captures the two neighbour slots *before* disarm removes it, so it knocks out the cards that were actually beside it. The knock-outs are free of the interaction limit (Q9).
+- **Patrolling Guard** knocked out face-down loses its extra slide (face-down cards ignore their type and effect).
+- **Siren** knocked out face-down no longer dumps the line on exit.
+- **Dormitory** jams the conveyor: if the card at the exit is face-down nothing leaves the line and no alarm is raised; a face-down card also blocks a Patrolling Guard's extra step.
+- **Mission goals are type-specific.** Mission 1 (blue 6) is Stealth, Mission 2 (red 6) is Fighting, Mission 4 (combined glyph, 18) is any mix. Stealth could previously satisfy the Fighting goals.
+- **Plan Ahead** now keeps exactly one of the three scouted cards in hand and puts the other two back in a chosen order.
+- **Optic Camouflage**'s printed 4 Stealth is now granted when the item is used from the Equip Area (Q5).
+- **Per-turn item resources** (`oncePerTurn`) are limited to Map, Guard Uniform and Prisoner. Cards whose printed number is a one-shot use (Bazooka, Optic Camouflage) no longer generate that resource every turn.
+
+Open rulings still unresolved (Q1–Q14 in `docs/card-effect-audit.md`): Guard Dog looking left, Radio Tower direction, whether the line keeps physical gaps, whether Keycard/Chloroform/E.M.P. replace or add to the cost, Optic Camouflage's 4 Stealth, Inspector timing, Distraction re-triggering appearance effects, Mission 5's "six cards", Watchtower's +2 resource type, and when a mid-turn equipped item starts paying.
 
 ---
 

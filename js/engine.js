@@ -224,12 +224,14 @@ const Engine = (function () {
     }
   }
 
-  /* Equipped items: "once per turn" resources and Siren's extra draws. */
+  /* Equipped items: resources printed "once per turn", and Siren's extra draws.
+     A printed number on a card whose text is a one-shot use (Bazooka, Optic
+     Camouflage) is not a per-turn passive — it is paid when the card is used. */
   function applyEquipPassives(state, registry) {
     const keeps = state.equip.filter(function (c) { return def(c, registry).keep; });
     keeps.forEach(function (card) {
       const d = def(card, registry);
-      addResource(state, d.reward && d.reward.resource);
+      if (d.reward && d.reward.oncePerTurn) addResource(state, d.reward.resource);
       const e = d.reward && d.reward.effect;
       if (e && e.type === 'drawPerEquippedKeep') {
         drawToHand(state, registry, Math.min(e.max || 3, keeps.length));
@@ -259,11 +261,13 @@ const Engine = (function () {
         if (state.faceDown[state.line[i].uid]) continue;
         if (def(state.line[i], registry).obstacleType === e.targetType) { target = i; break; }
       }
-      if (target > idx) {
+      /* "Slide it all the way until it's adjacent to it": the dog stops in the
+         slot immediately *before* the person, never past it. */
+      if (target - 1 > idx) {
         state.line.splice(idx, 1);
-        state.line.splice(target, 0, card);
-        event(state, 'moveCard', { card: card.uid, from: from, to: target, reason: def(card, registry).name });
-        log(state, 'line', def(card, registry).name + ' slides right beside the first ' + e.targetType + ' in the line');
+        state.line.splice(target - 1, 0, card);
+        event(state, 'moveCard', { card: card.uid, from: from, to: target - 1, reason: def(card, registry).name });
+        log(state, 'line', def(card, registry).name + ' slides right until it is next to the first ' + e.targetType + ' on its right');
       }
     } else if (e.type === 'slideTypeToSelf') {
       const from = idx;
@@ -369,11 +373,29 @@ const Engine = (function () {
             shuffleInPlace(s.deck, s);
             s.deck.push(pick);
           }
-        } else if (e.type === 'scoutDeck' || e.type === 'reorderTopOfDeck') {
-          /* UI-driven: the engine exposes the top of the deck and reorders from options.order */
+        } else if (e.type === 'reorderTopOfDeck') {
+          /* UI-driven: options.order is top-to-bottom (first entry is the next
+             card you draw). */
           if (Array.isArray(options.order)) {
             const top = s.deck.slice(-e.n);
-            s.deck = s.deck.slice(0, s.deck.length - e.n).concat(options.order.map(function (u) { return findZone(s, 'deck', u); }).filter(Boolean));
+            const back = options.order.slice().reverse().map(function (u) { return findZone(s, 'deck', u); }).filter(Boolean);
+            s.deck = s.deck.slice(0, s.deck.length - top.length).concat(back);
+          }
+        } else if (e.type === 'scoutDeck') {
+          /* "Look at the top N. Keep one and put back the rest in any order." */
+          const top = s.deck.slice(-e.n);
+          const kept = options.keep ? top.find(function (c) { return c.uid === options.keep; }) : null;
+          const rest = top.filter(function (c) { return !kept || c.uid !== kept.uid; });
+          s.deck = s.deck.slice(0, s.deck.length - top.length);
+          const order = Array.isArray(options.order) ? options.order : rest.slice().reverse().map(function (c) { return c.uid; });
+          order.slice().reverse().forEach(function (uid) {
+            const c = rest.find(function (x) { return x.uid === uid; });
+            if (c) s.deck.push(c);
+          });
+          if (kept) {
+            enterHand(s, registry, kept);
+            event(s, 'draw', { card: kept.uid, from: 'deck' });
+            log(s, 'agent', d.name + ' — kept ' + def(kept, registry).name + ' from the top of the deck');
           }
         } else if (e.type === 'swapDeckAndDiscard') {
           const t = s.deck;
@@ -411,6 +433,8 @@ const Engine = (function () {
 
     const d = def(card, registry);
     const cost = effectiveCost(s, registry, card);
+    const slot = lineIndexOf(s, card.uid);
+    const neighbours = [s.line[slot - 1], s.line[slot + 1]].filter(Boolean);
     const item = options.itemUid ? findZone(s, 'equip', options.itemUid) : null;
     if (options.itemUid && !item) throw new Error('item is not equipped: ' + options.itemUid);
 
@@ -440,7 +464,8 @@ const Engine = (function () {
       event(s, 'knockOutAdjacent', { card: options.uid, by: card.uid });
       const target = findZone(s, 'line', options.uid);
       if (!target) throw new Error('target is not in the line');
-      if (Math.abs(lineIndexOf(s, card.uid) - lineIndexOf(s, target.uid)) !== 1) {
+      if (s.faceDown[target.uid]) throw new Error(def(target, registry).name + ' is already knocked out');
+      if (!neighbours.some(function (n) { return n.uid === target.uid; })) {
         throw new Error(def(target, registry).name + ' is not adjacent to ' + d.name);
       }
       s.faceDown[target.uid] = true;
@@ -449,11 +474,9 @@ const Engine = (function () {
     }
 
     if (choice === 'knockOut') {
-      const slot = lineIndexOf(s, card.uid);
       s.faceDown[card.uid] = true;
       event(s, 'knockOut', { card: card.uid, slot: slot });
     } else if (choice === 'disarm') {
-      const slot = lineIndexOf(s, card.uid);
       removeFrom(s, 'line', card.uid);
       if (d.keep) {
         equipCard(s, registry, card);
@@ -467,10 +490,15 @@ const Engine = (function () {
     }
 
     if (d.effect && d.effect.type === 'knockOutAdjacentOnInteract') {
-      const i = lineIndexOf(s, card.uid);
-      [i - 1, i + 1].forEach(function (n) {
-        if (s.line[n]) s.faceDown[s.line[n].uid] = true;
+      /* The neighbours are the cards that were beside the barrel *before* it
+         left the line, so they were captured up front. */
+      neighbours.forEach(function (neighbour) {
+        if (!s.faceDown[neighbour.uid]) {
+          s.faceDown[neighbour.uid] = true;
+          event(s, 'knockOut', { card: neighbour.uid, by: card.uid });
+        }
       });
+      log(s, 'agent', 'the Flammable Barrel sets off the cards on either side of it');
     }
     log(s, 'agent', (choice === 'knockOut' ? 'knocked out ' : 'disarmed ') + d.name + ' for ' + costText(effectiveCost(s, registry, card)));
     return s;
@@ -487,16 +515,20 @@ const Engine = (function () {
 
   function exitLine(state, card, registry) {
     const d = def(card, registry);
-    const alarm = state.faceDown[card.uid] ? 0 : d.alarm;
+    const down = state.faceDown[card.uid];
+    const alarm = down ? 0 : d.alarm;
     state.obstacleDiscard.push(card);
     event(state, 'exitLine', { card: card.uid, alarm: alarm, total: Math.min(50, state.alarm + alarm) });
     if (alarm) event(state, 'alarm', { amount: alarm, total: Math.min(50, state.alarm + alarm) });
     state.alarm = Math.min(50, state.alarm + alarm);
     if (state.alarm >= 50) state.gameOver = 'alarm';
     log(state, 'line', d.name + ' left the line — alarm +' + alarm);
-    if (d.effect && d.effect.type === 'flushLineToDiscardOnExit') {
+    /* A knocked-out card "ignores its Type and Effect", so a face-down Siren
+       does not flush the line. */
+    if (!down && d.effect && d.effect.type === 'flushLineToDiscardOnExit') {
       state.line.forEach(function (c) { state.obstacleDiscard.push(c); });
       state.line = [];
+      log(state, 'line', 'the Siren dumps the whole line on the obstacles discard');
     }
   }
 
@@ -522,15 +554,12 @@ const Engine = (function () {
     applyScrollTriggers(s, registry);
 
     const stasis = hasFaceDownStasis(s, registry);
+    /* With a Dormitory in the line, knocked-out cards hold their slot. If one
+       is sitting at the exit, the conveyor is jammed and nothing leaves. */
     let exitingIndex = s.line.length - 1;
-    if (stasis) {
-      exitingIndex = -1;
-      for (let i = s.line.length - 1; i >= 0; i--) {
-        if (!s.faceDown[s.line[i].uid]) { exitingIndex = i; break; }
-      }
-    }
+    if (stasis && s.faceDown[s.line[exitingIndex].uid]) exitingIndex = -1;
     if (exitingIndex < 0) {
-      log(s, 'line', 'the line is locked — every card is knocked out and nothing scrolls');
+      log(s, 'line', 'the Dormitory jams the conveyor — the card at the exit is knocked out, so nothing slides');
       return s;
     }
 
@@ -546,13 +575,19 @@ const Engine = (function () {
 
     for (let i = s.line.length - 1; i >= 0; i--) {
       const card = s.line[i];
-      if (s.faceDown[card.uid] && hasFaceDownStasis(s, registry)) continue;
+      if (!card) continue;
+      /* A knocked-out card ignores its type and its effect: no extra slide. */
+      if (s.faceDown[card.uid]) continue;
       const e = def(card, registry).effect;
       if (!e || e.type !== 'extraScroll') continue;
-      let pos = i;
+      let pos = lineIndexOf(s, card.uid);
       for (let step = 0; step < e.n; step++) {
         const next = pos + 1;
         if (next < s.line.length) {
+          if (stasis && s.faceDown[s.line[next].uid]) {
+            log(s, 'line', def(card, registry).name + ' is blocked by a knocked-out card and cannot slide further');
+            break;
+          }
           const t = s.line[pos];
           s.line[pos] = s.line[next];
           s.line[next] = t;
@@ -635,10 +670,19 @@ const Engine = (function () {
       return state.equip.some(function (c) { return c.defId === id; });
     });
     if (!itemsOk) return false;
-    const need = (g.resources ? (g.resources.stealth || 0) + (g.resources.fighting || 0) : 0) + (g.either || 0);
-    if (need === 0) return true;
-    if (g.resources && g.resources.stealth && state.resources.stealth < g.resources.stealth) return false;
-    return state.resources.stealth + state.resources.fighting >= need;
+    /* A goal printed with a Stealth triangle needs Stealth, one printed with a
+       Fighting circle needs Fighting; only the combined "any mix" glyph can be
+       paid with either resource. */
+    if (g.resources) {
+      if (state.resources.stealth < (g.resources.stealth || 0)) return false;
+      if (state.resources.fighting < (g.resources.fighting || 0)) return false;
+    }
+    if (g.either) {
+      const spare = (state.resources.stealth - (g.resources ? (g.resources.stealth || 0) : 0))
+                  + (state.resources.fighting - (g.resources ? (g.resources.fighting || 0) : 0));
+      if (spare < g.either) return false;
+    }
+    return true;
   }
 
   function completeMission(state, registry, missions) {
@@ -718,9 +762,11 @@ const Engine = (function () {
     const d = def(card, registry);
     const e = d.reward && d.reward.effect;
     if (!e || e.type !== 'usedCardToObstacleDiscard') throw new Error(d.name + ' has no use action');
+    addResource(s, d.reward.resource);
     removeFrom(s, 'equip', card.uid);
     s.obstacleDiscard.push(card);
-    log(s, 'agent', 'used ' + d.name + ' — it goes to the obstacles discard');
+    event(s, 'play', { card: card.uid, to: 'obstacleDiscard' });
+    log(s, 'agent', 'used ' + d.name + ' — ' + (d.reward.resource ? resourceText(d.reward.resource) + ', and ' : '') + 'it goes to the obstacles discard');
     return s;
   }
 
