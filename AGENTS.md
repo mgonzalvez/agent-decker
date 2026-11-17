@@ -104,3 +104,21 @@ Personal project — completely separate from Apple work.
 - Audit before pushing: `../scripts/check-registry.sh` (add `--fix` to normalize).
 - No work credentials, internal hostnames, proprietary assets, or confidential
   material in this repo.
+
+## Analytics & hosting
+
+The site is served from the `mgonzalvez.github.io/agent-decker/` subpath, which is
+not proxied by Cloudflare, so a Cloudflare Web Analytics beacon would report
+nothing — it is deliberately absent.
+
+If the game moves to a Cloudflare-fronted domain (a `CNAME` to
+`mgonzalvez.github.io` on a `gonzhome.us` subdomain with the DNS record proxied),
+create a token in the Cloudflare dashboard for that domain and add this just before
+`</body>` in `index.html`:
+
+```html
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "YOUR-TOKEN"}'></script><!-- End Cloudflare Web Analytics -->
+```
+
+Do not ship a beacon with an empty or borrowed token: it logs nothing and adds a
+request on every page load.

@@ -964,6 +964,17 @@ const UI = (function () {
 
   const learnMenu = wireMenu('menu-learn-toggle', 'menu-learn-panel');
   const tableMenu = wireMenu('menu-table-toggle', 'menu-table-panel');
+  const sitesMenu = wireMenu('menu-sites-toggle', 'menu-sites-panel');
+
+  /* Family convention: a click anywhere outside an open menu closes it, so the
+     panels never hang over the board while the player is mid-turn. */
+  document.addEventListener('click', function (event) {
+    const anyOpen = openMenus.some(function (menu) { return !menu.panel.hidden; });
+    if (!anyOpen) return;
+    const insideMenu = event && event.target &&
+      typeof event.target.closest === 'function' && event.target.closest('.menu');
+    if (!insideMenu) closeMenus();
+  });
 
   /* Choosing an item closes its menu, so the bar never ends up with two open
      panels hanging over the board. */

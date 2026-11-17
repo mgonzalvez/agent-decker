@@ -58,7 +58,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'menu-learn', 'menu-learn-toggle', 'menu-learn-panel', 'menu-table', 'menu-table-toggle', 'menu-table-panel', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'menu-learn', 'menu-learn-toggle', 'menu-learn-panel', 'menu-table', 'menu-table-toggle', 'menu-table-panel', 'menu-sites', 'menu-sites-toggle', 'menu-sites-panel', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -284,6 +284,30 @@ test('the top-bar menus open, replace each other, and close on Escape or on a cl
   map['training-run'].click();
   assert.ok(UI.getState().tutorial, 'Training run starts from the Learn menu');
   assert.ok(learnPanel.hidden, 'the menu closes when an item is chosen');
+
+  const sites = map['menu-sites-toggle'];
+  const sitesPanel = map['menu-sites-panel'];
+  sites.click();
+  assert.strictEqual(sitesPanel.hidden, false, 'Related sites opens');
+  fire('click', { target: { closest: function () { return null; } } });
+  assert.ok(sitesPanel.hidden, 'a click anywhere outside the menu closes it');
+  sites.click();
+  fire('click', { target: { closest: function (selector) { return selector === '.menu' ? map['menu-sites'] : null; } } });
+  assert.strictEqual(sitesPanel.hidden, false, 'a click inside the bar leaves it open');
+  sites.click();
+  assert.ok(sitesPanel.hidden, 'toggling the button again closes it');
+});
+
+test('the top bar links to the rest of the Print & Play family', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const panel = html.match(/id="menu-sites-panel"[\s\S]*?<\/div>/);
+  assert.ok(panel, 'the Related sites panel is in the top bar');
+  const links = panel[0].match(/<a href="([^"]+)"/g) || [];
+  assert.ok(links.length >= 10, 'the panel links to at least ten family sites');
+  const safe = panel[0].match(/target="_blank" rel="noopener noreferrer"/g) || [];
+  assert.strictEqual(safe.length, links.length, 'every family link opens in a new tab safely');
+  assert.ok(/gonzhome\.us/.test(panel[0]), 'Gonzhome, the hub, is linked');
+  assert.ok(/menu-sites-toggle/.test(html), 'the panel has a toggle button');
 });
 
 test('Undo lives in the top bar and only lights up when a move can be rewound', () => {

@@ -153,6 +153,21 @@ button { font: inherit; }
 }
 .menu-panel[hidden] { display: none; }
 .menu-panel button, .menu-panel select { width: 100%; }
+.menu-panel a {
+  display: block;
+  padding: 6px 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13px;
+  letter-spacing: .03em;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.menu-panel a:hover, .menu-panel a:focus-visible {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.menu-panel--sites { min-width: 260px; }
 .seed { color: var(--muted); font-size: 12px; }
 .save-status { color: var(--muted); font-size: 12px; }
 
