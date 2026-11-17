@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=34" />
-  <link rel="stylesheet" href="css/styles.css?v=34" />
+  <link rel="icon" href="assets/favicon.png?v=35" />
+  <link rel="stylesheet" href="css/styles.css?v=35" />
 </head>
 <body>
   <header class="topbar">
@@ -29,23 +29,37 @@
       <span class="alarm-danger" id="alarm-danger" hidden>critical</span>
     </div>
 
-    <div class="controls">
-      <button id="training-run" type="button">Training run</button>
-      <button id="how-to-play" type="button">How to play</button>
-      <button id="about" type="button">About</button>
-      <button id="sound-toggle" type="button" aria-pressed="false">Sound: off</button>
-      <button id="music-toggle" type="button" aria-pressed="false">Music: off</button>
-      <select id="music-track" aria-label="Background music" title="Background music">
-        <option value="nightline">Nightline Shunt</option>
-        <option value="waltz">Cold War Waltz</option>
-        <option value="deaddrop">Dead Drop</option>
-        <option value="safehouse">Safehouse Shuffle</option>
-        <option value="blackout">Blackout March</option>
-      </select>
-      <button id="fast-table" type="button" aria-pressed="false" title="Turn off card animation and sound effects">Fast table: off</button>
-      <button id="quick-hands" type="button" aria-pressed="false" title="House rule: equipping an item grants one extra interaction that turn">Quick hands: off</button>
-      <button id="replay-seed" type="button">Replay this seed</button>
+    <div class="controls" role="group" aria-label="Game controls">
       <button id="new-game" type="button">New game</button>
+      <button id="undo" type="button" disabled title="Rewind the last move you made this turn (Ctrl+Z)">Undo</button>
+      <button id="replay-seed" type="button">Replay this seed</button>
+
+      <div class="menu" id="menu-learn">
+        <button id="menu-learn-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-learn-panel">Learn ▾</button>
+        <div class="menu-panel" id="menu-learn-panel" hidden role="menu" aria-label="Learn the game">
+          <button id="training-run" type="button" role="menuitem">Training run</button>
+          <button id="how-to-play" type="button" role="menuitem">How to play</button>
+          <button id="about" type="button" role="menuitem">About</button>
+        </div>
+      </div>
+
+      <div class="menu" id="menu-table">
+        <button id="menu-table-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-table-panel">Table &amp; audio ▾</button>
+        <div class="menu-panel" id="menu-table-panel" hidden role="menu" aria-label="Table and audio settings">
+          <button id="sound-toggle" type="button" aria-pressed="false" role="menuitem">Sound: off</button>
+          <button id="music-toggle" type="button" aria-pressed="false" role="menuitem">Music: off</button>
+          <select id="music-track" aria-label="Background music" title="Background music">
+            <option value="nightline">Nightline Shunt</option>
+            <option value="waltz">Cold War Waltz</option>
+            <option value="deaddrop">Dead Drop</option>
+            <option value="safehouse">Safehouse Shuffle</option>
+            <option value="blackout">Blackout March</option>
+          </select>
+          <button id="fast-table" type="button" aria-pressed="false" role="menuitem" title="Turn off card animation and sound effects">Fast table: off</button>
+          <button id="quick-hands" type="button" aria-pressed="false" role="menuitem" title="House rule: equipping an item grants one extra interaction that turn">Quick hands: off</button>
+        </div>
+      </div>
+
       <span class="seed" id="seed" title="RNG seed">seed: —</span>
       <span class="save-status" id="save-status" aria-live="polite"></span>
     </div>
@@ -111,9 +125,8 @@
             <div class="turn-actions">
               <button id="mission-check" type="button">Mission Check</button>
               <button id="end-turn" type="button">End Turn</button>
-              <button id="undo" type="button" disabled title="Rewind the last move of this turn (Ctrl+Z)">Undo</button>
             </div>
-            <p class="hint">Click <b>Play</b> on a hand card to use it (it lands in the Play Area and gives you resources). Then click a card in the line to Disarm or Knock Out it.</p>
+            <p class="hint">Click <b>Play</b> on a hand card to use it (it lands in the Play Area and gives you resources). Then click a card in the line to Disarm or Knock Out it. <b>Undo</b> in the top bar rewinds any move you made this turn.</p>
           </div>
           <div class="hand" id="hand" aria-label="Your hand"></div>
         </div>
@@ -165,14 +178,14 @@
     <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
   </footer>
 
-  <script src="js/state.js?v=34"></script>
-  <script src="js/engine.js?v=34"></script>
-  <script src="js/actions.js?v=34"></script>
-  <script src="js/save.js?v=34"></script>
-  <script src="js/audio.js?v=34"></script>
-  <script src="js/table.js?v=34"></script>
-  <script src="js/tutorial.js?v=34"></script>
-  <script src="js/ui.js?v=34"></script>
-  <script src="js/main.js?v=34"></script>
+  <script src="js/state.js?v=35"></script>
+  <script src="js/engine.js?v=35"></script>
+  <script src="js/actions.js?v=35"></script>
+  <script src="js/save.js?v=35"></script>
+  <script src="js/audio.js?v=35"></script>
+  <script src="js/table.js?v=35"></script>
+  <script src="js/tutorial.js?v=35"></script>
+  <script src="js/ui.js?v=35"></script>
+  <script src="js/main.js?v=35"></script>
 </body>
 </html>

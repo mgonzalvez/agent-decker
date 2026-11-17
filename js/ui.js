@@ -40,6 +40,7 @@ const UI = (function () {
   /* Undo: the engine is pure, so a snapshot of the previous state is a perfect
      rewind. Only moves inside the current turn are rewindable. */
   let undoStack = [];
+  let openMenus = [];
   const UNDO_LIMIT = 20;
 
   function defIdFromUid(uid) {
@@ -486,6 +487,7 @@ const UI = (function () {
     if (typeof window !== 'undefined') window.gameState = state;
     const problems = AgentDecker.checkInvariants(state, registry);
     if (problems.length) console.warn('invariant problems:', problems);
+    updateUndoButton();
 
     if (typeof Save !== 'undefined') {
       if (state.gameOver) Save.recordScore(state);
@@ -906,52 +908,79 @@ const UI = (function () {
   }
 
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') closeOverlay();
+    if (event.key === 'Escape') {
+      if (openMenus.some(function (menu) { return !menu.panel.hidden; })) closeMenus();
+      else closeOverlay();
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault();
       undo();
     }
   });
 
-  document.getElementById('mission-check').addEventListener('click', missionCheck);
-  if (document.getElementById('fast-table')) {
-    document.getElementById('fast-table').addEventListener('click', function () {
-      const on = !Table.isFast();
-      Table.setFast(on);
-      document.getElementById('fast-table').textContent = on ? 'Fast table: on' : 'Fast table: off';
-      document.getElementById('fast-table').setAttribute('aria-pressed', on ? 'true' : 'false');
-      try { localStorage.setItem('agent-decker.fast-table', on ? '1' : '0'); } catch (err) { /* no storage */ }
+  /* The top bar holds two dropdowns so the row stays short: Learn (training,
+   rules, about) and Table & audio (sound, music, fast table, house rule). */
+  function closeMenus() {
+    openMenus.forEach(function (menu) {
+      menu.panel.hidden = true;
+      menu.toggle.setAttribute('aria-expanded', 'false');
     });
   }
-  document.getElementById('end-turn').addEventListener('click', endTurn);
-  if (document.getElementById('undo')) document.getElementById('undo').addEventListener('click', undo);
-  document.getElementById('how-to-play').addEventListener('click', howToPlay);
-  if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', toggleQuickHands);
-  if (document.getElementById('training-run')) document.getElementById('training-run').addEventListener('click', startTraining);
-  if (document.getElementById('coach-exit')) document.getElementById('coach-exit').addEventListener('click', exitTraining);
-  if (document.getElementById('coach-how')) document.getElementById('coach-how').addEventListener('click', howToPlay);
-  document.getElementById('modal-close').addEventListener('click', closeOverlay);
-  document.getElementById('new-game').addEventListener('click', function () { start(); });
-  if (document.getElementById('about')) document.getElementById('about').addEventListener('click', about);
-  if (document.getElementById('sound-toggle')) document.getElementById('sound-toggle').addEventListener('click', toggleSound);
-  function toggleQuickHands() {
-    if (!state) return;
-    state.rules.quickHands = !state.rules.quickHands;
-    const button = document.getElementById('quick-hands');
-    if (button) {
-      button.textContent = state.rules.quickHands ? 'Quick hands: on' : 'Quick hands: off';
-      button.setAttribute('aria-pressed', state.rules.quickHands ? 'true' : 'false');
-    }
-    render();
+
+  function wireMenu(toggleId, panelId) {
+    const toggle = document.getElementById(toggleId);
+    const panel = document.getElementById(panelId);
+    if (!toggle || !panel) return;
+    panel.hidden = true;
+    const menu = {
+      toggle: toggle,
+      panel: panel,
+      close: function () {
+        panel.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    };
+    openMenus.push(menu);
+    toggle.addEventListener('click', function () {
+      const opening = panel.hidden;
+      closeMenus();
+      if (opening) {
+        panel.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        if (panel.children[0] && typeof panel.children[0].focus === 'function') panel.children[0].focus();
+      }
+    });
+    panel.addEventListener('click', menu.close);
+    return menu;
   }
 
-  if (document.getElementById('music-toggle')) document.getElementById('music-toggle').addEventListener('click', function () {
-    const on = Sound.toggleMusic();
-    document.getElementById('music-toggle').textContent = on ? 'Music: on' : 'Music: off';
-    if (state) Sound.setTension(state.alarm);
-    const soundButton = document.getElementById('sound-toggle');
-    if (soundButton) soundButton.textContent = Sound.isMuted() ? 'Sound: off' : 'Sound: on';
-  });
+  document.getElementById('mission-check').addEventListener('click', missionCheck);
+  document.getElementById('end-turn').addEventListener('click', endTurn);
+  document.getElementById('modal-close').addEventListener('click', closeOverlay);
+  document.getElementById('new-game').addEventListener('click', function () { start(); });
+  if (document.getElementById('undo')) document.getElementById('undo').addEventListener('click', undo);
+  if (document.getElementById('coach-exit')) document.getElementById('coach-exit').addEventListener('click', exitTraining);
+  if (document.getElementById('coach-how')) document.getElementById('coach-how').addEventListener('click', howToPlay);
+
+  const learnMenu = wireMenu('menu-learn-toggle', 'menu-learn-panel');
+  const tableMenu = wireMenu('menu-table-toggle', 'menu-table-panel');
+
+  /* Choosing an item closes its menu, so the bar never ends up with two open
+     panels hanging over the board. */
+  function menuItem(menu, handler) {
+    return function () {
+      if (menu) menu.close();
+      handler();
+    };
+  }
+
+  if (document.getElementById('training-run')) document.getElementById('training-run').addEventListener('click', menuItem(learnMenu, startTraining));
+  if (document.getElementById('how-to-play')) document.getElementById('how-to-play').addEventListener('click', menuItem(learnMenu, howToPlay));
+  if (document.getElementById('about')) document.getElementById('about').addEventListener('click', menuItem(learnMenu, about));
+  if (document.getElementById('sound-toggle')) document.getElementById('sound-toggle').addEventListener('click', menuItem(tableMenu, toggleSound));
+  if (document.getElementById('music-toggle')) document.getElementById('music-toggle').addEventListener('click', menuItem(tableMenu, toggleMusic));
+  if (document.getElementById('fast-table')) document.getElementById('fast-table').addEventListener('click', menuItem(tableMenu, toggleFastTable));
+  if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', menuItem(tableMenu, toggleQuickHands));
   if (document.getElementById('music-track')) {
     const select = document.getElementById('music-track');
     let saved = null;
@@ -963,6 +992,42 @@ const UI = (function () {
     });
   }
   if (document.getElementById('replay-seed')) document.getElementById('replay-seed').addEventListener('click', function () { start(state.seed); });
+
+  function toggleQuickHands() {
+    if (!state) return;
+    state.rules.quickHands = !state.rules.quickHands;
+    const button = document.getElementById('quick-hands');
+    if (button) {
+      button.textContent = state.rules.quickHands ? 'Quick hands: on' : 'Quick hands: off';
+      button.setAttribute('aria-pressed', state.rules.quickHands ? 'true' : 'false');
+    }
+    render();
+  }
+
+  function toggleFastTable() {
+    const on = !Table.isFast();
+    Table.setFast(on);
+    const button = document.getElementById('fast-table');
+    if (button) {
+      button.textContent = on ? 'Fast table: on' : 'Fast table: off';
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    try { localStorage.setItem('agent-decker.fast-table', on ? '1' : '0'); } catch (err) { /* no storage */ }
+  }
+
+  function toggleMusic() {
+    if (typeof Sound === 'undefined') return;
+    const on = Sound.toggleMusic();
+    const button = document.getElementById('music-toggle');
+    if (button) {
+      button.textContent = on ? 'Music: on' : 'Music: off';
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    if (state && Sound.setTension) Sound.setTension(state.alarm);
+    const soundButton = document.getElementById('sound-toggle');
+    if (soundButton) soundButton.textContent = Sound.isMuted() ? 'Sound: off' : 'Sound: on';
+  }
+
 
   return {
     init: init,

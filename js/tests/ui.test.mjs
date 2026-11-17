@@ -58,7 +58,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'menu-learn', 'menu-learn-toggle', 'menu-learn-panel', 'menu-table', 'menu-table-toggle', 'menu-table-panel', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -251,6 +251,49 @@ test('the game is saved to local storage after every action', () => {
   assert.ok(saved && saved.state, 'a save exists');
   assert.strictEqual(saved.state.turn, 1);
   assert.ok(saved.savedAt);
+});
+
+test('the top-bar menus open, replace each other, and close on Escape or on a click inside', () => {
+  UI.init(cardDefs, missions, 42);
+  const learn = map['menu-learn-toggle'];
+  const learnPanel = map['menu-learn-panel'];
+  const table = map['menu-table-toggle'];
+  const tablePanel = map['menu-table-panel'];
+
+  assert.ok(learnPanel.hidden && tablePanel.hidden, 'both menus start closed');
+  learn.click();
+  assert.strictEqual(learnPanel.hidden, false, 'Learn opens');
+  assert.strictEqual(learn['aria-expanded'], 'true', 'the toggle announces its state');
+
+  table.click();
+  assert.ok(learnPanel.hidden, 'opening a second menu closes the first');
+  assert.strictEqual(table['aria-expanded'], 'true');
+
+  fire('keydown', { key: 'Escape' });
+  assert.ok(tablePanel.hidden, 'Escape closes an open menu');
+
+  table.click();
+  map['fast-table'].click();
+  assert.strictEqual(map['fast-table'].textContent, 'Fast table: on', 'the toggles inside the menu still work');
+  map['fast-table'].click();
+  assert.strictEqual(map['fast-table'].textContent, 'Fast table: off', 'and toggling again turns it back off');
+  tablePanel.click();
+  assert.ok(tablePanel.hidden, 'clicking an item closes the menu');
+
+  learn.click();
+  map['training-run'].click();
+  assert.ok(UI.getState().tutorial, 'Training run starts from the Learn menu');
+  assert.ok(learnPanel.hidden, 'the menu closes when an item is chosen');
+});
+
+test('Undo lives in the top bar and only lights up when a move can be rewound', () => {
+  UI.init(cardDefs, missions, 42);
+  assert.ok(map['undo'].disabled, 'nothing to undo at the start of a fresh game');
+  const first = map['hand'].children[0];
+  first.children.find((c) => c.className === 'play-btn').click();
+  assert.ok(!map['undo'].disabled, 'a move was made, so Undo is live');
+  map['undo'].click();
+  assert.ok(map['undo'].disabled, 'undoing the only move empties the stack');
 });
 
 test('a card with a choice-driven effect asks before it is played', () => {
