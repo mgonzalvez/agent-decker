@@ -90,3 +90,17 @@ M1 transcribe card DB → M2 static board → M3 one full turn → M4 effect han
 **Top bar (PR in progress):** the control row is grouped — **New game**, **Undo**, **Replay this seed** on the left, then two dropdowns: **Learn** (Training run, How to play, About) and **Table & audio** (Sound, Music, music track, Fast table, Quick hands). Undo moved from the turn panel to the top bar (Ctrl+Z still works); a menu closes on Escape or when you pick an item, and opening one closes the other. Tests: 137 passing.
 
 **Undo + Bin (PR in progress):** `Engine.binCard()` and a visible **Bin** panel. Waste Room opens the Bin over the hand (unlimited), Flammable Barrel over the discard (max 2); hand cards get a `Bin` button while it is open, binned cards drop off the table and are listed in the Bin panel, and the engine records them in `state.removed`. `ui.js` keeps a snapshot stack (`UNDO_LIMIT 20`) — **Undo** / Ctrl+Z rewinds any move made this turn (play, interact, use item, bin); the stack clears at End Turn and at mission progression.
+
+## Registry & provenance rule (portfolio-wide)
+
+Personal project — completely separate from Apple work.
+
+- `.npmrc` pins `registry=https://registry.npmjs.org`. This repo has no npm
+  dependencies today (CI runs `node --test js/tests/*.test.mjs` directly), but the
+  pin is committed so a future `npm install` can never write an Apple-mirror
+  lockfile. Never let Apple's internal npm mirror (`npm.apple.com`,
+  `artifacts.apple.com/artifactory/...`) end up in `package-lock.json`; GitHub
+  Actions can't reach it and CI fails with `ENOTFOUND`.
+- Audit before pushing: `../scripts/check-registry.sh` (add `--fix` to normalize).
+- No work credentials, internal hostnames, proprietary assets, or confidential
+  material in this repo.
