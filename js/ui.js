@@ -15,6 +15,12 @@ const UI = (function () {
 
   function defOf(card) { return registry[card.defId]; }
 
+  /* An equipped item is named after the thing it gives you (Infimary carries
+   the Chloroform), which is what the player reads on the card front. */
+  function itemName(def) {
+    return (def.reward && def.reward.name) ? def.reward.name : def.name;
+  }
+
   function typeLabel(def) {
     if (def.obstacleType) return def.obstacleType;
     if (def.isGoal) return 'mission';
@@ -89,7 +95,7 @@ const UI = (function () {
       const d = defOf(card);
       const effect = d.reward && d.reward.effect;
       if (effect && effect.type === 'discardToInteract') {
-        div.appendChild(el('span', 'equip-note', 'works on ' + effect.targetType));
+        div.appendChild(el('span', 'equip-note', itemName(d) + ' — works on ' + effect.targetType));
       }
       if (effect && effect.type === 'usedCardToObstacleDiscard') {
         const button = el('button', 'use-btn');
@@ -146,8 +152,7 @@ const UI = (function () {
       if (mark.disarm === card.uid) extra += ' tut-disarm';
       if (mark.knockOut === card.uid) extra += ' tut-knock';
       if (mark.exiting === card.uid) extra += ' tut-exit';
-      const payable = canAct && !state.faceDown[card.uid] && Engine.canInteract(state, registry, card).ok &&
-        Engine.canAfford(state, registry, card);
+      const payable = canAct && !state.faceDown[card.uid] && Engine.canInteract(state, registry, card).ok;
       if (payable) extra += ' can-interact';
       const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
       slot.type = 'button';
@@ -184,6 +189,9 @@ const UI = (function () {
       fig.appendChild(face);
       const caption = el('figcaption', null, def.name);
       fig.appendChild(caption);
+      if (state.bin && !state.gameOver) {
+        fig.appendChild(el('span', 'card-effect', effectSummary(def)));
+      }
       const button = el('button', 'play-btn');
       button.type = 'button';
       button.textContent = 'Play';
@@ -333,6 +341,7 @@ const UI = (function () {
           img.alt = def.name + ' in the discard';
           fig.appendChild(img);
           fig.appendChild(el('figcaption', null, def.name));
+          fig.appendChild(el('span', 'card-effect', effectSummary(def)));
           const pick = el('button', 'bin-btn');
           pick.type = 'button';
           pick.textContent = 'Bin';
@@ -628,6 +637,79 @@ const UI = (function () {
     redraw();
   }
 
+  /* What a card is worth, in the words a player needs when deciding what to
+     throw away or how to pay. */
+  function effectSummary(def) {
+    const bits = [];
+    const reward = def.reward;
+    if (reward) {
+      if (reward.resource && (reward.resource.stealth || reward.resource.fighting)) {
+        const r = [];
+        if (reward.resource.stealth) r.push(reward.resource.stealth + ' Stealth');
+        if (reward.resource.fighting) r.push(reward.resource.fighting + ' Fighting');
+        bits.push(r.join(' + ') + (reward.oncePerTurn ? ' each turn' : ''));
+      }
+      const e = reward.effect;
+      if (e) {
+        if (e.type === 'draw') bits.push('draw ' + e.n + ' card' + (e.n === 1 ? '' : 's'));
+        if (e.alternative) bits.push('or draw ' + e.n);
+        if (e.type === 'removeFromGame') {
+          bits.push(e.max === null ? 'Bin: purge any number of cards from your ' + e.source
+            : 'Bin: purge up to ' + e.max + ' cards from your ' + e.source);
+        }
+        if (e.type === 'discardToInteract') bits.push('pays for one ' + e.targetType + ' interaction');
+        if (e.type === 'drawPerEquippedKeep') bits.push('draw 1 per equipped item (max ' + (e.max || 3) + ')');
+        if (e.type === 'fightingPerDiscardPair') bits.push('+' + e.amount + ' Fighting per ' + e.per + ' cards in your discard');
+        if (e.type === 'stealthPerCardToPlayArea') bits.push('+' + e.amount + ' Stealth per card sent to the Play Area');
+      }
+      if (reward.keep || def.keep) bits.push('KEEP — stays equipped');
+    }
+    if (def.effect && def.effect.type === 'interactionLimit') bits.push('+' + def.effect.value + ' interactions per turn');
+    if (!bits.length && def.topText) bits.push(def.topText);
+    if (!bits.length) bits.push('no effect once played');
+    return bits.join(' · ');
+  }
+
+  function payLabel(parts) {
+    const bits = [];
+    if (parts.stealth) bits.push(parts.stealth + ' Stealth');
+    if (parts.fighting) bits.push(parts.fighting + ' Fighting');
+    if (parts.flexible) bits.push(parts.flexible + ' in any mix');
+    return bits.join(' + ') || 'nothing';
+  }
+
+  function sourceLabel(src) {
+    const bits = [];
+    if (src.stealth) bits.push(src.stealth + ' Stealth');
+    if (src.fighting) bits.push(src.fighting + ' Fighting');
+    return bits.join(' + ') + ' — ' + src.name;
+  }
+
+  /* Where the money comes from: printed cost, what the agent actually holds this
+     turn and which card produced it, and any equipped item that can pay instead. */
+  function paymentBody(def, card, check) {
+    const body = el('div', 'payment');
+    body.appendChild(el('p', 'payment-cost', 'Cost to interact: ' + payLabel(check.parts)));
+    const sources = (state.sources || []).filter(function (src) { return src.stealth || src.fighting; });
+    if (sources.length) {
+      body.appendChild(el('p', 'payment-sources', 'Available this turn: ' + sources.map(sourceLabel).join(' · ')));
+    } else {
+      body.appendChild(el('p', 'payment-sources', 'Available this turn: nothing yet. Play cards to generate Stealth or Fighting.'));
+    }
+    if (check.canPayResources) {
+      body.appendChild(el('p', 'payment-ok', 'You can pay it from your resources.'));
+    }
+    if (check.items && check.items.length) {
+      body.appendChild(el('p', 'payment-items', check.items.map(function (item) {
+        return itemName(defOf(item)) + ' (equipped) can pay for this ' + def.obstacleType + ' instead.';
+      }).join(' ')));
+    }
+    if (!check.canPayResources && !(check.items && check.items.length)) {
+      body.appendChild(el('p', 'payment-short', 'Not enough resources and no item that fits this ' + def.obstacleType + '.'));
+    }
+    return body;
+  }
+
   function describe(def, card) {
     const parts = [];
     if (!def.isGoal && def.set !== 'starting' && def.set !== 'alarm') {
@@ -645,24 +727,28 @@ const UI = (function () {
       return;
     }
     const check = Engine.canInteract(state, registry, card);
+    const body = el('div', 'card-detail');
+    body.appendChild(el('p', null, describe(def, card)));
+    body.appendChild(paymentBody(def, card, check));
     const choices = [];
     if (check.ok && allowed('interact')) {
-      choices.push({ label: 'Disarm (to ' + (def.keep ? 'Equip Area' : 'Play Area') + ')', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry), def.name + ' disarmed', 'disarm', true); } });
-      choices.push({ label: 'Knock Out (face down, no alarm)', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry), def.name + ' knocked out', 'knockOut', true); } });
-      if (check.items && check.items.length) {
-        check.items.forEach(function (item) {
-          const itemName = defOf(item).name;
-          choices.push({ label: 'Use ' + itemName + ' (discard it) → Disarm', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry, { itemUid: item.uid }), itemName + ' used on ' + def.name, 'disarm', true); } });
-          choices.push({ label: 'Use ' + itemName + ' (discard it) → Knock Out', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry, { itemUid: item.uid }), itemName + ' used on ' + def.name, 'knockOut', true); } });
-        });
+      if (check.canPayResources) {
+        const pay = 'pay ' + payLabel(check.parts);
+        choices.push({ label: 'Disarm — ' + pay + ' (to ' + (def.keep ? 'Equip Area' : 'Play Area') + ')', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry), def.name + ' disarmed', 'disarm', true); } });
+        choices.push({ label: 'Knock Out — ' + pay + ' (face down, no alarm)', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry), def.name + ' knocked out', 'knockOut', true); } });
       }
+      (check.items || []).forEach(function (item) {
+        const label = itemName(defOf(item));
+        choices.push({ label: 'Use ' + label + ' → Disarm (the item is discarded)', action: function () { apply(Actions.interact(state, card.uid, 'disarm', registry, { itemUid: item.uid }), label + ' used on ' + def.name, 'disarm', true); } });
+        choices.push({ label: 'Use ' + label + ' → Knock Out (the item is discarded)', action: function () { apply(Actions.interact(state, card.uid, 'knockOut', registry, { itemUid: item.uid }), label + ' used on ' + def.name, 'knockOut', true); } });
+      });
       if (def.effect && def.effect.type === 'knockOutAdjacentInsteadOfInteract') {
         Actions.neighbours(state, registry, card.uid).forEach(function (n) {
-          choices.push({ label: 'Knock out adjacent ' + defOf(n).name + ' instead', action: function () { apply(Actions.interact(state, card.uid, 'knockOutAdjacent', registry, { uid: n.uid }), 'knocked out ' + defOf(n).name, 'knockOut', true); } });
+          choices.push({ label: 'Pay ' + payLabel(check.parts) + ' to knock out adjacent ' + defOf(n).name + ' instead', action: function () { apply(Actions.interact(state, card.uid, 'knockOutAdjacent', registry, { uid: n.uid }), 'knocked out ' + defOf(n).name, 'knockOut', true); } });
         });
       }
     }
-    openOverlay(def.name + (check.ok ? '' : ' — ' + check.reason), describe(def, card), choices, def.art[0]);
+    openOverlay(def.name + (check.ok ? '' : ' — ' + check.reason), body, choices, def.art[0]);
   }
 
   function missionCheck() {

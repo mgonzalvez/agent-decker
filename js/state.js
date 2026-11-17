@@ -68,6 +68,7 @@ const AgentDecker = (function () {
       alarm: 0,
       missionAlarms: [],
       resources: { stealth: 0, fighting: 0 },
+      sources: [],
       line: [],
       obstacleDeck: obstacleCards,
       obstacleDiscard: [],

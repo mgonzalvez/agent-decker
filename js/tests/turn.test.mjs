@@ -232,7 +232,7 @@ test('items pay only for the obstacle type printed on them', () => {
   assert.strictEqual(Engine.canInteract(state, registry, lineCards(state)[1]).ok, false, 'the Patrolling Guard loophole is closed');
   assert.ok(Engine.canInteract(state, registry, lineCards(state)[2]).ok, 'Keycard opens a door');
   state = Engine.interact(state, 'obs_yard_door_0', 'knockOut', registry, { itemUid: 'obs_sleeping_guard_0' });
-  assert.ok(state.discard.some(function (c) { return c.uid === 'obs_sleeping_guard_0'; }), 'the item goes to the discard');
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_sleeping_guard_0'; }), 'the spent item goes to the obstacles discard');
   assertClean(state);
 
   state = placeInLine(fresh(76), lineCards());
@@ -445,6 +445,50 @@ test('Dormitory holds face-down cards in the line, and only while it is in the l
   state = Engine.lineScroll(state, registry);
   assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_yard_door_0'; }), 'with the Dormitory gone the knocked-out card slides out');
   assert.strictEqual(state.alarm, 0, 'but it still raises no alarm');
+  assertClean(state);
+});
+
+test('an equipped item is the only way to pay when the resources cannot cover the cost', () => {
+  let state = placeInLine(fresh(76), [
+    { uid: 'obs_sleeping_guard_0', defId: 'obs_sleeping_guard' },
+    { uid: 'obs_guard_0', defId: 'obs_guard' }
+  ]);
+  state.obstacleDeck = state.obstacleDeck.filter(function (c) { return c.uid !== 'obs_infimary_0'; });
+  state.equip.push({ uid: 'obs_infimary_0', defId: 'obs_infimary' });
+  state.interactionsLeft = 1;
+  state.resources = { stealth: 1, fighting: 3 };
+  state.sources = [
+    { uid: 'start_hide_0', name: 'Hide', stealth: 1, fighting: 0 },
+    { uid: 'start_punch_0', name: 'Punch', stealth: 0, fighting: 3 }
+  ];
+  const check = Engine.canInteract(state, registry, state.line[0]);
+  assert.ok(check.ok, 'Chloroform makes the interaction legal');
+  assert.strictEqual(check.canPayResources, false, '1 Stealth cannot pay a 3 Stealth cost');
+  assert.strictEqual(check.items.length, 1, 'Chloroform is offered as the payment');
+  assert.throws(function () { Engine.interact(state, 'obs_sleeping_guard_0', 'disarm', registry); }, /cannot pay/);
+  const after = Engine.interact(state, 'obs_sleeping_guard_0', 'disarm', registry, { itemUid: 'obs_infimary_0' });
+  assert.deepStrictEqual(after.resources, { stealth: 1, fighting: 3 }, 'resources are untouched when an item pays');
+  assert.ok(!after.equip.some(function (c) { return c.uid === 'obs_infimary_0'; }), 'the item is spent');
+  assertClean(after);
+});
+
+test('the engine remembers which card produced each resource, and drains it when it is spent', () => {
+  let state = fresh(42);
+  const punch = state.hand.find(function (c) { return registry[c.defId].name === 'Punch'; });
+  state = Engine.playCard(state, punch.uid, registry);
+  const source = state.sources.find(function (src) { return src.name === 'Punch'; });
+  assert.ok(source && source.fighting === 1, 'the Fighting is attributed to Punch');
+  state = placeInLine(state, [{ uid: 'obs_guard_0', defId: 'obs_guard' }]);
+  state.interactionsLeft = 1;
+  state.resources = { stealth: 1, fighting: 2 };
+  state.sources = [
+    { uid: 'start_hide_0', name: 'Hide', stealth: 1, fighting: 0 },
+    { uid: 'mission_locker_0', name: 'Locker Room', stealth: 0, fighting: 2 }
+  ];
+  state = Engine.interact(state, 'obs_guard_0', 'knockOut', registry);
+  assert.ok(!state.sources.some(function (src) { return src.fighting > 0; }), 'the 2 Fighting came out of Locker Room');
+  assert.strictEqual(state.resources.fighting, 0);
+  assert.strictEqual(state.resources.stealth, 1, 'the Stealth was not touched');
   assertClean(state);
 });
 

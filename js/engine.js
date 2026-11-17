@@ -45,10 +45,42 @@ const Engine = (function () {
     return state[zone].splice(idx, 1)[0];
   }
 
-  function addResource(state, res) {
+  /* Resources are per-turn, and we remember which card produced them so the UI
+     can say where the Stealth or Fighting in front of the player actually came
+     from. */
+  function addResource(state, res, source) {
     if (!res) return;
-    state.resources.stealth += res.stealth || 0;
-    state.resources.fighting += res.fighting || 0;
+    const stealth = res.stealth || 0;
+    const fighting = res.fighting || 0;
+    state.resources.stealth += stealth;
+    state.resources.fighting += fighting;
+    if (!stealth && !fighting) return;
+    state.sources = state.sources || [];
+    state.sources.push({
+      uid: source ? source.uid : null,
+      name: source ? source.name : 'resources',
+      stealth: stealth,
+      fighting: fighting
+    });
+  }
+
+  function ensureSources(state) {
+    if (state.sources && state.sources.length) return state.sources;
+    state.sources = [{ uid: null, name: 'resources gathered this turn', stealth: state.resources.stealth, fighting: state.resources.fighting }];
+    return state.sources;
+  }
+
+  function takeFromSources(state, type, amount) {
+    const sources = state.sources || [];
+    for (let i = 0; i < sources.length && amount > 0; i++) {
+      const take = Math.min(sources[i][type] || 0, amount);
+      if (take > 0) {
+        sources[i][type] -= take;
+        amount -= take;
+      }
+    }
+    state.sources = sources.filter(function (src) { return src.stealth || src.fighting; });
+    return amount;
   }
 
   /* Every mutation the player can see is recorded as an event so the table layer
@@ -164,11 +196,27 @@ const Engine = (function () {
     return { stealth: stealth, fighting: fighting, flexible: flexible, total: stealth + fighting + flexible };
   }
 
-  function canAfford(state, registry, card) {
-    const parts = costBreakdown(effectiveCost(state, registry, card));
+  function canAffordParts(state, parts) {
     if (state.resources.stealth < parts.stealth) return false;
     if (state.resources.fighting < parts.fighting) return false;
     return (state.resources.stealth - parts.stealth) + (state.resources.fighting - parts.fighting) >= parts.flexible;
+  }
+
+  function canAfford(state, registry, card) {
+    return canAffordParts(state, costBreakdown(effectiveCost(state, registry, card)));
+  }
+
+  /* Every way the player could pay for this interaction: the printed cost out of
+     this turn's resources, or an equipped item whose icon matches the obstacle.
+     The UI offers a choice only when it is one of these. */
+  function paymentOptions(state, registry, card) {
+    const parts = costBreakdown(effectiveCost(state, registry, card));
+    return {
+      parts: parts,
+      canPayResources: canAffordParts(state, parts),
+      items: itemPayments(state, registry, card),
+      sources: ensureSources(state).filter(function (src) { return src.stealth || src.fighting; })
+    };
   }
 
   function canInteract(state, registry, card) {
@@ -176,6 +224,8 @@ const Engine = (function () {
     if (state.interactionsLeft <= 0) return { ok: false, reason: 'no interactions left this turn' };
     const d = def(card, registry);
     if (lineIndexOf(state, card.uid) < 0) return { ok: false, reason: 'not in the line' };
+    const options = paymentOptions(state, registry, card);
+    const no = function (reason) { return { ok: false, reason: reason, items: [], canPayResources: false, parts: options.parts, sources: options.sources }; };
 
     const hawk = state.line.some(function (c) {
       if (!c || state.faceDown[c.uid]) return false;
@@ -183,7 +233,7 @@ const Engine = (function () {
       return e && e.type === 'blockStealthOnlyInteracts';
     });
     if (hawk && d.cost && d.cost.stealth && !d.cost.fighting && !d.cost.either) {
-      return { ok: false, reason: 'Hawk blocks stealth-only obstacles' };
+      return no('Hawk blocks stealth-only obstacles');
     }
 
     if (d.effect && d.effect.type === 'interactOnlyIfOnlyTypeInLine') {
@@ -191,20 +241,19 @@ const Engine = (function () {
         return c && !state.faceDown[c.uid] && def(c, registry).obstacleType === d.effect.targetType;
       }).length;
       if (matching > 1) {
-        return { ok: false, reason: d.name + ' can only be interacted with while it is the only ' + d.effect.targetType + ' in the line (' + matching + ' are face up)' };
+        return no(d.name + ' can only be interacted with while it is the only ' + d.effect.targetType + ' in the line (' + matching + ' are face up)');
       }
     }
 
-    const items = itemPayments(state, registry, card);
-    if (!canAfford(state, registry, card) && !items.length) {
-      const parts = costBreakdown(effectiveCost(state, registry, card));
+    if (!options.canPayResources && !options.items.length) {
+      const parts = options.parts;
       const missing = [];
       if (parts.stealth > state.resources.stealth) missing.push((parts.stealth - state.resources.stealth) + ' Stealth');
       if (parts.fighting > state.resources.fighting) missing.push((parts.fighting - state.resources.fighting) + ' Fighting');
       if (!missing.length && parts.flexible) missing.push(parts.flexible + ' (any mix)');
-      return { ok: false, reason: 'cannot pay the cost (needs ' + missing.join(' + ') + ')' };
+      return { ok: false, reason: 'cannot pay the cost (needs ' + missing.join(' + ') + ')', items: [], canPayResources: false, parts: parts, sources: options.sources };
     }
-    return { ok: true, reason: '', items: items };
+    return { ok: true, reason: '', items: options.items, canPayResources: options.canPayResources, parts: options.parts, sources: options.sources };
   }
 
   /* ---------- drawing ---------- */
@@ -271,7 +320,7 @@ const Engine = (function () {
     state.passives = state.passives || {};
     if (state.passives[card.uid]) return;
     state.passives[card.uid] = true;
-    addResource(state, d.reward.resource);
+    addResource(state, d.reward.resource, d);
     log(state, 'agent', d.name + ' equipped — ' + resourceText(d.reward.resource));
   }
 
@@ -394,7 +443,7 @@ const Engine = (function () {
       if (e && e.alternative) {
         /* Printed as "X or Y" — the player must pick one of them. */
         if (options.choice === 'resource') {
-          addResource(s, d.reward.resource);
+          addResource(s, d.reward.resource, d);
           log(s, 'agent', d.name + ' — ' + resourceText(d.reward.resource));
         } else if (options.choice === 'draw') {
           drawToHand(s, registry, e.n);
@@ -403,19 +452,19 @@ const Engine = (function () {
           throw new Error(d.name + ' needs a choice: ' + resourceText(d.reward.resource) + ' or draw ' + e.n + ' card' + (e.n === 1 ? '' : 's'));
         }
       } else {
-        addResource(s, d.reward.resource);
+        addResource(s, d.reward.resource, d);
       }
       if (e && !e.alternative) {
         if (e.type === 'draw') {
           drawToHand(s, registry, e.n);
         } else if (e.type === 'fightingPerDiscardPair') {
-          s.resources.fighting += e.amount * Math.floor(s.discard.length / e.per);
+          addResource(s, { fighting: e.amount * Math.floor(s.discard.length / e.per) }, d);
         } else if (e.type === 'stealthPerCardToPlayArea') {
           (options.cards || []).forEach(function (u) {
             const c = removeFrom(s, 'hand', u);
             if (c) s.playArea.push(c);
           });
-          s.resources.stealth += e.amount * (options.cards || []).length;
+          addResource(s, { stealth: e.amount * (options.cards || []).length }, d);
         } else if (e.type === 'removeFromGame') {
           /* The purge is interactive: playing the card opens the Bin, and the
              player then bins as many cards as they want, one click at a time. */
@@ -532,15 +581,23 @@ const Engine = (function () {
         throw new Error(def(item, registry).name + ' cannot be used on ' + d.name);
       }
       removeFrom(s, 'equip', item.uid);
-      s.discard.push(item);
+      s.obstacleDiscard.push(item);
+      event(s, 'play', { card: item.uid, to: 'obstacleDiscard' });
     } else {
       const parts = costBreakdown(cost);
+      if (!canAffordParts(s, parts)) {
+        throw new Error('cannot pay ' + costText(cost) + ' with ' + resourceText(s.resources) + ' available');
+      }
       s.resources.stealth -= parts.stealth;
       s.resources.fighting -= parts.fighting;
+      takeFromSources(s, 'stealth', parts.stealth);
+      takeFromSources(s, 'fighting', parts.fighting);
       if (parts.flexible) {
         const fromStealth = Math.min(s.resources.stealth, parts.flexible);
         s.resources.stealth -= fromStealth;
         s.resources.fighting -= parts.flexible - fromStealth;
+        takeFromSources(s, 'stealth', fromStealth);
+        takeFromSources(s, 'fighting', parts.flexible - fromStealth);
       }
     }
     s.interactionsLeft -= 1;
@@ -733,6 +790,7 @@ const Engine = (function () {
 
     s.interactionsLeft = s.rules.interactionLimit;
     s.resources = { stealth: 0, fighting: 0 };
+    s.sources = [];
     s.bin = null;
     applyEquipPassives(s, registry);
     s.phase = 'useCards';
@@ -853,6 +911,7 @@ const Engine = (function () {
     s.turn += 1;
     s.interactionsLeft = s.rules.interactionLimit;
     s.resources = { stealth: 0, fighting: 0 };
+    s.sources = [];
     applyEquipPassives(s, registry);
     log(s, 'mission', missions[s.missionIndex].name + ' begins (turn ' + s.turn + '): ' + missions[s.missionIndex].goalText);
     return s;
@@ -867,7 +926,7 @@ const Engine = (function () {
     const d = def(card, registry);
     const e = d.reward && d.reward.effect;
     if (!e || e.type !== 'usedCardToObstacleDiscard') throw new Error(d.name + ' has no use action');
-    addResource(s, d.reward.resource);
+    addResource(s, d.reward.resource, d);
     removeFrom(s, 'equip', card.uid);
     s.obstacleDiscard.push(card);
     event(s, 'play', { card: card.uid, to: 'obstacleDiscard' });
@@ -876,7 +935,7 @@ const Engine = (function () {
   }
 
   return {
-    clone, def, effectiveCost, costBreakdown, canAfford, canInteract, goalSatisfied,
+    clone, def, effectiveCost, costBreakdown, canAfford, canInteract, paymentOptions, goalSatisfied,
     playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem, binCard,
     dealLine, event
   };

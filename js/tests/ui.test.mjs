@@ -116,6 +116,7 @@ function lineCards(state) { return (state.line || []).filter(Boolean); }
 
 const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
 const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
+const registry = globalThis.AgentDecker.buildRegistry(cardDefs);
 
 test('the alarm gauge tracks the counter and escalates green → amber → red', () => {
   UI.init(cardDefs, missions, 42);
@@ -174,6 +175,62 @@ test('clicking a line card zooms it and shows its printed text', () => {
   assert.ok(map['modal-body'].children.some((c) => c.tag === 'img'), 'the zoom modal shows the card art');
   map['modal-close'].click();
   assert.strictEqual(map.overlay.hidden, true);
+});
+
+test('the card modal only offers interactions the agent can actually pay for', () => {
+  UI.init(cardDefs, missions, 76);
+  let state = UI.getState();
+  const target = state.line.filter(Boolean).find(function (c) {
+    return !state.faceDown[c.uid] && registry[c.defId].obstacleType === 'person';
+  });
+  assert.ok(target, 'the seed puts a person in the line');
+  ['obstacleDeck', 'missionDeck', 'line', 'hand', 'playArea', 'discard', 'obstacleDiscard', 'equip'].forEach(function (zone) {
+    state[zone] = state[zone].filter(function (c) { return !c || c.uid !== 'obs_infimary_0'; });
+  });
+  state.equip.push({ uid: 'obs_infimary_0', defId: 'obs_infimary' });
+  state.resources = { stealth: 1, fighting: 0 };
+  state.sources = [{ uid: 'start_hide_0', name: 'Hide', stealth: 1, fighting: 0 }];
+  state.interactionsLeft = 1;
+  UI.setState(state);
+
+  const slot = map.line.children.find(function (c) { return c['data-uid'] === target.uid; });
+  assert.ok(slot, 'the card is rendered in the line');
+  slot.click();
+
+  const labels = map['modal-choices'].children.map(function (c) { return c.textContent; });
+  assert.ok(labels.length === 2, 'only the two Chloroform options are offered, got: ' + labels.join(' | '));
+  assert.ok(labels.every(function (l) { return l.indexOf('Chloroform') >= 0; }), 'the plain pay-with-resources options must not appear: ' + labels.join(' | '));
+  const body = textOf(map['modal-body']);
+  assert.ok(body.indexOf('Cost to interact') >= 0, 'the modal states the printed cost');
+  assert.ok(body.indexOf('Available this turn') >= 0, 'the modal says what the agent holds');
+  assert.ok(body.indexOf('Hide') >= 0, 'the modal names the card that produced the resource');
+  assert.ok(body.indexOf('Chloroform') >= 0, 'the modal names the item that can pay');
+  map['modal-close'].click();
+});
+
+test('when the resources can pay, the option says what it costs', () => {
+  UI.init(cardDefs, missions, 76);
+  const state = UI.getState();
+  const target = state.line.filter(Boolean).find(function (c) { return !state.faceDown[c.uid]; });
+  state.resources = { stealth: 20, fighting: 20 };
+  state.sources = [{ uid: null, name: 'Gear Up!', stealth: 20, fighting: 20 }];
+  state.interactionsLeft = 1;
+  UI.setState(state);
+  const slot = map.line.children.find(function (c) { return c['data-uid'] === target.uid; });
+  slot.click();
+  const labels = map['modal-choices'].children.map(function (c) { return c.textContent; });
+  assert.ok(labels.some(function (l) { return l.indexOf('pay ') >= 0; }), 'the Disarm option states the payment: ' + labels.join(' | '));
+});
+
+test('the Bin lists what each hand card is worth, not just its name', () => {
+  UI.init(cardDefs, missions, 42);
+  const state = UI.getState();
+  state.bin = { source: 'hand', remaining: -1 };
+  UI.setState(state);
+  const fig = map.hand.children[0];
+  const effect = fig.children.find(function (c) { return c.className === 'card-effect'; });
+  assert.ok(effect, 'the hand card carries an effect line when the Bin is open');
+  assert.ok(effect.textContent.length > 0, 'the effect line is not empty');
 });
 
 test('every card definition carries its printed text', () => {
