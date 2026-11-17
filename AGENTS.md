@@ -91,6 +91,8 @@ M1 transcribe card DB → M2 static board → M3 one full turn → M4 effect han
 
 **Undo + Bin (PR in progress):** `Engine.binCard()` and a visible **Bin** panel. Waste Room opens the Bin over the hand (unlimited), Flammable Barrel over the discard (max 2); hand cards get a `Bin` button while it is open, binned cards drop off the table and are listed in the Bin panel, and the engine records them in `state.removed`. `ui.js` keeps a snapshot stack (`UNDO_LIMIT 20`) — **Undo** / Ctrl+Z rewinds any move made this turn (play, interact, use item, bin); the stack clears at End Turn and at mission progression.
 
+**Coach and help screens (PR in progress):** **Exit training** now really removes the coach — `.coach` is `display: flex`, which beat the `hidden` attribute (the same trap as the top-bar menus), so `.coach[hidden] { display: none; }` is in the CSS. **How to play** is six short screens (orientation → the four steps of a turn → Disarm/Knock Out → the conveyor → gear, Bin and Undo → the turn flowchart) with a tab strip, Previous/Next and ←/→ keys. Every modal caps its height to the viewport and scrolls inside itself with a sticky header, so **Close** is never below the fold; the flowchart is capped at 52vh and links to the full-size SVG. The coach's **Why?** opens the screen that explains the step it is currently asking for. Tests: 130 passing.
+
 ## Registry & provenance rule (portfolio-wide)
 
 Personal project — completely separate from Apple work.

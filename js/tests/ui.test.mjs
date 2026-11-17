@@ -590,3 +590,78 @@ test('Throw a Rock asks the player to choose instead of defaulting', () => {
   assert.strictEqual(after.resources.fighting, 0, 'taking the draw means no Fighting');
   assert.strictEqual(after.hand.length, 1, 'a card was drawn instead');
 });
+
+test('exit training actually hides the coach panel', () => {
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(/\.coach\[hidden\]\s*\{\s*display:\s*none/.test(css),
+    'the coach is display:flex, so the hidden attribute alone leaves it on the board');
+  UI.startTraining();
+  assert.strictEqual(map['coach'].hidden, false, 'the coach is visible during training');
+  UI.exitTraining();
+  assert.ok(!UI.getState().tutorial, 'the run is no longer a training run');
+  assert.strictEqual(map['coach'].hidden, true, 'the coach reports itself hidden');
+  assert.ok(!map['end-turn'].disabled, 'and it stops gating the turn');
+});
+
+test('How to play is six screens, not one wall of text', () => {
+  UI.init(cardDefs, missions, 42);
+  map['how-to-play'].click();
+  assert.strictEqual(map['overlay'].hidden, false);
+  assert.strictEqual(map['modal-title'].textContent, 'Five things to know');
+
+  const help = map['modal-body'].children[0];
+  const tabs = help.children.find(function (c) { return c.className === 'help-tabs'; });
+  assert.ok(tabs, 'the help opens with a strip of screens');
+  assert.strictEqual(tabs.children.length, 6, 'there are six screens');
+  assert.strictEqual(tabs.children.filter(function (c) { return c.className.indexOf('is-active') >= 0; }).length, 1,
+    'exactly one screen is marked active');
+  assert.ok(textOf(help).indexOf('locks down') >= 0, 'the first screen explains how the run ends');
+
+  const nav = map['modal-choices'].children;
+  assert.strictEqual(nav.length, 1, 'the first screen offers only Next');
+  nav[0].click();
+  const lede = map['modal-body'].children[0].children.find(function (c) { return c.className === 'help-lede'; });
+  assert.ok(lede.textContent.indexOf('four steps') >= 0, 'the second screen walks the turn');
+
+  const steps = map['modal-body'].children[0].children.find(function (c) { return c.className === 'help-steps'; });
+  assert.ok(steps.children.length >= 4, 'each step of the turn is its own line');
+
+  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
+  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
+  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
+  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
+  const last = map['modal-body'].children[0].children.find(function (c) { return c.className === 'help-flowchart'; });
+  assert.ok(last, 'the last screen is the flowchart, on its own');
+  assert.ok(last.children.some(function (c) { return c.tag === 'img' && c.src.indexOf('AgentDecker_turn_flowchart.svg') >= 0; }));
+  assert.strictEqual(map['modal-choices'].children.length, 1, 'the last screen offers only Previous');
+  fire('keydown', { key: 'ArrowLeft', preventDefault: function () {} });
+  assert.ok(!map['modal-body'].children[0].children.some(function (c) { return c.className === 'help-flowchart'; }),
+    'paging back leaves the flowchart screen');
+  map['modal-close'].click();
+  assert.strictEqual(map['overlay'].hidden, true, 'Close shuts the help');
+});
+
+test('a modal taller than the window still has a reachable Close button', () => {
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const modalRule = css.match(/\.modal\s*\{[^}]*\}/);
+  assert.ok(modalRule && /max-height/.test(modalRule[0]), 'the modal caps its height to the viewport');
+  assert.ok(modalRule && /overflow:\s*auto/.test(modalRule[0]), 'and scrolls inside itself');
+  assert.ok(/\.overlay\s*\{[^}]*overflow:\s*auto/.test(css), 'the overlay can scroll too');
+  assert.ok(/\.modal-head\s*\{[^}]*position:\s*sticky/.test(css), 'the header that carries Close is sticky');
+  assert.ok(/<div class="modal-head">[\s\S]{0,200}?<button id="modal-close"/.test(html),
+    'Close sits in the header, above the scrolling body, so it is never below the fold');
+  assert.ok(/\.help-flowchart img\s*\{[^}]*max-height/.test(css), 'the flowchart is scaled to the screen, not printed full size');
+});
+
+test('the coach’s Why? opens the screen that explains the step it is asking for', () => {
+  UI.startTraining();
+  map['coach-how'].click();
+  assert.strictEqual(map['modal-title'].textContent, 'Your turn in four steps',
+    'the coach wants the player to play their hand, so the turn screen opens');
+  map['modal-close'].click();
+  assert.strictEqual(map['overlay'].hidden, true);
+
+  UI.showHelp(3);
+  assert.ok(map['modal-title'].textContent.indexOf('conveyor') >= 0, 'screens can be opened by number too');
+});

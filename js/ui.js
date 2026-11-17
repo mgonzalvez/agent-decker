@@ -417,7 +417,7 @@ const UI = (function () {
     const box = document.getElementById('modal-choices');
     box.innerHTML = '';
     (choices || []).forEach(function (choice) {
-      const button = el('button', 'choice-btn');
+      const button = el('button', 'choice-btn' + (choice.className ? ' ' + choice.className : ''));
       button.type = 'button';
       button.textContent = choice.label;
       button.addEventListener('click', choice.action);
@@ -430,6 +430,7 @@ const UI = (function () {
 
   function closeOverlay() {
     document.getElementById('overlay').hidden = true;
+    helpOpen = false;
   }
 
   function scoreBody(reason) {
@@ -885,32 +886,152 @@ const UI = (function () {
     if (button) button.textContent = on ? 'Sound: on' : 'Sound: off';
   }
 
+  /* How to play is six short screens rather than one wall of text: the player
+     reads one idea at a time, and the turn flowchart gets its own screen so it
+     can be sized to the window instead of dominating it. */
+  const HELP = [
+    {
+      short: 'Goal',
+      title: 'Five things to know',
+      lede: 'A run is five missions. Everything else follows from these five rules.',
+      points: [
+        { label: 'The objective', text: 'Each mission prints a goal, such as 6 Stealth, or 6 Fighting plus a Guard Uniform equipped. You must pay the whole goal in one turn.' },
+        { label: 'The alarm', text: 'Two tokens count 0 to 50. Every card that leaves the line adds its printed number. At 50 the complex locks down and the run is over.' },
+        { label: 'The line', text: 'Six obstacle cards sit on a conveyor. The card at the right end exits at the end of your turn and raises the alarm.' },
+        { label: 'Resources', text: 'Stealth and Fighting are good for this turn only. Anything unspent evaporates when the turn ends.' },
+        { label: 'Your score', text: 'The alarm level at the end of each mission, added up. Lower is better.' }
+      ]
+    },
+    {
+      short: 'Turn',
+      title: 'Your turn in four steps',
+      lede: 'Every turn is the same four steps, in this order.',
+      points: [
+        { label: '1. Use cards', text: 'Play as many cards from your hand as you like to generate Stealth or Fighting. Then make one interaction: Disarm or Knock Out one obstacle.' },
+        { label: '2. Mission Check', text: 'If you can pay the entire goal this turn, the mission is complete. Otherwise it carries on to the next turn.' },
+        { label: '3. Line Scroll', text: 'The rightmost card in the line exits to the obstacles discard and raises the alarm by its number. Every other card slides one slot to the right.' },
+        { label: '4. Card Refresh', text: 'Discard your hand and Play Area, then draw a fresh hand of four (five after Mission Three). New obstacles enter at the left end of the line.' }
+      ]
+    },
+    {
+      short: 'Obstacles',
+      title: 'Disarm or Knock Out',
+      lede: 'One interaction per turn. Choose which obstacle you deal with.',
+      points: [
+        { label: 'Disarm', text: 'Pay the printed cost with Stealth, Fighting, or any mix of both. The card leaves the line, joins your deck, and gives its top-half reward when you play it later.' },
+        { label: 'Knock Out', text: 'Free. The card turns face down in the line: it raises no alarm when it exits, and its type and effect are ignored while it lies there.' },
+        { label: 'Types', text: 'Obstacles are doors, people or equipment. Keycard pays for a door, Chloroform for a person, E.M.P. for equipment — an equipped item can pay instead of your resources.' },
+        { label: 'Watch out', text: 'Watchtower adds 2 to the cost of the cards next to it, Hawk blocks interactions that need Stealth only, and Sniper can only be interacted with if it is the only person in the line.' },
+        { label: 'More interactions', text: 'Mission rewards can raise your limit to two or three interactions per turn.' }
+      ]
+    },
+    {
+      short: 'The line',
+      title: 'The line is a conveyor',
+      lede: 'Six slots, not a queue. Getting this right is the whole skill of the game.',
+      points: [
+        { label: 'Holes stay open', text: 'Disarming a card leaves an empty slot. The cards to its left slide right into the hole at the next Line Scroll.' },
+        { label: 'Adjacency is by slot', text: 'Effects that talk about "adjacent" cards use the slots, so a hole breaks the link.' },
+        { label: 'Special movers', text: 'Patrolling Guard slides two slots per scroll. Guard Dog slides right until it is next to the first person on its right. Radio Tower pulls every person toward itself.' },
+        { label: 'Dormitory jams it', text: 'While Dormitory is face up, face-down cards do not slide. If one is sitting at the exit, nothing leaves the line that turn and no alarm is raised.' }
+      ]
+    },
+    {
+      short: 'Gear',
+      title: 'Gear, the Bin and Undo',
+      lede: 'The housekeeping that keeps a turn readable.',
+      points: [
+        { label: 'KEEP items', text: 'A card with a KEEP icon goes to the Equip Area and stays there. Its once-per-turn bonus fires the moment it is equipped. Spending an item for its effect sends it to the discard; draw it again and you can equip it once more.' },
+        { label: 'The Bin', text: 'Waste Room purges any number of cards from your hand, Flammable Barrel up to two from your discard. Binned cards are out of the game for good.' },
+        { label: 'Undo', text: 'Undo in the top bar (or Ctrl+Z) rewinds any move you made this turn. It cannot rewind a finished turn.' },
+        { label: 'Training run', text: 'The coach only gates the first mission. Exit training at any time to play the real campaign from the same board.' }
+      ]
+    },
+    {
+      short: 'Flowchart',
+      title: 'The turn flowchart',
+      lede: 'The whole turn on one page, if you prefer a picture.',
+      points: []
+    }
+  ];
+
+  let helpIndex = 0;
+  let helpOpen = false;
+
+  function showHelp(index) {
+    helpIndex = Math.max(0, Math.min(HELP.length - 1, index));
+    const section = HELP[helpIndex];
+    const body = el('div', 'help');
+
+    const tabs = el('div', 'help-tabs');
+    HELP.forEach(function (item, i) {
+      const tab = el('button', 'help-tab' + (i === helpIndex ? ' is-active' : ''), (i + 1) + ' · ' + item.short);
+      tab.type = 'button';
+      tab.setAttribute('aria-selected', i === helpIndex ? 'true' : 'false');
+      tab.addEventListener('click', function () { showHelp(i); });
+      tabs.appendChild(tab);
+    });
+    body.appendChild(tabs);
+
+    if (section.lede) body.appendChild(el('p', 'help-lede', section.lede));
+    if (section.points.length) {
+      const steps = el('ul', 'help-steps');
+      section.points.forEach(function (point) {
+        const li = el('li');
+        if (point.label) li.appendChild(el('b', 'help-label', point.label));
+        li.appendChild(el('span', 'help-text', ' ' + point.text));
+        steps.appendChild(li);
+      });
+      body.appendChild(steps);
+    }
+    if (helpIndex === HELP.length - 1) {
+      const figure = el('figure', 'help-flowchart');
+      const img = el('img');
+      img.src = 'docs/AgentDecker_turn_flowchart.svg';
+      img.alt = 'Turn flowchart: 1 Use cards, 2 Mission check, 3 Line scroll, 4 Card refresh';
+      figure.appendChild(img);
+      figure.appendChild(el('figcaption', null, 'The turn, in order. Keep it open beside the board.'));
+      body.appendChild(figure);
+      const link = el('a', 'help-link', 'Open the flowchart full size');
+      link.href = 'docs/AgentDecker_turn_flowchart.svg';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      body.appendChild(link);
+    }
+    body.appendChild(el('p', 'help-note', 'Screen ' + (helpIndex + 1) + ' of ' + HELP.length + ' · Agent Decker by Manuel Correia (gamesbymanuel.com), CC BY-NC 4.0. Unofficial and free.'));
+
+    const nav = [];
+    if (helpIndex > 0) nav.push({ label: '← Previous', className: 'help-prev', action: function () { showHelp(helpIndex - 1); } });
+    if (helpIndex < HELP.length - 1) nav.push({ label: 'Next →', className: 'help-next', action: function () { showHelp(helpIndex + 1); } });
+
+    helpOpen = true;
+    openOverlay(section.title, body, nav);
+  }
+
   function howToPlay() {
-    const body = el('div', 'rules');
-    const figure = el('figure', 'flowchart');
-    const img = el('img');
-    img.src = 'docs/AgentDecker_turn_flowchart.svg';
-    img.alt = 'Turn flowchart: 1 Use cards, 2 Mission check, 3 Line scroll, 4 Card refresh';
-    figure.appendChild(img);
-    figure.appendChild(el('figcaption', null, 'The turn, in order. Keep this open while you play.'));
-    body.appendChild(figure);
-    body.appendChild(el('p', 'modal-text',
-      '1) Use cards — play cards from your hand to generate Stealth or Fighting, then pay an obstacle\u2019s cost to Disarm it (it comes to you) or Knock it Out (face down, no alarm). One interaction per turn. ' +
-      '2) Mission Check — if you can pay the whole goal this turn, the mission is complete. ' +
-      '3) Line Scroll — the rightmost card exits the line and raises the alarm by its value; everything slides right and the line refills. ' +
-      '4) Card Refresh — discard your hand and Play Area, draw a fresh hand. Unspent resources evaporate.'));
-    body.appendChild(el('p', 'modal-text',
-      'Some cards let you <b>Bin</b> cards — Waste Room purges as many cards from your hand as you like, Flammable Barrel up to two from your discard. Binned cards are out of the game for good, and the Bin panel shows them. <b>Undo</b> (or Ctrl+Z) rewinds any move you made this turn.'));
-    body.appendChild(el('p', 'modal-text',
-      'Items with a KEEP icon stay on the table in the Equip Area and give their bonus every turn. Alarm reaches 50 and the complex locks down; your score is the alarm at the end of each mission, added up — lower is better.'));
-    body.appendChild(el('p', 'modal-text', 'Agent Decker by Manuel Correia (gamesbymanuel.com), CC BY-NC 4.0. This implementation is unofficial and free.'));
-    openOverlay('How to play a turn', body, []);
+    showHelp(0);
+  }
+
+  /* The coach's "Why?" answers the question the player actually has right now:
+     it opens the screen that explains the step the coach is asking for. */
+  function coachHelp() {
+    const p = plan();
+    if (!p) { showHelp(0); return; }
+    if (p.id === 'play' || p.id === 'missionCheck') showHelp(1);
+    else if (p.id === 'disarm' || p.id === 'knockOut' || p.id === 'interact') showHelp(2);
+    else if (p.id === 'endTurn') showHelp(3);
+    else showHelp(0);
   }
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
       if (openMenus.some(function (menu) { return !menu.panel.hidden; })) closeMenus();
       else closeOverlay();
+    }
+    if (helpOpen && !document.getElementById('overlay').hidden &&
+        (event.key === 'ArrowRight' || event.key === 'ArrowLeft')) {
+      event.preventDefault();
+      showHelp(helpIndex + (event.key === 'ArrowRight' ? 1 : -1));
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault();
@@ -960,7 +1081,7 @@ const UI = (function () {
   document.getElementById('new-game').addEventListener('click', function () { start(); });
   if (document.getElementById('undo')) document.getElementById('undo').addEventListener('click', undo);
   if (document.getElementById('coach-exit')) document.getElementById('coach-exit').addEventListener('click', exitTraining);
-  if (document.getElementById('coach-how')) document.getElementById('coach-how').addEventListener('click', howToPlay);
+  if (document.getElementById('coach-how')) document.getElementById('coach-how').addEventListener('click', coachHelp);
 
   const learnMenu = wireMenu('menu-learn-toggle', 'menu-learn-panel');
   const tableMenu = wireMenu('menu-table-toggle', 'menu-table-panel');
@@ -1048,6 +1169,8 @@ const UI = (function () {
     canUndo: function () { return undoStack.length > 0; },
     start: start,
     startTraining: startTraining,
+    howToPlay: howToPlay,
+    showHelp: showHelp,
     toggleQuickHands: toggleQuickHands,
     exitTraining: exitTraining,
     endTurn: endTurn,
