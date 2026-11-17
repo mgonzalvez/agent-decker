@@ -706,3 +706,19 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 }
 .bin-btn:hover { background: var(--amber); color: var(--paper); }
 #undo[disabled] { opacity: .45; }
+
+/* Payment transparency in the card modal, and context on cards the Bin offers. */
+.card-effect {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+.payment { margin: 4px 0 14px; font-family: var(--font-mono); font-size: 12px; }
+.payment p { margin: 0 0 6px; }
+.payment-cost { color: var(--ink); font-weight: 600; }
+.payment-sources, .payment-items { color: var(--muted); }
+.payment-ok { color: var(--safe); }
+.payment-short { color: var(--alarm); }
