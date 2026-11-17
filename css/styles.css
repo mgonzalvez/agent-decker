@@ -151,6 +151,7 @@ button { font: inherit; }
   box-shadow: 0 12px 26px rgba(0, 0, 0, .5);
   z-index: 30;
 }
+.menu-panel[hidden] { display: none; }
 .menu-panel button, .menu-panel select { width: 100%; }
 .seed { color: var(--muted); font-size: 12px; }
 .save-status { color: var(--muted); font-size: 12px; }

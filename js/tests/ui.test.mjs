@@ -471,6 +471,12 @@ test('the music select switches the bed', () => {
   assert.strictEqual(__storage.items['agent-decker.music-track'], 'blackout');
 });
 
+test('the top-bar menu panels are hidden by CSS, not just by the hidden attribute', () => {
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(/\.menu-panel\s*\{[^}]*display:\s*flex/.test(css), 'the panel is laid out as a flex column');
+  assert.ok(/\.menu-panel\[hidden\]\s*\{\s*display:\s*none/.test(css), 'hidden panels must be display:none, otherwise the author display rule wins over the hidden attribute');
+});
+
 test('every asset is cache-busted with the same token', () => {
   const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const tokens = html.match(/[?&]v=(\d+)/g).map(function (t) { return t.split('=')[1]; });
