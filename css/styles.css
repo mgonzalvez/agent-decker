@@ -110,7 +110,7 @@ button { font: inherit; }
 }
 @keyframes dangerFlash { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
-.controls { display: flex; align-items: center; gap: 8px; }
+.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .controls button {
   padding: 8px 12px;
   border-radius: 8px;
@@ -133,6 +133,25 @@ button { font: inherit; }
   text-transform: uppercase;
 }
 .controls select:hover { border-color: var(--amber); color: var(--amber); }
+.controls button[disabled] { opacity: .45; cursor: default; }
+.menu { position: relative; }
+.menu button[aria-expanded="true"] { border-color: var(--amber); color: var(--amber); }
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .5);
+  z-index: 30;
+}
+.menu-panel button, .menu-panel select { width: 100%; }
 .seed { color: var(--muted); font-size: 12px; }
 .save-status { color: var(--muted); font-size: 12px; }
 
@@ -443,6 +462,8 @@ button { font: inherit; }
   .brand-title { font-size: 20px; }
   .mission-banner, .alarm { flex: 1 1 100%; }
   .controls { flex: 1 1 100%; flex-wrap: wrap; }
+  .menu { flex: 1 1 150px; }
+  .menu-panel { left: 0; right: 0; }
   .controls button, .controls select { min-height: 40px; }
   .coach { margin-bottom: 12px; }
   .line-zone { grid-template-columns: 1fr; gap: 10px; }
