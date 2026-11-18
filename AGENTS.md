@@ -105,7 +105,9 @@ PLAN.md  AGENTS.md  README.md
   line as a belt with an exit chute, KO stamps on face-down cards, a folder tab on the Equip
   Area, a taped coach note, a wire-copy Mission Log under the board. Play buttons stay labelled
   "Play" — the "Lift" experiment read as a disabled control.
-  Still open: switches instead of dropdown menus, drawn sprites for the alarm lamp and belt.
+  Still open: switches instead of dropdown menus, drawn sprites for the belt.
+  The alarm is a gauge in the header (drawn lamp, stencil number, printed ruler with the 50
+  limit marked in red) and deliberately outweighs the header buttons.
 - Full mobile QA pass on a real device.
 - Replaying each engine event as a separate visible step (today one action animates as a composite).
 - More FX polish.

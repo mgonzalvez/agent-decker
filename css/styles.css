@@ -69,43 +69,57 @@ button { font: inherit; }
 .mission-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .mission-goal { color: var(--muted); font-size: 13px; }
 
-/* The alarm is a printed ruler with a pointer, not a progress bar. */
+/* The alarm is gameplay, not chrome. It is the biggest object in the header
+   and it escalates in ink: green, then amber, then red. */
 .alarm {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 14px;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 16px;
   border: 1px solid var(--line);
+  border-left: 5px solid var(--safe);
   border-radius: 0;
-  background: var(--bg-2);
+  background: var(--panel);
 }
-.alarm-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
-.alarm.level-mid { border-color: var(--warn); }
-.alarm.level-high, .alarm.level-critical { border-color: var(--alarm); }
-.alarm.level-high .alarm-value, .alarm.level-critical .alarm-value { color: var(--alarm); }
-.alarm-ruler { width: 118px; height: 14px; }
-.ruler-line { stroke: var(--line); stroke-width: 1; }
-.ruler-tick { stroke: var(--muted); stroke-width: 1; }
-.ruler-mark { stroke: var(--safe); stroke-width: 3; }
+.alarm-label { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--muted); }
+.alarm-value { font-family: var(--font-display); font-size: 32px; font-weight: 700; line-height: 1; }
+.alarm-limit { color: var(--muted); font-size: 12px; }
+.alarm-lamp { width: 22px; height: 22px; flex: none; }
+.lamp-glass { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.lamp-core { fill: var(--safe); }
+.alarm-danger { font-family: var(--font-mono); font-size: 11px; color: var(--alarm); }
+
+.alarm.level-mid { border-left-color: var(--warn); }
+.alarm.level-high { border-left-color: var(--alarm); }
+.alarm.level-critical { border-left-color: var(--alarm); border-color: var(--alarm); }
+.alarm.level-mid .lamp-core { fill: var(--warn); }
+.alarm.level-high .lamp-core,
+.alarm.level-critical .lamp-core { fill: var(--alarm); }
+.alarm.level-high .alarm-value,
+.alarm.level-critical .alarm-value { color: var(--alarm); }
+.alarm.level-critical .alarm-label { color: var(--alarm); }
+
+/* A printed ruler with a pointer, not a percentage bar. */
+.alarm-ruler { width: 150px; height: 20px; flex: none; }
+.ruler-line { stroke: var(--line); stroke-width: 1.5; }
+.ruler-tick { stroke: var(--muted); stroke-width: 1.5; }
+.ruler-limit { stroke: var(--alarm); stroke-width: 2; }
+.ruler-mark { stroke: var(--safe); stroke-width: 4; }
 .alarm.level-mid .ruler-mark { stroke: var(--warn); }
 .alarm.level-high .ruler-mark, .alarm.level-critical .ruler-mark { stroke: var(--alarm); }
-.slot img { animation: cardIn .22s ease both; }
-@keyframes cardIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-.alarm-limit { color: var(--muted); font-size: 12px; }
-.alarm-label { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--muted); }
-.alarm-danger { font-family: var(--font-mono); font-size: 11px; color: var(--alarm); }
 
 .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .controls button {
-  padding: 8px 12px;
+  padding: 7px 11px;
   border-radius: 2px;
   border: 1px solid var(--line);
   background: transparent;
-  color: var(--ink);
+  color: var(--muted);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
 }
-.controls button:hover { background: var(--panel-2); border-color: var(--ink); }
+.controls button:hover { background: var(--panel-2); border-color: var(--ink); color: var(--ink); }
 .controls select {
   padding: 8px 10px;
   border-radius: 2px;
@@ -560,6 +574,9 @@ button { font: inherit; }
   .topbar { padding: 10px 12px; gap: 10px; }
   .brand-title { font-size: 20px; }
   .mission-slip, .alarm { flex: 1 1 100%; }
+  .alarm { min-height: 46px; }
+  .alarm-value { font-size: 26px; }
+  .alarm-ruler { width: 120px; }
   .controls { flex: 1 1 100%; flex-wrap: wrap; }
   .menu { flex: 1 1 150px; }
   .menu-panel { left: 0; right: 0; }
@@ -598,6 +615,9 @@ button { font: inherit; }
 .slot-meta { font-size: 11px; color: var(--muted); line-height: 1.35; }
 .card figcaption { font-family: var(--font-display); font-weight: 600; font-size: 12px; }
 .area h2 { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+
+.slot img { animation: cardIn .22s ease both; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 
 /* Only the objects you can act on move. Nothing lifts because the pointer
    happens to be near it. */

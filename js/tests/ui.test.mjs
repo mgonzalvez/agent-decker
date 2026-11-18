@@ -592,6 +592,18 @@ test('the markup is zones on a table, not a stack of generic panels', () => {
   assert.ok(html.includes('class="zone '), 'the board is built from zones on a table');
 });
 
+test('the alarm gauge outweighs the header buttons — it is gameplay, not chrome', () => {
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const alarmType = Number((css.match(/\.alarm-value \{[^}]*font-size: ?(\d+)px/) || [0, 0])[1]);
+  const buttonType = Number((css.match(/\.controls button \{[^}]*font-size: ?(\d+)px/) || [0, 99])[1]);
+  assert.ok(alarmType >= buttonType * 2, 'the alarm number is only ' + alarmType + 'px against ' + buttonType + 'px buttons');
+  assert.ok(/\.alarm \{[^}]*min-height: ?(5[0-9]|6\d)px/.test(css), 'the gauge is not taller than the buttons');
+  assert.ok(/\.alarm \{[^}]*border-left: ?[5-9]px/.test(css), 'the gauge carries a printed edge rule');
+  assert.ok(html.includes('alarm-lamp'), 'the gauge has a drawn lamp');
+  assert.ok(html.includes('ruler-limit'), 'the ruler prints the 50 limit');
+});
+
 test('the mission log sits under the table, not beside it', () => {
   const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');

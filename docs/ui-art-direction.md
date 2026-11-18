@@ -232,7 +232,9 @@ In `js/tests/ui.test.mjs`:
   "everything else follows" — checked across `js/ui.js`, `js/tutorial.js` and `index.html`.
 - The line is a belt with a chute; face-down cards get a KO stamp; the Equip Area has a folder
   tab; the coach note is taped; the log is the zone under the board, not a side rail.
-- The alarm pointer moves with the value and changes ink at 20 / 40 / 45.
+- The alarm pointer moves with the value and changes ink at 20 / 40 / 45. The gauge is the largest
+  object in the header: a drawn lamp, a 32 px stencil number, a printed ruler with the 50 limit
+  marked in red. Header buttons are smaller and muted so the gauge reads as gameplay, not chrome.
 
 ---
 
