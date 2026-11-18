@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 60" width="44" height="60" role="img" aria-label="Agent Decker">
+  <g>
+    <!-- a second card behind: the deck lying on the table -->
+    <rect x="4" y="8" width="30" height="44" fill="#102435" stroke="#2d4f6d" stroke-width="1" transform="rotate(-9 19 30)"/>
+    <!-- the front card, printed like the real ones: felt, diagonal band, stamp -->
+    <rect x="8" y="6" width="30" height="44" fill="#16324a" stroke="#2d4f6d" stroke-width="1" transform="rotate(3 23 28)"/>
+    <path d="M8 28 L38 12 L38 34 L8 50 Z" fill="#0b1622" transform="rotate(3 23 28)"/>
+    <rect x="26" y="10" width="9" height="7" fill="#d99433" transform="rotate(3 23 28)"/>
+    <circle cx="30" cy="42" r="5" fill="none" stroke="#e8f1f8" stroke-width="1.5"/>
+    <path d="M30 38 L30 46 M26 42 L34 42" stroke="#e8f1f8" stroke-width="1.2"/>
+  </g>
+</svg>

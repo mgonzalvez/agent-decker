@@ -21,6 +21,8 @@
   --warn: #d99433;
   --amber: #d99433;
   --accent: #3b87bd;
+  --paper: #f2ece1;       /* typed slips of paper */
+  --paper-ink: #1b2a38;
   --radius: 2px;          /* printed objects have square corners */
   --font-display: "Big Shoulders Display", "Helvetica Neue", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -55,16 +57,32 @@ button { font: inherit; }
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
 }
-.brand-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: .02em; }
+.brand { display: flex; align-items: center; }
+.brand-mark { width: 200px; height: 52px; display: block; }
+.brand-ghost { font-family: var(--font-display); font-weight: 400; font-size: 16px; letter-spacing: .22em; fill: #c9d6e2; }
+.brand-word { font-family: var(--font-display); font-weight: 700; font-size: 26px; letter-spacing: .04em; fill: #f2f6f9; }
+.brand-punch { fill: #0d2033; stroke: #c9d6e2; stroke-width: 1; }
 
-/* The mission is a slip of paper pinned to the header, not a card in a grid. */
+/* The mission is a punch card clipped to the header: the corner letter is
+   stamped in the corner, the goal is typed on the card. */
 .mission-slip {
   flex: 1 1 240px;
-  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--warn);
-  border-radius: 0;
   background: var(--bg-2);
+}
+.mission-letter {
+  min-width: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--warn);
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--warn);
 }
 .mission-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .mission-goal { color: var(--muted); font-size: 13px; }
@@ -130,38 +148,57 @@ button { font: inherit; }
 }
 .controls select:hover { border-color: var(--ink); }
 .controls button[disabled] { opacity: .45; cursor: default; }
-.menu { position: relative; }
-.menu button[aria-expanded="true"] { border-color: var(--ink); background: var(--panel-2); }
-.menu-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 220px;
-  padding: 10px 12px;
-  background: var(--panel-2);
+
+/* Folder tabs: the three things a new player needs, printed on the tab of a
+   case file rather than hidden behind a dropdown. */
+.tabs { display: flex; gap: 6px; }
+.tab {
+  padding: 6px 12px;
   border: 1px solid var(--line);
-  border-top: 3px solid var(--warn);
+  border-top: 3px solid var(--panel-2);
   border-radius: 2px;
-  z-index: 30;
+  background: var(--panel);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
 }
-.menu-panel[hidden] { display: none; }
-.menu-panel button, .menu-panel select { width: 100%; }
-.menu-panel a {
-  display: block;
-  padding: 6px 8px;
-  color: var(--ink);
-  text-decoration: none;
-  font-size: 13px;
-  border: 1px solid transparent;
+.tab:hover, .tab:focus-visible { color: var(--ink); border-color: var(--ink); }
+
+/* Hardware switches: a slot with a lever that rests left (off) or right (on). */
+.switchboard { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.switch, .dial {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
   border-radius: 2px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
 }
-.menu-panel a:hover, .menu-panel a:focus-visible {
-  border-color: var(--ink);
+.switch { cursor: pointer; }
+.switch:hover { border-color: var(--ink); color: var(--ink); }
+.switch-label { font-family: var(--font-display); font-weight: 600; letter-spacing: .03em; }
+.switch-lever { position: relative; width: 26px; height: 12px; border: 1px solid var(--line); background: var(--bg-2); }
+.switch-lever::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 9px;
+  height: 6px;
+  background: var(--muted);
+  transition: left .18s ease, background-color .18s ease;
 }
-.menu-panel--sites { min-width: 260px; }
+.switch[aria-checked="true"] { color: var(--ink); border-color: var(--warn); }
+.switch[aria-checked="true"] .switch-lever { background: var(--panel-2); }
+.switch[aria-checked="true"] .switch-lever::after { left: 13px; background: var(--warn); }
+.dial select { border: 1px solid var(--line); border-radius: 2px; background: var(--bg-2); color: var(--ink); font-size: 12px; padding: 6px 8px; }
+.dial select:hover { border-color: var(--ink); }
+
 .seed { color: var(--muted); font-size: 12px; }
 .save-status { color: var(--muted); font-size: 12px; }
 
@@ -190,15 +227,21 @@ button { font: inherit; }
   grid-template-columns: 92px minmax(0, 1fr) 92px;
   gap: 14px;
   align-items: center;
+  min-width: 0;
 }
 
 /* The line is a belt: a tray the cards sit on, with an exit chute at the
    right end where they drop out of the game. */
 .belt {
   position: relative;
+  min-width: 0;
   border: 1px solid var(--line);
+  border-left: 3px solid #23405c;
+  border-right: 3px solid #23405c;
   border-radius: 2px;
   background: #102435;
+  background-image: url("../assets/ui/belt.svg");
+  background-size: 24px 100%;
   padding: 12px 12px 20px;
 }
 .belt-inner {
@@ -280,7 +323,8 @@ button { font: inherit; }
   border-radius: 2px;
   background: var(--panel);
 }
-.stack img { width: 62px; border-radius: 2px; }
+.stack img { width: 62px; border-radius: 2px; box-shadow: 0 4px 10px rgba(0, 0, 0, .35); }
+.stack--used { transform: rotate(-1.4deg); }
 .stack-label { color: var(--muted); font-size: 12px; }
 .stack-count { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 
@@ -290,6 +334,7 @@ button { font: inherit; }
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 18px;
   align-items: start;
+  min-width: 0;
 }
 
 .hand-zone {
@@ -297,8 +342,9 @@ button { font: inherit; }
   grid-template-columns: 140px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
+  min-width: 0;
 }
-.hand-column { display: grid; gap: 12px; }
+.hand-column { display: grid; gap: 12px; min-width: 0; }
 
 .deck-panel {
   border: 1px solid var(--line);
@@ -351,6 +397,7 @@ button { font: inherit; }
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  min-width: 0;
 }
 .card { margin: 0; width: 100%; }
 .card img {
@@ -376,7 +423,7 @@ button { font: inherit; }
 }
 .play-btn:hover { background: var(--warn); border-color: var(--warn); color: #101820; }
 
-.side { display: grid; gap: 12px; }
+.side { display: grid; gap: 12px; min-width: 0; }
 .area {
   border: 1px solid var(--line);
   border-radius: 2px;
@@ -480,8 +527,9 @@ button { font: inherit; }
 }
 .overlay[hidden] { display: none; }
 .modal {
-  background: var(--bg-2);
+  background: var(--panel);
   border: 1px solid var(--line);
+  border-top: 3px solid var(--warn);
   border-radius: 2px;
   padding: 0;
   max-width: 560px;
@@ -490,6 +538,8 @@ button { font: inherit; }
      fixed overlay cannot scroll, so the modal scrolls inside itself. */
   max-height: 92vh;
   overflow: auto;
+  /* A card lifted off the table is never perfectly square. */
+  transform: rotate(-.4deg);
 }
 .modal-head {
   position: sticky;
@@ -499,14 +549,22 @@ button { font: inherit; }
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px 10px;
-  background: var(--bg-2);
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 .modal-body { padding: 12px 16px; }
 .modal-choices { padding: 0 16px 16px; }
 .modal h2 { margin: 0; font-size: 18px; }
 .modal p { margin: 0 0 12px; color: var(--muted); font-size: 13px; white-space: pre-line; }
-.modal-card { width: 300px; max-width: 100%; display: block; margin: 0 0 12px; border-radius: 2px; border: 1px solid var(--line); }
+.modal-card {
+  width: 300px;
+  max-width: 100%;
+  display: block;
+  margin: 0 0 12px;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .45);
+}
 /* Zoom: Equip Area, Play Area and the mission card are small on the table, so
    the modal opens wide and the printed card comes up at reading size. */
 .overlay.zoom .modal { max-width: 620px; }
@@ -572,15 +630,14 @@ button { font: inherit; }
   :root { --card-w: 104px; }
   .board { padding: 14px; gap: 14px; }
   .topbar { padding: 10px 12px; gap: 10px; }
-  .brand-title { font-size: 20px; }
+  .brand-mark { width: 160px; height: 42px; }
   .mission-slip, .alarm { flex: 1 1 100%; }
   .alarm { min-height: 46px; }
   .alarm-value { font-size: 26px; }
   .alarm-ruler { width: 120px; }
   .controls { flex: 1 1 100%; flex-wrap: wrap; }
-  .menu { flex: 1 1 150px; }
-  .menu-panel { left: 0; right: 0; }
-  .controls button, .controls select { min-height: 40px; }
+  .tabs, .switchboard { flex: 1 1 100%; }
+  .controls button, .controls select, .switch { min-height: 40px; }
   .coach { margin-bottom: 12px; }
   .line-zone { grid-template-columns: 1fr; gap: 10px; }
   .stack { flex-direction: row; gap: 10px; align-items: center; }
@@ -596,7 +653,8 @@ button { font: inherit; }
   .slot { scroll-snap-align: center; }
   .slot-meta { font-size: 10px; }
   .hand-zone { grid-template-columns: 1fr; }
-  .hand { grid-template-columns: repeat(2, 1fr); }
+  .hand { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hand-zone { grid-template-columns: 1fr; }
   .side { grid-template-columns: 1fr; }
   .modal { max-width: 100%; }
 }
@@ -635,6 +693,9 @@ button { font: inherit; }
 
 .log-zone li { font-family: var(--font-mono); font-size: 12px; }
 .footer { font-family: var(--font-mono); font-size: 12px; }
+.footer-sites { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
+.footer-sites-label { color: var(--muted); }
+.footer-sites a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
 
 /* ---------- the coach is a note pinned to the table ---------- */
 .coach {
@@ -723,6 +784,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   border: 1px solid var(--line);
   border-radius: 2px;
   padding: 14px 16px;
+  min-width: 0;
 }
 .zone-name {
   margin: 0 0 12px;
@@ -788,9 +850,20 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   color: var(--muted);
   line-height: 1.3;
 }
-.payment { margin: 4px 0 14px; font-family: var(--font-mono); font-size: 12px; }
+/* The payment details are a typed slip clipped to the card, not a paragraph. */
+.payment {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #b9ad96;
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transform: rotate(.4deg);
+}
 .payment p { margin: 0 0 6px; }
-.payment-cost { color: var(--ink); font-weight: 600; }
-.payment-sources, .payment-items { color: var(--muted); }
-.payment-ok { color: var(--safe); }
-.payment-short { color: var(--alarm); }
+.payment-cost { color: var(--paper-ink); font-weight: 600; }
+.payment-sources, .payment-items { color: #5b6a76; }
+.payment-ok { color: #2f6b45; }
+.payment-short { color: #a02f22; }

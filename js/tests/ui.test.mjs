@@ -65,7 +65,7 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'menu-learn', 'menu-learn-toggle', 'menu-learn-panel', 'menu-table', 'menu-table-toggle', 'menu-table-panel', 'menu-sites', 'menu-sites-toggle', 'menu-sites-panel', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -156,7 +156,8 @@ test('the board renders from the starting state', () => {
   assert.strictEqual(String(map['obstacle-deck-count'].textContent), '16');
   assert.strictEqual(String(map['player-deck-count'].textContent), '4');
   assert.strictEqual(String(map['alarm-value'].textContent), '0');
-  assert.strictEqual(map['mission-banner'].querySelector('.mission-name').textContent, 'Mission One (A)');
+  assert.strictEqual(map['mission-banner'].querySelector('.mission-name').textContent, 'Mission One');
+  assert.strictEqual(map['mission-banner'].querySelector('.mission-goal').textContent, 'Goal: Get 6 Stealth');
   assert.ok(map['goal-card'].querySelector('img').src.endsWith('032.jpg'));
   assert.strictEqual(String(map['interactions-left'].textContent), '1');
 });
@@ -262,61 +263,35 @@ test('the game is saved to local storage after every action', () => {
   assert.ok(saved.savedAt);
 });
 
-test('the top-bar menus open, replace each other, and close on Escape or on a click inside', () => {
+test('the top bar is hardware: switches and tabs, no dropdowns', () => {
   UI.init(cardDefs, missions, 42);
-  const learn = map['menu-learn-toggle'];
-  const learnPanel = map['menu-learn-panel'];
-  const table = map['menu-table-toggle'];
-  const tablePanel = map['menu-table-panel'];
 
-  assert.ok(learnPanel.hidden && tablePanel.hidden, 'both menus start closed');
-  learn.click();
-  assert.strictEqual(learnPanel.hidden, false, 'Learn opens');
-  assert.strictEqual(learn['aria-expanded'], 'true', 'the toggle announces its state');
+  const fast = map['fast-table'];
+  fast.click();
+  assert.strictEqual(fast['aria-checked'], 'true', 'the lever moves to the on stop');
+  fast.click();
+  assert.strictEqual(fast['aria-checked'], 'false', 'and back to the off stop');
 
-  table.click();
-  assert.ok(learnPanel.hidden, 'opening a second menu closes the first');
-  assert.strictEqual(table['aria-expanded'], 'true');
+  const sound = map['sound-toggle'];
+  sound.click();
+  assert.strictEqual(sound['aria-checked'], 'true', 'the Sound switch announces its state');
 
-  fire('keydown', { key: 'Escape' });
-  assert.ok(tablePanel.hidden, 'Escape closes an open menu');
-
-  table.click();
-  map['fast-table'].click();
-  assert.strictEqual(map['fast-table'].textContent, 'Fast table: on', 'the toggles inside the menu still work');
-  map['fast-table'].click();
-  assert.strictEqual(map['fast-table'].textContent, 'Fast table: off', 'and toggling again turns it back off');
-  tablePanel.click();
-  assert.ok(tablePanel.hidden, 'clicking an item closes the menu');
-
-  learn.click();
   map['training-run'].click();
-  assert.ok(UI.getState().tutorial, 'Training run starts from the Learn menu');
-  assert.ok(learnPanel.hidden, 'the menu closes when an item is chosen');
+  assert.ok(UI.getState().tutorial, 'the Training run tab starts the coach');
 
-  const sites = map['menu-sites-toggle'];
-  const sitesPanel = map['menu-sites-panel'];
-  sites.click();
-  assert.strictEqual(sitesPanel.hidden, false, 'Related sites opens');
-  fire('click', { target: { closest: function () { return null; } } });
-  assert.ok(sitesPanel.hidden, 'a click anywhere outside the menu closes it');
-  sites.click();
-  fire('click', { target: { closest: function (selector) { return selector === '.menu' ? map['menu-sites'] : null; } } });
-  assert.strictEqual(sitesPanel.hidden, false, 'a click inside the bar leaves it open');
-  sites.click();
-  assert.ok(sitesPanel.hidden, 'toggling the button again closes it');
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.ok(!html.includes('menu-panel'), 'nothing hides behind a dropdown anymore');
+  assert.ok(/class="switch" role="switch" aria-checked="false"/.test(html), 'switches are drawn as switches');
 });
 
-test('the top bar links to the rest of the Print & Play family', () => {
+test('the family links live in the footer strip', () => {
   const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-  const panel = html.match(/id="menu-sites-panel"[\s\S]*?<\/div>/);
-  assert.ok(panel, 'the Related sites panel is in the top bar');
-  const links = panel[0].match(/<a href="([^"]+)"/g) || [];
-  assert.ok(links.length >= 10, 'the panel links to at least ten family sites');
-  const safe = panel[0].match(/target="_blank" rel="noopener noreferrer"/g) || [];
-  assert.strictEqual(safe.length, links.length, 'every family link opens in a new tab safely');
-  assert.ok(/gonzhome\.us/.test(panel[0]), 'Gonzhome, the hub, is linked');
-  assert.ok(/menu-sites-toggle/.test(html), 'the panel has a toggle button');
+  const strip = html.match(/class="footer-sites"[\s\S]*?<\/nav>/);
+  assert.ok(strip, 'the footer carries the related-sites strip');
+  const links = strip[0].match(/<a href="([^"]+)"/g) || [];
+  assert.ok(links.length >= 10, 'the strip links to at least ten family sites');
+  assert.ok(/rel="noopener noreferrer"/.test(strip[0]), 'external links are safe');
+  assert.ok(/gonzhome\.us/.test(strip[0]), 'Gonzhome, the hub, is linked');
 });
 
 test('Undo lives in the top bar and only lights up when a move can be rewound', () => {
@@ -355,9 +330,9 @@ test('the About screen carries the credit and the score log', () => {
   map['modal-close'].click();
 });
 
-test('the sound toggle flips its label', () => {
+test('the sound switch reports its state on the lever', () => {
   map['sound-toggle'].click();
-  assert.strictEqual(map['sound-toggle'].textContent, 'Sound: on');
+  assert.strictEqual(map['sound-toggle']['aria-checked'], 'true');
 });
 
 test('Escape closes the card zoom', () => {
@@ -440,12 +415,12 @@ test('cards you can afford light up in the line', () => {
   assert.ok(map['line'].children.every((slot) => !slot.className.includes('can-interact')));
 });
 
-test('the Quick Hands toggle flips the house rule and its label', () => {
+test('the Quick Hands switch flips the house rule and its lever', () => {
   UI.init(cardDefs, missions, 42);
   assert.ok(!UI.getState().rules.quickHands);
   map['quick-hands'].click();
   assert.ok(UI.getState().rules.quickHands);
-  assert.strictEqual(map['quick-hands'].textContent, 'Quick hands: on');
+  assert.strictEqual(map['quick-hands']['aria-checked'], 'true');
   map['quick-hands'].click();
   assert.ok(!UI.getState().rules.quickHands);
 });
@@ -548,7 +523,7 @@ test('the mission log reads newest event first', () => {
 test('the Fast table switch turns the animation layer off', () => {
   map['fast-table'].click();
   assert.strictEqual(Table.isFast(), true, 'fast table on');
-  assert.strictEqual(map['fast-table'].textContent, 'Fast table: on');
+  assert.strictEqual(map['fast-table']['aria-checked'], 'true', 'the lever shows it');
   map['fast-table'].click();
   assert.strictEqual(Table.isFast(), false, 'fast table off again');
 });
@@ -566,10 +541,10 @@ test('the music select switches the bed', () => {
   assert.strictEqual(__storage.items['agent-decker.music-track'], 'blackout');
 });
 
-test('the top-bar menu panels are hidden by CSS, not just by the hidden attribute', () => {
+test('switch levers are drawn, not hidden panels', () => {
   const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
-  assert.ok(/\.menu-panel\s*\{[^}]*display:\s*flex/.test(css), 'the panel is laid out as a flex column');
-  assert.ok(/\.menu-panel\[hidden\]\s*\{\s*display:\s*none/.test(css), 'hidden panels must be display:none, otherwise the author display rule wins over the hidden attribute');
+  assert.ok(/\.switch-lever::after\s*\{[^}]*position:\s*absolute/.test(css), 'the lever has a drawn stud');
+  assert.ok(/\.switch\[aria-checked="true"\]/.test(css), 'the on state moves the stud and inks it');
 });
 
 test('the stylesheet is not a dashboard: no pills, no meters, no glows, no gradients', () => {
@@ -590,6 +565,23 @@ test('the markup is zones on a table, not a stack of generic panels', () => {
   assert.ok(!html.includes('class="chip"'), 'resource pills are back');
   assert.ok(!html.includes('class="hint"'), 'the board explains itself in grey paragraphs');
   assert.ok(html.includes('class="zone '), 'the board is built from zones on a table');
+});
+
+test('the card modal is a lifted card with a typed slip, not a dialog box', () => {
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.ok(/\.modal\s*\{[^}]*transform:\s*rotate/.test(css), 'the modal is tilted like a card picked up off the table');
+  assert.ok(/\.modal-card\s*\{[^}]*box-shadow/.test(css), 'the card casts a contact shadow');
+  assert.ok(/\.payment\s*\{[^}]*var\(--paper\)/.test(css), 'the payment details are printed on paper, not on the felt');
+  assert.ok(html.includes('>Put it back<'), 'the modal is closed by putting the card back');
+});
+
+test('the brand is a printed deck back and the mission is a punch card', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(html.includes('class="brand-mark"'), 'the wordmark is drawn, not typed in a generic font');
+  assert.ok(html.includes('class="mission-letter"'), 'the mission carries its corner letter');
+  assert.ok(/\.mission-letter\s*\{[^}]*border: 1px solid var\(--warn\)/.test(css), 'the corner letter is stamped in ink');
 });
 
 test('the alarm gauge outweighs the header buttons — it is gameplay, not chrome', () => {

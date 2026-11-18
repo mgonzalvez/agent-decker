@@ -256,8 +256,10 @@ const UI = (function () {
 
   function render() {
     const mission = missions[state.missionIndex];
-    document.querySelector('#mission-banner .mission-name').textContent = mission.name + ' (' + mission.letter + ')';
+    document.querySelector('#mission-banner .mission-name').textContent = mission.name;
     document.querySelector('#mission-banner .mission-goal').textContent = 'Goal: ' + registry[mission.goalCardId].goalText;
+    const letter = document.querySelector('#mission-banner .mission-letter');
+    if (letter) letter.textContent = mission.letter;
 
     const alarmBox = document.getElementById('alarm');
     const alarmValue = document.getElementById('alarm-value');
@@ -849,14 +851,14 @@ const UI = (function () {
     if (typeof window !== 'undefined') window.gameState = state;
     if (typeof Save !== 'undefined') Save.clearGame();
     render();
-    setSaveNote('training run · seed ' + TRAINING_SEED);
+    setSaveNote('training run');
   }
 
   function exitTraining() {
     if (!state) return;
     state.tutorial = false;
     render();
-    setSaveNote('training off — playing the real campaign');
+    setSaveNote('training off — the real campaign');
   }
 
   function start(seed) {
@@ -870,7 +872,7 @@ const UI = (function () {
     if (typeof Save !== 'undefined') Save.clearGame();
     render();
     animateTable(state, {});
-    setSaveNote('new game · seed ' + usedSeed);
+    setSaveNote('new game');
   }
 
   function restoreTableSpeed() {
@@ -878,11 +880,7 @@ const UI = (function () {
       if (typeof Table !== 'undefined' && typeof localStorage !== 'undefined' &&
           localStorage.getItem('agent-decker.fast-table') === '1') {
         Table.setFast(true);
-        const button = document.getElementById('fast-table');
-        if (button) {
-          button.textContent = 'Fast table: on';
-          button.setAttribute('aria-pressed', 'true');
-        }
+        setSwitch('fast-table', true);
       }
     } catch (err) { /* storage unavailable */ }
   }
@@ -896,7 +894,7 @@ const UI = (function () {
       state = saved.state;
       if (typeof window !== 'undefined') window.gameState = state;
       render();
-      setSaveNote('resumed a saved game · seed ' + state.seed);
+      setSaveNote('resumed a saved game');
     } else {
       start(seed);
     }
@@ -927,9 +925,7 @@ const UI = (function () {
 
   function toggleSound() {
     if (typeof Sound === 'undefined') return;
-    const on = Sound.toggle();
-    const button = document.getElementById('sound-toggle');
-    if (button) button.textContent = on ? 'Sound: on' : 'Sound: off';
+    setSwitch('sound-toggle', Sound.toggle());
   }
 
   /* How to play is six short screens rather than one wall of text: the player
@@ -1070,10 +1066,7 @@ const UI = (function () {
   }
 
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') {
-      if (openMenus.some(function (menu) { return !menu.panel.hidden; })) closeMenus();
-      else closeOverlay();
-    }
+    if (event.key === 'Escape') closeOverlay();
     if (helpOpen && !document.getElementById('overlay').hidden &&
         (event.key === 'ArrowRight' || event.key === 'ArrowLeft')) {
       event.preventDefault();
@@ -1085,40 +1078,12 @@ const UI = (function () {
     }
   });
 
-  /* The top bar holds two dropdowns so the row stays short: Learn (training,
-   rules, about) and Table & audio (sound, music, fast table, house rule). */
-  function closeMenus() {
-    openMenus.forEach(function (menu) {
-      menu.panel.hidden = true;
-      menu.toggle.setAttribute('aria-expanded', 'false');
-    });
-  }
-
-  function wireMenu(toggleId, panelId) {
-    const toggle = document.getElementById(toggleId);
-    const panel = document.getElementById(panelId);
-    if (!toggle || !panel) return;
-    panel.hidden = true;
-    const menu = {
-      toggle: toggle,
-      panel: panel,
-      close: function () {
-        panel.hidden = true;
-        toggle.setAttribute('aria-expanded', 'false');
-      }
-    };
-    openMenus.push(menu);
-    toggle.addEventListener('click', function () {
-      const opening = panel.hidden;
-      closeMenus();
-      if (opening) {
-        panel.hidden = false;
-        toggle.setAttribute('aria-expanded', 'true');
-        if (panel.children[0] && typeof panel.children[0].focus === 'function') panel.children[0].focus();
-      }
-    });
-    panel.addEventListener('click', menu.close);
-    return menu;
+  /* Hardware, not menus: each toggle is a drawn switch whose lever is the
+     state. There is nothing to open, so nothing can be left hanging over the
+     table. */
+  function setSwitch(id, on) {
+    const button = document.getElementById(id);
+    if (button) button.setAttribute('aria-checked', on ? 'true' : 'false');
   }
 
   /* The mission card in the side panel is clickable: click it to read the goal
@@ -1139,36 +1104,13 @@ const UI = (function () {
   if (document.getElementById('coach-exit')) document.getElementById('coach-exit').addEventListener('click', exitTraining);
   if (document.getElementById('coach-how')) document.getElementById('coach-how').addEventListener('click', coachHelp);
 
-  const learnMenu = wireMenu('menu-learn-toggle', 'menu-learn-panel');
-  const tableMenu = wireMenu('menu-table-toggle', 'menu-table-panel');
-  const sitesMenu = wireMenu('menu-sites-toggle', 'menu-sites-panel');
-
-  /* Family convention: a click anywhere outside an open menu closes it, so the
-     panels never hang over the board while the player is mid-turn. */
-  document.addEventListener('click', function (event) {
-    const anyOpen = openMenus.some(function (menu) { return !menu.panel.hidden; });
-    if (!anyOpen) return;
-    const insideMenu = event && event.target &&
-      typeof event.target.closest === 'function' && event.target.closest('.menu');
-    if (!insideMenu) closeMenus();
-  });
-
-  /* Choosing an item closes its menu, so the bar never ends up with two open
-     panels hanging over the board. */
-  function menuItem(menu, handler) {
-    return function () {
-      if (menu) menu.close();
-      handler();
-    };
-  }
-
-  if (document.getElementById('training-run')) document.getElementById('training-run').addEventListener('click', menuItem(learnMenu, startTraining));
-  if (document.getElementById('how-to-play')) document.getElementById('how-to-play').addEventListener('click', menuItem(learnMenu, howToPlay));
-  if (document.getElementById('about')) document.getElementById('about').addEventListener('click', menuItem(learnMenu, about));
-  if (document.getElementById('sound-toggle')) document.getElementById('sound-toggle').addEventListener('click', menuItem(tableMenu, toggleSound));
-  if (document.getElementById('music-toggle')) document.getElementById('music-toggle').addEventListener('click', menuItem(tableMenu, toggleMusic));
-  if (document.getElementById('fast-table')) document.getElementById('fast-table').addEventListener('click', menuItem(tableMenu, toggleFastTable));
-  if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', menuItem(tableMenu, toggleQuickHands));
+  if (document.getElementById('training-run')) document.getElementById('training-run').addEventListener('click', startTraining);
+  if (document.getElementById('how-to-play')) document.getElementById('how-to-play').addEventListener('click', howToPlay);
+  if (document.getElementById('about')) document.getElementById('about').addEventListener('click', about);
+  if (document.getElementById('sound-toggle')) document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+  if (document.getElementById('music-toggle')) document.getElementById('music-toggle').addEventListener('click', toggleMusic);
+  if (document.getElementById('fast-table')) document.getElementById('fast-table').addEventListener('click', toggleFastTable);
+  if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', toggleQuickHands);
   if (document.getElementById('music-track')) {
     const select = document.getElementById('music-track');
     let saved = null;
@@ -1184,37 +1126,25 @@ const UI = (function () {
   function toggleQuickHands() {
     if (!state) return;
     state.rules.quickHands = !state.rules.quickHands;
-    const button = document.getElementById('quick-hands');
-    if (button) {
-      button.textContent = state.rules.quickHands ? 'Quick hands: on' : 'Quick hands: off';
-      button.setAttribute('aria-pressed', state.rules.quickHands ? 'true' : 'false');
-    }
+    setSwitch('quick-hands', state.rules.quickHands);
     render();
   }
 
   function toggleFastTable() {
     const on = !Table.isFast();
     Table.setFast(on);
-    const button = document.getElementById('fast-table');
-    if (button) {
-      button.textContent = on ? 'Fast table: on' : 'Fast table: off';
-      button.setAttribute('aria-pressed', on ? 'true' : 'false');
-    }
+    setSwitch('fast-table', on);
     try { localStorage.setItem('agent-decker.fast-table', on ? '1' : '0'); } catch (err) { /* no storage */ }
   }
 
   function toggleMusic() {
     if (typeof Sound === 'undefined') return;
     const on = Sound.toggleMusic();
-    const button = document.getElementById('music-toggle');
-    if (button) {
-      button.textContent = on ? 'Music: on' : 'Music: off';
-      button.setAttribute('aria-pressed', on ? 'true' : 'false');
-    }
+    setSwitch('music-toggle', on);
     if (state && Sound.setTension) Sound.setTension(state.alarm);
-    const soundButton = document.getElementById('sound-toggle');
-    if (soundButton) soundButton.textContent = Sound.isMuted() ? 'Sound: off' : 'Sound: on';
+    setSwitch('sound-toggle', !Sound.isMuted());
   }
+
 
 
   return {

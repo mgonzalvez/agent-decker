@@ -243,11 +243,18 @@ In `js/tests/ui.test.mjs`:
 | PR | Scope | Exit criterion |
 |---|---|---|
 | 1 | Palette from the cards; delete chips, panel headers, meters, glows; felt texture; asymmetric board | **done** — no pills, no gradients, no uppercase, no glow, zones instead of panels |
-| 2 | Header as case file; alarm as two tokens + lamp | no `.alarm-bar`, no percentage meter |
+| 2 | Header as case file; alarm as two tokens + lamp | **done** — a drawn lamp, a stencil number and a printed ruler; the gauge is the largest thing in the header |
 | 3 | Belt, chute, KO stamps | **done** — the line is a belt tray with an exit chevron, face-down cards are stamped KO. The "Lift" label for the Play button was tried and reverted |
-| 4 | Folder / stack / shredder / teletype log | side zones are objects |
-| 5 | Switches instead of dropdown menus; modal as lifted card + typed slip | the three menus become flaps/switches (the ▾ carets are already gone) |
-| 6 | Copy sweep + rubric tests | banned-string test passes |
+| 4 | Folder / stack / shredder / teletype log | **done** — Equip Area is a folder, the Bin is a shredder, the log is the zone under the board |
+| 5 | Switches instead of dropdown menus; modal as lifted card + typed slip | **done** — the three menus are gone: Learn is a set of tabs, Sound/Music/Fast table/Quick hands are drawn switches with two stops, Related sites moved to the footer. The modal is a tilted card with a paper payment slip and a "Put it back" tab |
+| 6 | Wordmark, punch-card mission, belt sprite, deck box | **done** — the brand is an SVG deck back, the mission carries a stamped corner letter, the belt has rails and tiled rollers |
+| 7 | Copy sweep + rubric tests | **done** — banned-string and dashboard tests pass (157 tests) |
+
+Playtest decisions that must not be "improved" back:
+
+- The Mission Log sits under the zones, not as a right rail (PR #36).
+- Hand cards use a plain **Play** button (PR #36).
+- The alarm gauge dominates the header; menu buttons stay small and muted (PR #37).
 
 Keep intact through all of it: keyboard access, Escape-to-close, `aria-live` alarm/log,
 `prefers-reduced-motion`, Fast table, Undo, seeded replay.
