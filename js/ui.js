@@ -90,7 +90,12 @@ const UI = (function () {
     img.src = defOf(card).art[0];
     img.alt = cardAlt(defOf(card));
     face.appendChild(img);
-    face.addEventListener('click', function () { openCard(card, zone || 'area'); });
+    face.addEventListener('click', function () {
+      /* Cards sitting in the Equip or Play Area are not in the line, so there is
+         nothing to pay for: clicking one blows it up to a readable size instead. */
+      if (zone === 'equip' || zone === 'play') openZoom(defOf(card), areaCaption(defOf(card), zone));
+      else openCard(card, zone || 'area');
+    });
     div.appendChild(face);
     if (zone === 'equip') {
       const d = defOf(card);
@@ -401,7 +406,9 @@ const UI = (function () {
   }
 
   /* ---------- overlays ---------- */
-  function openOverlay(title, body, choices, imageSrc) {
+  function openOverlay(title, body, choices, imageSrc, zoom) {
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.classList.toggle('zoom', !!zoom);
     document.getElementById('modal-title').textContent = title;
     const bodyNode = document.getElementById('modal-body');
     bodyNode.innerHTML = '';
@@ -429,8 +436,40 @@ const UI = (function () {
   }
 
   function closeOverlay() {
-    document.getElementById('overlay').hidden = true;
+    const overlay = document.getElementById('overlay');
+    if (!overlay) return;
+    overlay.classList.remove('zoom');
+    overlay.hidden = true;
     helpOpen = false;
+  }
+
+  /* Zoom: the Equip Area, the Play Area and the mission card are small on the
+     table, so clicking one shows the printed card at reading size underneath
+     its rules. */
+  function openZoom(def, caption) {
+    const body = el('div', 'zoom-detail');
+    if (caption) body.appendChild(el('p', 'zoom-caption', caption));
+    openOverlay(def.name, body, [], def.art[0], true);
+  }
+
+  function areaCaption(def, zone) {
+    const reward = def.reward || {};
+    const bits = [];
+    if (def.isGoal) bits.push('Mission card — ' + (def.goalText || ''));
+    if (reward.name) bits.push('Reward: ' + reward.name);
+    if (reward.resource && (reward.resource.stealth || reward.resource.fighting)) {
+      bits.push('gives ' + [reward.resource.stealth ? reward.resource.stealth + ' Stealth' : '',
+        reward.resource.fighting ? reward.resource.fighting + ' Fighting' : ''].filter(Boolean).join(' + ') + ' each turn');
+    }
+    if (reward.effect) {
+      if (reward.effect.type === 'interactionLimit') bits.push('allows ' + reward.effect.value + ' interactions per turn');
+      if (reward.effect.type === 'handDrawSize') bits.push('draw ' + reward.effect.value + ' cards each turn');
+      if (reward.effect.type === 'discardToInteract') bits.push('pays for one ' + reward.effect.targetType + ' interaction, then it is discarded');
+      if (reward.effect.type === 'drawPerEquippedKeep') bits.push('draw 1 card per equipped item (max ' + (reward.effect.max || 3) + ')');
+    }
+    if (zone === 'equip') bits.push('KEEP items stay equipped until you spend them on purpose.');
+    else bits.push('Played cards are folded back into your deck at the end of the turn.');
+    return bits.join(' · ');
   }
 
   function scoreBody(reason) {
@@ -674,6 +713,7 @@ const UI = (function () {
   }
 
   function payLabel(parts) {
+    parts = parts || {};
     const bits = [];
     if (parts.stealth) bits.push(parts.stealth + ' Stealth');
     if (parts.fighting) bits.push(parts.fighting + ' Fighting');
@@ -1074,6 +1114,16 @@ const UI = (function () {
     panel.addEventListener('click', menu.close);
     return menu;
   }
+
+  /* The mission card in the side panel is clickable: click it to read the goal
+     in full at card size. */
+  const goalFace = document.getElementById('goal-card-face');
+  if (goalFace) goalFace.addEventListener('click', function () {
+    if (!state || !missions.length) return;
+    const mission = missions[state.missionIndex];
+    const def = registry[mission.goalCardId];
+    openZoom(def, mission.name + ' — ' + def.goalText + '. The whole goal has to be paid in one turn.');
+  });
 
   document.getElementById('mission-check').addEventListener('click', missionCheck);
   document.getElementById('end-turn').addEventListener('click', endTurn);

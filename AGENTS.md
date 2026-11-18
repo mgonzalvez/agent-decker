@@ -93,6 +93,8 @@ M1 transcribe card DB → M2 static board → M3 one full turn → M4 effect han
 
 **Coach and help screens (PR in progress):** **Exit training** now really removes the coach — `.coach` is `display: flex`, which beat the `hidden` attribute (the same trap as the top-bar menus), so `.coach[hidden] { display: none; }` is in the CSS. **How to play** is six short screens (orientation → the four steps of a turn → Disarm/Knock Out → the conveyor → gear, Bin and Undo → the turn flowchart) with a tab strip, Previous/Next and ←/→ keys. Every modal caps its height to the viewport and scrolls inside itself with a sticky header, so **Close** is never below the fold; the flowchart is capped at 52vh and links to the full-size SVG. The coach's **Why?** opens the screen that explains the step it is currently asking for. Tests: 130 passing.
 
+**Card zoom (PR in progress):** the **Equip Area**, the **Play Area** and the **current mission card** are clickable — `UI.openZoom()` reuses the modal with an `overlay.zoom` class (wider modal, 460px art, `zoom-caption` line) and explains the reward/KEEP behaviour, what happens to played cards, or the mission goal and how it has to be paid. Cards sitting outside the line never go through the interaction path again, and `Engine.canInteract()` now returns the cost breakdown on every refusal, so the payment modal cannot throw on a missing `check.parts`. The mission card's art is wrapped in a real `<button id="goal-card-face">`. Cache token `v=38`. Tests: 148 passing.
+
 ## Registry & provenance rule (portfolio-wide)
 
 Personal project — completely separate from Apple work.

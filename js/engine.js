@@ -220,12 +220,14 @@ const Engine = (function () {
   }
 
   function canInteract(state, registry, card) {
-    if (state.faceDown[card.uid]) return { ok: false, reason: 'already knocked out' };
-    if (state.interactionsLeft <= 0) return { ok: false, reason: 'no interactions left this turn' };
-    const d = def(card, registry);
-    if (lineIndexOf(state, card.uid) < 0) return { ok: false, reason: 'not in the line' };
+    /* Every answer carries the cost breakdown, so the modal can always explain
+       what the card would cost even when the interaction is not possible. */
     const options = paymentOptions(state, registry, card);
     const no = function (reason) { return { ok: false, reason: reason, items: [], canPayResources: false, parts: options.parts, sources: options.sources }; };
+    if (state.faceDown[card.uid]) return no('already knocked out');
+    if (state.interactionsLeft <= 0) return no('no interactions left this turn');
+    const d = def(card, registry);
+    if (lineIndexOf(state, card.uid) < 0) return no('not in the line');
 
     const hawk = state.line.some(function (c) {
       if (!c || state.faceDown[c.uid]) return false;

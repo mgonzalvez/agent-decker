@@ -19,6 +19,7 @@ class El {
     this.classList = {
       toggle: (name, on) => { if (on === undefined || on) this._classes.add(name); else this._classes.delete(name); },
       add: (name) => this._classes.add(name),
+      remove: (name) => this._classes.delete(name),
       contains: (name) => this._classes.has(name)
     };
   }
@@ -43,7 +44,13 @@ class El {
   }
   querySelector(selector) {
     const wanted = selector.replace('.', '');
-    return this.children.find((c) => c.className === wanted || c.tag === selector) || null;
+    const direct = this.children.find((c) => c.className === wanted || c.tag === selector);
+    if (direct) return direct;
+    for (const child of this.children) {
+      const deeper = child.querySelector && child.querySelector(selector);
+      if (deeper) return deeper;
+    }
+    return null;
   }
 }
 
@@ -53,7 +60,7 @@ function textOf(node) {
 
 const ids = [
   'mission-banner', 'alarm', 'alarm-label', 'signal-dot', 'alarm-value', 'alarm-fill', 'alarm-danger', 'seed', 'new-game', 'how-to-play',
-  'goal-card', 'obstacle-deck', 'obstacle-deck-count', 'obstacle-discard-count',
+  'goal-card', 'goal-card-face', 'obstacle-deck', 'obstacle-deck-count', 'obstacle-discard-count',
   'player-deck-count', 'player-discard-count', 'player-hand-count', 'player-deck-breakdown', 'line', 'hand',
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
@@ -64,7 +71,9 @@ const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
 map['mission-banner'].appendChild(new El('span')).className = 'mission-name';
 map['mission-banner'].appendChild(new El('span')).className = 'mission-goal';
-map['goal-card'].appendChild(new El('img'));
+map['goal-card-face'] = new El('button');
+map['goal-card-face'].className = 'goal-face';
+map['goal-card'].appendChild(map['goal-card-face']).appendChild(new El('img'));
 map['goal-card'].appendChild(new El('figcaption'));
 
 globalThis.document = {
@@ -463,6 +472,68 @@ test('a successful mission check plays a fanfare and briefs the next mission', (
   assert.ok(body.indexOf('Equip Area') >= 0, 'the reward is explained');
   const thumbs = map['equip-area-cards'].children;
   assert.ok(thumbs.some(function (c) { return c.className.indexOf('goal-card') >= 0; }), 'the completed mission card is laid sideways in the Equip Area');
+});
+
+test('clicking an Equip Area card zooms it to reading size with its rules', () => {
+  const thumbs = map['equip-area-cards'].children;
+  assert.ok(thumbs.length, 'the mission reward is equipped');
+  const face = thumbs[thumbs.length - 1].children.find(function (c) { return c.className === 'thumb-face'; });
+  assert.ok(face && face.tag === 'button', 'the equip thumbnail is a real button');
+  assert.ok(String(face['aria-label']).indexOf('Zoom') >= 0, 'the button says what it does');
+  face.click();
+  assert.strictEqual(map.overlay.hidden, false, 'the zoom opens');
+  assert.ok(map.overlay._classes.has('zoom'), 'the modal opens in zoom mode');
+  assert.ok(map['modal-body'].children.some(function (c) { return c.tag === 'img'; }), 'the zoom shows the card art');
+  const body = textOf(map['modal-body']);
+  assert.ok(body.indexOf('Reward') >= 0, 'the zoom explains what the equipped item does: ' + body);
+  assert.ok(body.indexOf('KEEP') >= 0, 'the zoom reminds the agent that items stay equipped');
+  map['modal-close'].click();
+  assert.ok(!map.overlay._classes.has('zoom'), 'closing clears the zoom class');
+  assert.strictEqual(map.overlay.hidden, true);
+});
+
+test('the mission card in the side panel zooms and spells out the goal', () => {
+  const mission = missions[UI.getState().missionIndex];
+  map['goal-card-face'].click();
+  assert.strictEqual(map.overlay.hidden, false, 'the mission card opens a zoom');
+  assert.ok(map.overlay._classes.has('zoom'), 'it opens wide');
+  const body = textOf(map['modal-body']);
+  assert.ok(body.indexOf(mission.name) >= 0, 'the zoom names the mission in play');
+  assert.ok(body.indexOf('whole goal') >= 0, 'the zoom restates how the goal is paid');
+  assert.ok(map['modal-body'].children.some(function (c) { return c.tag === 'img'; }), 'the goal art comes up large');
+  map['modal-close'].click();
+});
+
+test('a played card in the Play Area zooms instead of offering interactions', () => {
+  const state = UI.getState();
+  state.playArea = [{ uid: 'start_hide_0', defId: 'start_hide' }];
+  UI.setState(state);
+  const face = map['play-area-cards'].children[0].children.find(function (c) { return c.className === 'thumb-face'; });
+  assert.ok(face, 'the play area thumbnail has a clickable face');
+  face.click();
+  assert.strictEqual(map.overlay.hidden, false, 'the zoom opens without an error');
+  assert.ok(map.overlay._classes.has('zoom'));
+  assert.ok(textOf(map['modal-body']).indexOf('folded back') >= 0, 'the zoom explains what happens to played cards');
+  assert.strictEqual(map['modal-choices'].children.length, 0, 'nothing is offered for a card that is not in the line');
+  map['modal-close'].click();
+});
+
+test('a card you cannot interact with still explains its cost instead of throwing', () => {
+  const state = UI.getState();
+  state.interactionsLeft = 0;
+  UI.setState(state);
+  map['line'].children[0].click();
+  assert.strictEqual(map.overlay.hidden, false);
+  const body = textOf(map['modal-body']);
+  assert.ok(body.indexOf('Cost to interact') >= 0, 'the modal states the printed cost: ' + body);
+  map['modal-close'].click();
+});
+
+test('the zoom modal is laid out wide enough to read the printed card', () => {
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(/\.overlay\.zoom \.modal \{ max-width: 620px/.test(css), 'zoom widens the modal');
+  assert.ok(/\.overlay\.zoom \.modal-card \{ width: 460px/.test(css), 'the art is shown large');
+  assert.ok(/\.goal-face \{[^}]*cursor: pointer/.test(css), 'the mission card is clickable');
 });
 
 test('the mission log reads newest event first', () => {

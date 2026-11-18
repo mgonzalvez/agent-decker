@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=37" />
-  <link rel="stylesheet" href="css/styles.css?v=37" />
+  <link rel="icon" href="assets/favicon.png?v=38" />
+  <link rel="stylesheet" href="css/styles.css?v=38" />
 </head>
 <body>
   <header class="topbar">
@@ -153,12 +153,15 @@
 
       <aside class="side">
         <figure class="card card-goal" id="goal-card">
-          <img src="assets/cards/032.jpg" alt="Mission One goal card" />
+          <button class="card-face goal-face" id="goal-card-face" type="button" aria-label="Zoom the current mission card" title="Zoom the mission card">
+            <img src="assets/cards/032.jpg" alt="Mission One goal card" />
+          </button>
           <figcaption>Mission One</figcaption>
         </figure>
 
         <div class="area area-equip">
           <h2>Equip Area</h2>
+          <p class="area-hint">Click a card to read it at full size.</p>
           <div class="area-cards" id="equip-area-cards"></div>
         </div>
         <div class="area">
@@ -199,14 +202,14 @@
     <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
   </footer>
 
-  <script src="js/state.js?v=37"></script>
-  <script src="js/engine.js?v=37"></script>
-  <script src="js/actions.js?v=37"></script>
-  <script src="js/save.js?v=37"></script>
-  <script src="js/audio.js?v=37"></script>
-  <script src="js/table.js?v=37"></script>
-  <script src="js/tutorial.js?v=37"></script>
-  <script src="js/ui.js?v=37"></script>
-  <script src="js/main.js?v=37"></script>
+  <script src="js/state.js?v=38"></script>
+  <script src="js/engine.js?v=38"></script>
+  <script src="js/actions.js?v=38"></script>
+  <script src="js/save.js?v=38"></script>
+  <script src="js/audio.js?v=38"></script>
+  <script src="js/table.js?v=38"></script>
+  <script src="js/tutorial.js?v=38"></script>
+  <script src="js/ui.js?v=38"></script>
+  <script src="js/main.js?v=38"></script>
 </body>
 </html>
