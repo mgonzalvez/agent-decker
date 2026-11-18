@@ -99,6 +99,8 @@ PLAN.md  AGENTS.md  README.md
 
 ## Open work
 
+- **Art-direction rework** — the chrome reads as a generic dashboard. Plan and rubric:
+  `docs/ui-art-direction.md`.
 - Full mobile QA pass on a real device.
 - Replaying each engine event as a separate visible step (today one action animates as a composite).
 - More FX polish.
