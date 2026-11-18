@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 *.log
 .DS_Store
+
+# Large offline music renders used while tuning the beds; not part of the site.
+*.wav
