@@ -204,7 +204,7 @@ const UI = (function () {
       }
       const button = el('button', 'play-btn');
       button.type = 'button';
-      button.textContent = 'Lift';
+      button.textContent = 'Play';
       button.setAttribute('aria-label', 'Play ' + def.name + ' from your hand');
       button.disabled = !allowed('play');
       button.addEventListener('click', function () { playCard(card); });

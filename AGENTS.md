@@ -101,9 +101,10 @@ PLAN.md  AGENTS.md  README.md
 
 - **Art-direction rework** — plan, hallmarks list and rubric: `docs/ui-art-direction.md`.
   PRs 1-4 landed: palette and felt texture sampled from the card art, no chips/panel headers/
-  meters/glows, 2 px corners, mixed-case stencil headings, zones on an asymmetric board, the
-  line as a belt with an exit chute, KO stamps on face-down cards, "Lift" instead of a Play
-  button, a folder tab on the Equip Area, a taped coach note, wire-copy log.
+  meters/glows, 2 px corners, mixed-case stencil headings, zones stacked on the felt with the
+  line as a belt with an exit chute, KO stamps on face-down cards, a folder tab on the Equip
+  Area, a taped coach note, a wire-copy Mission Log under the board. Play buttons stay labelled
+  "Play" — the "Lift" experiment read as a disabled control.
   Still open: switches instead of dropdown menus, drawn sprites for the alarm lamp and belt.
 - Full mobile QA pass on a real device.
 - Replaying each engine event as a separate visible step (today one action animates as a composite).

@@ -592,6 +592,20 @@ test('the markup is zones on a table, not a stack of generic panels', () => {
   assert.ok(html.includes('class="zone '), 'the board is built from zones on a table');
 });
 
+test('the mission log sits under the table, not beside it', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(html.indexOf('class="zone zone-agent"') < html.indexOf('class="zone zone-log"'),
+    'the log is the last zone, under the line and the agent');
+  assert.ok(!/\.zone-log \{[^}]*grid-column: 2/.test(css), 'the log is not parked in a right rail');
+  assert.ok(/\.board \{[^}]*grid-template-columns: 1fr;/.test(css), 'the board is one column of zones');
+});
+
+test('hand cards are played, not lifted', () => {
+  const js = readFileSync(new URL('../ui.js', import.meta.url), 'utf8');
+  assert.ok(js.includes("button.textContent = 'Play';"), 'the hand button still says Play');
+});
+
 test('the line is a belt with a chute, and knocked-out cards are stamped', () => {
   const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');

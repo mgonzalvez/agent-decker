@@ -9,6 +9,13 @@ dashboard with that language: the player is at a table with physical objects, no
 `js/tests/ui.test.mjs`; the remaining work is switches instead of dropdown menus and drawn
 sprites for the lamp and the belt.
 
+Two decisions from playtesting, recorded so nobody "re-improves" them:
+
+- **The Mission Log is a strip under the zones, not a right rail.** A rail was tried; it read as a
+  dashboard sidebar and squeezed the belt. The log is the last zone on the table.
+- **Hand cards use a plain "Play" button.** A dashed "Lift" tab looked like a card you pick up, but
+  players read it as a disabled control. Keep the label "Play".
+
 Reference, from the printed cards themselves (`assets/cards/`):
 
 | Printed motif | Where it appears | How the UI should use it |
@@ -224,7 +231,7 @@ In `js/tests/ui.test.mjs`:
 - Banned copy: "Nice work", "never saw it coming", "housekeeping", "Keep this open",
   "everything else follows" — checked across `js/ui.js`, `js/tutorial.js` and `index.html`.
 - The line is a belt with a chute; face-down cards get a KO stamp; the Equip Area has a folder
-  tab; the coach note is taped.
+  tab; the coach note is taped; the log is the zone under the board, not a side rail.
 - The alarm pointer moves with the value and changes ink at 20 / 40 / 45.
 
 ---
@@ -235,7 +242,7 @@ In `js/tests/ui.test.mjs`:
 |---|---|---|
 | 1 | Palette from the cards; delete chips, panel headers, meters, glows; felt texture; asymmetric board | **done** — no pills, no gradients, no uppercase, no glow, zones instead of panels |
 | 2 | Header as case file; alarm as two tokens + lamp | no `.alarm-bar`, no percentage meter |
-| 3 | Belt, chute, KO stamps, card pickup instead of Play buttons | the line reads as an object, not a grid |
+| 3 | Belt, chute, KO stamps | **done** — the line is a belt tray with an exit chevron, face-down cards are stamped KO. The "Lift" label for the Play button was tried and reverted |
 | 4 | Folder / stack / shredder / teletype log | side zones are objects |
 | 5 | Switches instead of dropdown menus; modal as lifted card + typed slip | the three menus become flaps/switches (the ▾ carets are already gone) |
 | 6 | Copy sweep + rubric tests | banned-string test passes |

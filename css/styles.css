@@ -158,19 +158,18 @@ button { font: inherit; }
 .thumb img { width: 100%; height: auto; }
 
 /* ---------- board ---------- */
-/* The table is not a symmetric stack of panels: the belt and the agent sit on
-   the left, the wire clipboard hangs beside them. */
+/* Two zones stacked on the felt, the wire feed pinned under them. The asymmetry
+   is inside the zones: stacks on the left, belt on the right; hand on the left,
+   the mission folder on the right. */
 .board {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr;
   gap: 18px;
   padding: 20px;
-  max-width: 1400px;
+  max-width: 1240px;
   margin: 0 auto;
 }
-.coach { grid-column: 1 / -1; }
-.zone-line, .zone-agent { grid-column: 1; }
-.zone-log { grid-column: 2; grid-row: 1 / span 2; min-width: 0; }
+.zone-line, .zone-agent, .zone-log { grid-column: 1; }
 
 .line-zone {
   display: grid;
@@ -350,21 +349,18 @@ button { font: inherit; }
 .card-goal img { width: var(--card-w); }
 .goal-face { border: 0; background: none; padding: 0; width: 100%; cursor: pointer; }
 .goal-face:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 2px; }
-/* You do not press a button to play a card; you pick the card up off the table. */
 .play-btn {
   margin-top: 8px;
   width: 100%;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-radius: 2px;
-  border: 1px dashed var(--line);
+  border: 1px solid var(--line);
   background: transparent;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: .06em;
+  color: var(--ink);
+  font-size: 13px;
   cursor: pointer;
 }
-.play-btn:hover { background: var(--warn); border-color: var(--warn); border-style: solid; color: #101820; }
+.play-btn:hover { background: var(--warn); border-color: var(--warn); color: #101820; }
 
 .side { display: grid; gap: 12px; }
 .area {
@@ -425,8 +421,9 @@ button { font: inherit; }
 .card-bin img { filter: grayscale(.6) brightness(.8); }
 .card-bin figcaption { text-decoration: line-through; color: var(--muted); }
 
-/* The log is wire copy: monospaced, each line stamped with its turn. */
-.log-zone li { font-family: var(--font-mono); font-size: 11.5px; }
+/* The log is wire copy: monospaced, each line stamped with its turn, set to a
+   typewriter measure so it does not run the full width of the table. */
+.log-zone li { font-family: var(--font-mono); font-size: 11.5px; max-width: 72ch; }
 .log-zone li.log-mission { border-left-color: var(--warn); background: rgba(217, 148, 51, .08); }
 
 /* The coach's note is taped to the table. */
@@ -553,8 +550,6 @@ button { font: inherit; }
   :root { --card-w: 120px; }
   .play-zone { grid-template-columns: 1fr; }
   .side { grid-template-columns: repeat(2, 1fr); }
-  .board { grid-template-columns: 1fr; }
-  .zone-log { grid-column: 1; grid-row: auto; }
   .line-zone { grid-template-columns: 74px 1fr 74px; }
   .hand { grid-template-columns: repeat(4, 118px); }
 }
