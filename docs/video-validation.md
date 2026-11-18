@@ -4,7 +4,7 @@
 
 **Video:** "How to play Agent Decker" — Manuel Correia, 4:45 — https://www.youtube.com/watch?v=ArPVpr5TNcg
 **Transcript:** `docs/transcript-how-to-play.txt` (auto-captions, 2025-09-30; mishearings noted inline)
-**Clarifications:** `js/data/effects-notes.md` (authoritative, C1–C8)
+**Clarifications:** `js/data/effects-notes.md` (authoritative, C1–C10)
 
 ---
 
@@ -14,7 +14,7 @@
 |---|---|---|---|
 | 1 | "54 standard size cards and two tokens" | Components: 54 cards + 2 tokens | ✅ Match |
 | 2 | "five missions, each about 20 minutes" | ~20 min/mission, 5 missions | ✅ Match |
-| 3 | Starting deck: "PUNCH and HIDE, each gives one resource — fighting or stealth" | 8 Starting Cards give Stealth/Fighting (PDF p1: 4 HIDE + 4 PUNCH) | ✅ Match |
+| 3 | Starting deck: "PUNCH and HIDE, each gives one resource — fighting or stealth" | 8 starting cards give Stealth/Fighting (PDF p1: 3 HIDE + 5 PUNCH) | ✅ Match (the count comes from the card PDF, not the video) |
 | 4 | "draw four cards" | Hand of 4 | ✅ Match |
 | 5 | Obstacle card anatomy: name, type, cost, alarm-on-discard; top half = disarm reward | A1–A4 + top-half description | ✅ Match |
 | 6 | Mission 1 goal: "get six stealth" | Goals have costs; paid at Mission Check | ✅ Match (goals = resource cost, per C2) |
