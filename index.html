@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=43" />
-  <link rel="stylesheet" href="css/styles.css?v=43" />
+  <link rel="icon" href="assets/favicon.png?v=44" />
+  <link rel="stylesheet" href="css/styles.css?v=44" />
 </head>
 <body>
   <header class="topbar">
@@ -114,8 +114,11 @@
     <section class="zone zone-line" aria-label="The Line">
       <h2 class="zone-name">The Line</h2>
       <div class="line-zone">
-        <div class="stack">
-          <img class="card-back" src="assets/cards/back.jpg" alt="Obstacles deck" />
+        <div class="stack stack--deck">
+          <div class="deck-box">
+            <img class="card-back" src="assets/cards/back.jpg" alt="Obstacles deck" />
+            <span class="deck-flap" aria-hidden="true"></span>
+          </div>
           <span class="stack-label">Obstacle deck</span>
           <span class="stack-count" id="obstacle-deck-count">0</span>
         </div>
@@ -129,6 +132,7 @@
         </div>
 
         <div class="stack stack--used">
+          <div class="pile" aria-hidden="true"></div>
           <span class="stack-label">Obstacle discard</span>
           <span class="stack-count" id="obstacle-discard-count">0</span>
         </div>
@@ -140,7 +144,10 @@
       <div class="play-zone">
         <div class="hand-zone">
           <div class="deck-panel">
-            <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
+            <div class="deck-box">
+              <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
+              <span class="deck-flap" aria-hidden="true"></span>
+            </div>
             <span class="stack-label">Draw deck</span>
             <span class="stack-count" id="player-deck-count">0</span>
             <span class="deck-breakdown" id="player-deck-breakdown">—</span>
@@ -232,14 +239,14 @@
     </nav>
   </footer>
 
-  <script src="js/state.js?v=43"></script>
-  <script src="js/engine.js?v=43"></script>
-  <script src="js/actions.js?v=43"></script>
-  <script src="js/save.js?v=43"></script>
-  <script src="js/audio.js?v=43"></script>
-  <script src="js/table.js?v=43"></script>
-  <script src="js/tutorial.js?v=43"></script>
-  <script src="js/ui.js?v=43"></script>
-  <script src="js/main.js?v=43"></script>
+  <script src="js/state.js?v=44"></script>
+  <script src="js/engine.js?v=44"></script>
+  <script src="js/actions.js?v=44"></script>
+  <script src="js/save.js?v=44"></script>
+  <script src="js/audio.js?v=44"></script>
+  <script src="js/table.js?v=44"></script>
+  <script src="js/tutorial.js?v=44"></script>
+  <script src="js/ui.js?v=44"></script>
+  <script src="js/main.js?v=44"></script>
 </body>
 </html>

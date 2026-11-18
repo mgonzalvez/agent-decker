@@ -5,9 +5,8 @@ a dark dashboard with cards, chips, meters and glowing buttons, dressed in an "a
 spy theme. The printed game already has a strong visual language. The rework replaces the
 dashboard with that language: the player is at a table with physical objects, not inside an app.
 
-**Status:** PRs 1–4 landed, PRs 5–6 partly. The rubric in §5 is enforced by tests in
-`js/tests/ui.test.mjs`; the remaining work is switches instead of dropdown menus and drawn
-sprites for the lamp and the belt.
+**Status:** PRs 1–6 landed. The rubric in §5 is enforced by tests in `js/tests/ui.test.mjs`. What
+is left is real-device QA and further FX polish.
 
 Two decisions from playtesting, recorded so nobody "re-improves" them:
 

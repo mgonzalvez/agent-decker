@@ -240,9 +240,19 @@ button { font: inherit; }
   border-right: 3px solid #23405c;
   border-radius: 2px;
   background: #102435;
+  padding: 12px 12px 22px;
+}
+/* Rollers run under the cards; the belt is a machine, not a card grid. */
+.belt::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 6px;
+  height: 12px;
   background-image: url("../assets/ui/belt.svg");
-  background-size: 24px 100%;
-  padding: 12px 12px 20px;
+  background-size: 24px 12px;
+  background-repeat: repeat-x;
 }
 .belt-inner {
   display: grid;
@@ -295,7 +305,7 @@ button { font: inherit; }
 .slot.face-down img { filter: brightness(.3) contrast(.7); }
 
 /* A knocked-out obstacle is stamped, the way the printed game marks a card you
-   have dealt with: red ink, square, slightly offtrue. */
+   have dealt with: red ink, square, slightly off-square. */
 .slot.face-down { position: relative; }
 .slot.face-down::after {
   content: "KO";
@@ -324,7 +334,26 @@ button { font: inherit; }
   background: var(--panel);
 }
 .stack img { width: 62px; border-radius: 2px; box-shadow: 0 4px 10px rgba(0, 0, 0, .35); }
-.stack--used { transform: rotate(-1.4deg); }
+/* The deck lives in a box with a flap; the discard is a used pile lying on the felt. */
+.deck-box { position: relative; }
+.deck-box .card-back { border: 1px solid var(--line); }
+.deck-flap {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  width: 26px;
+  height: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+.pile {
+  width: 56px;
+  height: 78px;
+  background: #0b1622;
+  border: 1px solid var(--line);
+  transform: rotate(-2deg);
+  box-shadow: 4px 4px 0 rgba(11, 22, 34, .8), 8px 8px 0 rgba(11, 22, 34, .5);
+}
 .stack-label { color: var(--muted); font-size: 12px; }
 .stack-count { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 
@@ -471,13 +500,13 @@ button { font: inherit; }
   border-radius: 2px 2px 0 0;
 }
 
-/* The Play Area is a pile you have put down: cards overlap and sit offtrue. */
+/* The Play Area is a pile you have put down: cards overlap and sit off-square. */
 .area-play .area-cards { gap: 4px; }
 .area-play .thumb:nth-child(2n) { transform: rotate(1.6deg); }
 .area-play .thumb:nth-child(3n) { transform: rotate(-2.2deg); }
 
 /* The Bin is a shredder: the slot is cut into the top of the box. */
-.area-bin { border-style: dashed; }
+.area-bin { border-style: dashed; padding-top: 10px; }
 .area-bin .area-cards { gap: 6px; }
 .card-bin img { filter: grayscale(.6) brightness(.8); }
 .card-bin figcaption { text-decoration: line-through; color: var(--muted); }
@@ -797,10 +826,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 }
 .slot.exiting { border-color: var(--alarm); background: rgba(192, 57, 43, .12); }
 
-.modal { border-top: 2px solid var(--warn); }
 .modal h2 { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink); }
 
-.area-equip { border: 1px solid var(--warn); border-radius: 2px; background: rgba(217, 148, 51, .08); padding: 10px; }
 .area-equip h2 { color: var(--warn); }
 
 .equip-note { font-size: 11px; color: var(--warn); margin-top: 6px; }
