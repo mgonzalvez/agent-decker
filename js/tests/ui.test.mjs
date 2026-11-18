@@ -59,7 +59,7 @@ function textOf(node) {
 }
 
 const ids = [
-  'mission-banner', 'alarm', 'alarm-label', 'signal-dot', 'alarm-value', 'alarm-fill', 'alarm-danger', 'seed', 'new-game', 'how-to-play',
+  'mission-banner', 'alarm', 'alarm-label', 'alarm-value', 'alarm-mark', 'alarm-danger', 'seed', 'new-game', 'how-to-play',
   'goal-card', 'goal-card-face', 'obstacle-deck', 'obstacle-deck-count', 'obstacle-discard-count',
   'player-deck-count', 'player-discard-count', 'player-hand-count', 'player-deck-breakdown', 'line', 'hand',
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
@@ -127,12 +127,12 @@ const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.me
 const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
 const registry = globalThis.AgentDecker.buildRegistry(cardDefs);
 
-test('the alarm gauge tracks the counter and escalates green → amber → red', () => {
+test('the alarm counter reports its level and the ruler pointer tracks the value', () => {
   UI.init(cardDefs, missions, 42);
   const state = UI.getState();
   state.alarm = 25;
   UI.setState(state);
-  assert.ok(String(map['alarm-fill'].style.width).includes('50%'));
+  assert.ok(Math.abs(Number(map['alarm-mark'].x1) - 50) < 0.1, 'the pointer sits at the middle of the ruler');
   assert.ok(map['alarm']._classes.has('level-mid'));
   state.alarm = 44;
   UI.setState(state);
@@ -141,10 +141,10 @@ test('the alarm gauge tracks the counter and escalates green → amber → red',
   state.alarm = 48;
   UI.setState(state);
   assert.ok(map['alarm']._classes.has('level-critical'));
-  assert.ok(String(map['signal-dot'].className).includes('dot-critical'));
+  assert.ok(Math.abs(Number(map['alarm-mark'].x1) - 96) < 0.1);
   state.alarm = 0;
   UI.setState(state);
-  assert.ok(String(map['alarm-fill'].style.width).includes('0%'));
+  assert.ok(Number(map['alarm-mark'].x1) === 0);
   assert.ok(map['alarm']._classes.has('level-low'));
   assert.ok(map['alarm-danger'].hidden);
 });
@@ -409,20 +409,20 @@ test('the training run shows a coach and gates what you can do', () => {
   assert.ok(!map['end-turn'].disabled);
 });
 
-test('the End Turn button glows when there are no moves left', () => {
+test('the End Turn button is inked when it is the only move left', () => {
   UI.init(cardDefs, missions, 42);
   let state = UI.getState();
   state.hand = [];
   state.interactionsLeft = 0;
   state.resources = { stealth: 0, fighting: 0 };
   UI.setState(state);
-  assert.ok(map['end-turn']._classes.has('glow'));
+  assert.ok(map['end-turn']._classes.has('is-ready'));
 
   state = UI.getState();
   state.hand = state.hand.length ? state.hand : [];
   state.interactionsLeft = 1;
   UI.setState(state);
-  assert.ok(!map['end-turn']._classes.has('glow'));
+  assert.ok(!map['end-turn']._classes.has('is-ready'));
 });
 
 test('cards you can afford light up in the line', () => {
@@ -466,7 +466,7 @@ test('a successful mission check plays a fanfare and briefs the next mission', (
   assert.ok(playedSounds.indexOf('fanfare') >= 0, 'the fanfare fires on a mission completion');
   assert.ok(map['modal-title'].textContent.indexOf('Mission One complete') >= 0);
   const body = textOf(map['modal-body']);
-  assert.ok(body.indexOf('Nice work, Agent') >= 0, 'the agent is congratulated');
+  assert.ok(body.indexOf('Mission closed') >= 0, 'the report is clipped, not chatty: ' + body);
   assert.ok(body.indexOf('Mission Two') >= 0, 'the next mission is named');
   assert.ok(body.indexOf('They send in') >= 0, 'the new obstacles are described');
   assert.ok(body.indexOf('Equip Area') >= 0, 'the reward is explained');
@@ -570,6 +570,46 @@ test('the top-bar menu panels are hidden by CSS, not just by the hidden attribut
   const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
   assert.ok(/\.menu-panel\s*\{[^}]*display:\s*flex/.test(css), 'the panel is laid out as a flex column');
   assert.ok(/\.menu-panel\[hidden\]\s*\{\s*display:\s*none/.test(css), 'hidden panels must be display:none, otherwise the author display rule wins over the hidden attribute');
+});
+
+test('the stylesheet is not a dashboard: no pills, no meters, no glows, no gradients', () => {
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(!/border-radius: ?(999|99|12|8|7|6)px/.test(css), 'rounded dashboard cards crept back in');
+  assert.ok(!css.includes('gradient'), 'gradients crept back in');
+  assert.ok(!css.includes('text-transform: uppercase'), 'blanket uppercase labels crept back in');
+  assert.ok(!/\.chip/.test(css), 'chip/pill components are back');
+  assert.ok(!/signal-dot|alarm-bar|alarm-fill/.test(css), 'the meter furniture is back');
+  assert.ok((css.match(/@keyframes/g) || []).length <= 2, 'too much ambient animation');
+  assert.ok(!css.includes('infinite'), 'nothing should pulse for ambience');
+});
+
+test('the markup is zones on a table, not a stack of generic panels', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.ok(!html.includes('▾'), 'caret menus are back');
+  assert.ok(!html.includes('panel-head'), 'title-plus-subtitle panel headers are back');
+  assert.ok(!html.includes('class="chip"'), 'resource pills are back');
+  assert.ok(!html.includes('class="hint"'), 'the board explains itself in grey paragraphs');
+  assert.ok(html.includes('class="zone '), 'the board is built from zones on a table');
+});
+
+test('the line is a belt with a chute, and knocked-out cards are stamped', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(html.includes('class="belt"'), 'the line sits on a belt, not a bare grid');
+  assert.ok(html.includes('belt-chute'), 'the belt has an exit chute at the right end');
+  assert.ok(css.includes('.slot.face-down::after'), 'a knocked-out card carries a KO stamp');
+  assert.ok(css.includes('.belt-chute'), 'the chute is drawn');
+  assert.ok(css.includes('.area-equip::before'), 'the Equip Area has a folder tab');
+  assert.ok(css.includes('.coach::before'), 'the coach note is taped to the table');
+});
+
+test('the copy is clipped briefing text, not chatbot voice', () => {
+  const js = readFileSync(new URL('../ui.js', import.meta.url), 'utf8') +
+    readFileSync(new URL('../tutorial.js', import.meta.url), 'utf8') +
+    readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  ['Nice work', 'never saw it coming', 'Keep this open', 'everything else follows', 'housekeeping'].forEach(function (banned) {
+    assert.ok(!js.includes(banned), 'banned phrase: ' + banned);
+  });
 });
 
 test('every asset is cache-busted with the same token', () => {

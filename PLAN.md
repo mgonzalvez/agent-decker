@@ -118,7 +118,7 @@ Ongoing polish (see "Open work" in `AGENTS.md`): mobile QA, finer-grained animat
   zoom works, cache tokens match.
 - **Manual pass** against the designer video and the printed rules.
 
-Run everything with `node --test js/tests/*.test.mjs` (148 tests); CI runs the same suite on every
+Run everything with `node --test js/tests/*.test.mjs` (152 tests); CI runs the same suite on every
 push.
 
 ## 5. Explicit non-goals

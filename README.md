@@ -17,7 +17,7 @@ HTML/CSS/JS served by GitHub Pages.
 
 ```bash
 python3 -m http.server 8000      # open http://127.0.0.1:8000
-node --test js/tests/*.test.mjs  # 148 tests: rules, invariants, campaign, UI, audio, table animation
+node --test js/tests/*.test.mjs  # 152 tests: rules, invariants, campaign, UI, audio, table animation
 ```
 
 - `?seed=12345` gives a reproducible shuffle; **Replay this seed** re-runs the same game.
@@ -59,8 +59,9 @@ js/data/effects-notes.md designer clarifications (C1–C10) + flagged interpreta
 js/tests/               node:test suites
 assets/cards/           54 card crops + deck back, from the printed PDFs
 assets/fonts/           self-hosted OFL fonts
+assets/ui/              felt texture and other drawn UI pieces
 upstream/               original print-and-play source (read-only)
-docs/                   flowchart, card audit, table spec, video validation
+docs/                   flowchart, card audit, table spec, video validation, art direction
 PLAN.md                 mechanics, architecture, milestones
 AGENTS.md               contributor guidelines
 ```

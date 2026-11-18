@@ -53,7 +53,7 @@ css/styles.css
 js/  state.js engine.js actions.js ui.js table.js audio.js tutorial.js save.js main.js
      data/ cards.json missions.json effects-notes.md
      tests/ *.test.mjs
-assets/ cards/ (54 crops + back.jpg) fonts/ favicon.png
+assets/ cards/ (54 crops + back.jpg) fonts/ ui/ favicon.png
 docs/ flowchart, card-effect-audit.md, table-physics-spec.md, video-validation.md,
       transcript, digital-conversion-best-practices.md (retrospective)
 upstream/ print-and-play source (never edit)
@@ -63,7 +63,7 @@ PLAN.md  AGENTS.md  README.md
 ## Conventions
 
 - **No frameworks, no build step, no `package.json`.** Vanilla HTML/CSS/JS, committed files only.
-  `node --test js/tests/*.test.mjs` is the whole toolchain (148 tests).
+  `node --test js/tests/*.test.mjs` is the whole toolchain (152 tests).
 - **`engine.js` is pure:** state in → new state out. No DOM, no `Math.random` (injectable seeded RNG).
   The UI reads state; it never mutates rules.
 - **Data-driven cards.** A new effect = a descriptor in `cards.json` + one handler in the engine.
@@ -99,8 +99,12 @@ PLAN.md  AGENTS.md  README.md
 
 ## Open work
 
-- **Art-direction rework** — the chrome reads as a generic dashboard. Plan and rubric:
-  `docs/ui-art-direction.md`.
+- **Art-direction rework** — plan, hallmarks list and rubric: `docs/ui-art-direction.md`.
+  PRs 1-4 landed: palette and felt texture sampled from the card art, no chips/panel headers/
+  meters/glows, 2 px corners, mixed-case stencil headings, zones on an asymmetric board, the
+  line as a belt with an exit chute, KO stamps on face-down cards, "Lift" instead of a Play
+  button, a folder tab on the Equip Area, a taped coach note, wire-copy log.
+  Still open: switches instead of dropdown menus, drawn sprites for the alarm lamp and belt.
 - Full mobile QA pass on a real device.
 - Replaying each engine event as a separate visible step (today one action animates as a composite).
 - More FX polish.

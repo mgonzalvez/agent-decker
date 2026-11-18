@@ -5,18 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=38" />
-  <link rel="stylesheet" href="css/styles.css?v=38" />
+  <link rel="icon" href="assets/favicon.png?v=40" />
+  <link rel="stylesheet" href="css/styles.css?v=40" />
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
       <span class="brand-title">Agent Decker</span>
-      <span class="brand-sub">solo deckbuilding · 5 missions</span>
-      <span class="signal-dot dot-low" id="signal-dot" aria-hidden="true"></span>
     </div>
 
-    <div class="mission-banner" id="mission-banner" aria-live="polite">
+    <div class="mission-slip" id="mission-banner" aria-live="polite">
       <span class="mission-name">—</span>
       <span class="mission-goal">—</span>
     </div>
@@ -24,9 +22,18 @@
     <div class="alarm level-low" id="alarm" role="status" aria-label="Alarm level: 0 of 50">
       <span class="alarm-label">Alarm</span>
       <span class="alarm-value" id="alarm-value">0</span>
-      <span class="alarm-limit">/ 50</span>
-      <div class="alarm-bar" aria-hidden="true"><span class="alarm-fill" id="alarm-fill"></span></div>
-      <span class="alarm-danger" id="alarm-danger" hidden>critical</span>
+      <span class="alarm-limit">of 50</span>
+      <svg class="alarm-ruler" viewBox="0 0 100 14" aria-hidden="true">
+        <line class="ruler-line" x1="0" y1="7" x2="100" y2="7" />
+        <line class="ruler-tick" x1="0" y1="1" x2="0" y2="13" />
+        <line class="ruler-tick" x1="20" y1="1" x2="20" y2="13" />
+        <line class="ruler-tick" x1="40" y1="1" x2="40" y2="13" />
+        <line class="ruler-tick" x1="60" y1="1" x2="60" y2="13" />
+        <line class="ruler-tick" x1="80" y1="1" x2="80" y2="13" />
+        <line class="ruler-tick" x1="100" y1="1" x2="100" y2="13" />
+        <line class="ruler-mark" id="alarm-mark" x1="0" y1="0" x2="0" y2="14" />
+      </svg>
+      <span class="alarm-danger" id="alarm-danger" hidden>the alarm is critical</span>
     </div>
 
     <div class="controls" role="group" aria-label="Game controls">
@@ -35,7 +42,7 @@
       <button id="replay-seed" type="button">Replay this seed</button>
 
       <div class="menu" id="menu-learn">
-        <button id="menu-learn-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-learn-panel">Learn ▾</button>
+        <button id="menu-learn-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-learn-panel">Learn</button>
         <div class="menu-panel" id="menu-learn-panel" hidden role="menu" aria-label="Learn the game">
           <button id="training-run" type="button" role="menuitem">Training run</button>
           <button id="how-to-play" type="button" role="menuitem">How to play</button>
@@ -44,7 +51,7 @@
       </div>
 
       <div class="menu" id="menu-table">
-        <button id="menu-table-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-table-panel">Table &amp; audio ▾</button>
+        <button id="menu-table-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-table-panel">Table &amp; audio</button>
         <div class="menu-panel" id="menu-table-panel" hidden role="menu" aria-label="Table and audio settings">
           <button id="sound-toggle" type="button" aria-pressed="false" role="menuitem">Sound: off</button>
           <button id="music-toggle" type="button" aria-pressed="false" role="menuitem">Music: off</button>
@@ -61,7 +68,7 @@
       </div>
 
       <div class="menu" id="menu-sites">
-        <button id="menu-sites-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-sites-panel">Related sites ▾</button>
+        <button id="menu-sites-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="menu-sites-panel">Related sites</button>
         <div class="menu-panel menu-panel--sites" id="menu-sites-panel" hidden role="menu" aria-label="Related print and play sites">
           <a href="https://gonzhome.us" target="_blank" rel="noopener noreferrer" role="menuitem">Gonzhome</a>
           <a href="https://pnpfinder.com" target="_blank" rel="noopener noreferrer" role="menuitem">PnP Finder</a>
@@ -79,7 +86,7 @@
         </div>
       </div>
 
-      <span class="seed" id="seed" title="RNG seed">seed: —</span>
+      <span class="seed" id="seed" title="RNG seed">seed —</span>
       <span class="save-status" id="save-status" aria-live="polite"></span>
     </div>
   </header>
@@ -97,91 +104,92 @@
       </div>
     </aside>
 
-    <section class="panel" aria-label="The Line">
-      <div class="panel-head">
-        <h2 class="panel-title">The Line</h2>
-        <span class="panel-sub">conveyor — the card at the far right exits and raises the alarm</span>
-      </div>
+    <section class="zone zone-line" aria-label="The Line">
+      <h2 class="zone-name">The Line</h2>
       <div class="line-zone">
-      <div class="stack">
-        <img class="card-back" src="assets/cards/back.jpg" alt="Obstacles deck" />
-        <span class="stack-label">Obstacles<br />Deck</span>
-        <span class="stack-count" id="obstacle-deck-count">0</span>
-      </div>
+        <div class="stack">
+          <img class="card-back" src="assets/cards/back.jpg" alt="Obstacles deck" />
+          <span class="stack-label">Obstacle deck</span>
+          <span class="stack-count" id="obstacle-deck-count">0</span>
+        </div>
 
-      <div class="line" id="line"></div>
+        <div class="belt">
+          <div class="belt-inner" id="line"></div>
+          <span class="belt-chute" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 3 19 12 3 21" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg>
+            <span>exit</span>
+          </span>
+        </div>
 
-      <div class="stack">
-        <span class="stack-label">Obstacles<br />Discard</span>
-        <span class="stack-count" id="obstacle-discard-count">0</span>
-      </div>
+        <div class="stack">
+          <span class="stack-label">Obstacle discard</span>
+          <span class="stack-count" id="obstacle-discard-count">0</span>
+        </div>
       </div>
     </section>
 
-    <section class="panel" aria-label="Your turn">
-      <div class="panel-head">
-        <h2 class="panel-title">The Agent</h2>
-        <span class="panel-sub">hand · gear · objective</span>
-      </div>
+    <section class="zone zone-agent" aria-label="Your turn">
+      <h2 class="zone-name">The Agent</h2>
       <div class="play-zone">
-      <div class="hand-zone">
-        <div class="deck-panel">
-          <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
-          <span class="stack-label">Draw deck</span>
-          <span class="stack-count" id="player-deck-count">0</span>
-          <span class="deck-breakdown" id="player-deck-breakdown">—</span>
-          <span class="deck-note">Hand <b id="player-hand-count">0</b> · Discard <b id="player-discard-count">0</b></span>
-        </div>
-
-        <div class="hand-column">
-          <div class="turn-panel">
-            <div class="resources" aria-live="polite">
-              <span class="chip chip-stealth"><b id="res-stealth">0</b> Stealth</span>
-              <span class="chip chip-fighting"><b id="res-fighting">0</b> Fighting</span>
-              <span class="chip chip-interactions"><b id="interactions-left">1</b> interaction(s) left</span>
-              <span class="chip chip-turn">Turn <b id="turn-number">1</b></span>
-            </div>
-            <div class="turn-actions">
-              <button id="mission-check" type="button">Mission Check</button>
-              <button id="end-turn" type="button">End Turn</button>
-            </div>
-            <p class="hint">Click <b>Play</b> on a hand card to use it (it lands in the Play Area and gives you resources). Then click a card in the line to Disarm or Knock Out it. <b>Undo</b> in the top bar rewinds any move you made this turn.</p>
+        <div class="hand-zone">
+          <div class="deck-panel">
+            <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
+            <span class="stack-label">Draw deck</span>
+            <span class="stack-count" id="player-deck-count">0</span>
+            <span class="deck-breakdown" id="player-deck-breakdown">—</span>
+            <span class="deck-note">hand <b id="player-hand-count">0</b>, discard <b id="player-discard-count">0</b></span>
           </div>
-          <div class="hand" id="hand" aria-label="Your hand"></div>
-        </div>
-      </div>
 
-      <aside class="side">
-        <figure class="card card-goal" id="goal-card">
-          <button class="card-face goal-face" id="goal-card-face" type="button" aria-label="Zoom the current mission card" title="Zoom the mission card">
-            <img src="assets/cards/032.jpg" alt="Mission One goal card" />
-          </button>
-          <figcaption>Mission One</figcaption>
-        </figure>
+          <div class="hand-column">
+            <div class="turn-panel">
+              <div class="resources" aria-live="polite">
+                <span class="counter counter-stealth">
+                  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 20 19H4z" /></svg>
+                  <b id="res-stealth">0</b> Stealth
+                </span>
+                <span class="counter counter-fighting">
+                  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg>
+                  <b id="res-fighting">0</b> Fighting
+                </span>
+                <span class="counter counter-acts"><b id="interactions-left">1</b> interaction left</span>
+                <span class="counter counter-turn">turn <b id="turn-number">1</b></span>
+              </div>
+              <div class="turn-actions">
+                <button id="mission-check" type="button">Mission Check</button>
+                <button id="end-turn" type="button">End Turn</button>
+              </div>
+            </div>
+            <div class="hand" id="hand" aria-label="Your hand"></div>
+          </div>
+        </div>
 
-        <div class="area area-equip">
-          <h2>Equip Area</h2>
-          <p class="area-hint">Click a card to read it at full size.</p>
-          <div class="area-cards" id="equip-area-cards"></div>
-        </div>
-        <div class="area">
-          <h2>Play Area</h2>
-          <div class="area-cards" id="play-area-cards"></div>
-        </div>
-        <div class="area area-bin" id="bin">
-          <h2>Bin <b id="bin-count">0</b></h2>
-          <div class="area-cards" id="bin-cards"></div>
-          <p class="bin-note" id="bin-note">Cards in the Bin are out of the game for good. Waste Room and Flammable Barrel open it.</p>
-        </div>
-      </aside>
+        <aside class="side">
+          <figure class="card card-goal" id="goal-card">
+            <button class="card-face goal-face" id="goal-card-face" type="button" aria-label="Zoom the current mission card" title="Zoom the mission card">
+              <img src="assets/cards/032.jpg" alt="Mission One goal card" />
+            </button>
+            <figcaption>Mission One</figcaption>
+          </figure>
+
+          <div class="area area-equip">
+            <h2>Equip Area</h2>
+            <div class="area-cards" id="equip-area-cards"></div>
+          </div>
+          <div class="area">
+            <h2>Play Area</h2>
+            <div class="area-cards" id="play-area-cards"></div>
+          </div>
+          <div class="area area-bin" id="bin">
+            <h2>Bin <b id="bin-count">0</b></h2>
+            <div class="area-cards" id="bin-cards"></div>
+            <p class="bin-note" id="bin-note">Cards in the Bin are out of the game for good. Waste Room and Flammable Barrel open it.</p>
+          </div>
+        </aside>
       </div>
     </section>
 
-    <section class="panel log-zone" aria-label="Mission log">
-      <div class="panel-head">
-        <h2 class="panel-title">Mission Log</h2>
-        <span class="panel-sub">transcript of the run</span>
-      </div>
+    <section class="zone zone-log" aria-label="Mission log">
+      <h2 class="zone-name">Mission Log</h2>
       <ul id="log" role="log" aria-live="polite"></ul>
     </section>
   </main>
@@ -198,18 +206,17 @@
   </div>
 
   <footer class="footer">
-    <p class="footer-stamp">Unofficial browser build · play in the browser, no install</p>
-    <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. No monetization.</p>
+    <p>Agent Decker by Manuel Correia — <a href="https://gamesbymanuel.com" rel="noopener">gamesbymanuel.com</a> — CC BY-NC 4.0. Unofficial browser build; not for sale.</p>
   </footer>
 
-  <script src="js/state.js?v=38"></script>
-  <script src="js/engine.js?v=38"></script>
-  <script src="js/actions.js?v=38"></script>
-  <script src="js/save.js?v=38"></script>
-  <script src="js/audio.js?v=38"></script>
-  <script src="js/table.js?v=38"></script>
-  <script src="js/tutorial.js?v=38"></script>
-  <script src="js/ui.js?v=38"></script>
-  <script src="js/main.js?v=38"></script>
+  <script src="js/state.js?v=40"></script>
+  <script src="js/engine.js?v=40"></script>
+  <script src="js/actions.js?v=40"></script>
+  <script src="js/save.js?v=40"></script>
+  <script src="js/audio.js?v=40"></script>
+  <script src="js/table.js?v=40"></script>
+  <script src="js/tutorial.js?v=40"></script>
+  <script src="js/ui.js?v=40"></script>
+  <script src="js/main.js?v=40"></script>
 </body>
 </html>

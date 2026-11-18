@@ -5,6 +5,10 @@ a dark dashboard with cards, chips, meters and glowing buttons, dressed in an "a
 spy theme. The printed game already has a strong visual language. The rework replaces the
 dashboard with that language: the player is at a table with physical objects, not inside an app.
 
+**Status:** PRs 1–4 landed, PRs 5–6 partly. The rubric in §5 is enforced by tests in
+`js/tests/ui.test.mjs`; the remaining work is switches instead of dropdown menus and drawn
+sprites for the lamp and the belt.
+
 Reference, from the printed cards themselves (`assets/cards/`):
 
 | Printed motif | Where it appears | How the UI should use it |
@@ -209,19 +213,19 @@ a small repeating SVG tile at 2% ink.
 
 ---
 
-## 5. Acceptance rubric (testable)
+## 5. Acceptance rubric (enforced by tests)
 
-Add to `js/tests/ui.test.mjs`:
+In `js/tests/ui.test.mjs`:
 
-- `border-radius: 999px` appears **0** times.
-- No element uses `border-radius: 12px`; radii are 0, 2 or 3 px, and vary by object.
-- No `radial-gradient` on `body`; at most one gradient in the stylesheet.
-- No caret glyphs (`▾`) in the markup.
-- Infinite `animation` is allowed only on the alarm lamp.
-- `text-transform: uppercase` ≤ 6 occurrences.
-- Banned strings in `js/ui.js`: "Nice work", "never saw it coming", "housekeeping", "Keep this
-  open", "everything else follows".
-- Layout assertion: the board is not a single centered column of three identical panels.
+- No `border-radius` above 2 px anywhere in the stylesheet.
+- No gradient at all; no `text-transform: uppercase`; no `infinite` animation.
+- No `.chip`, `.alarm-bar`, `.alarm-fill`, `.signal-dot`, `.panel-head`.
+- No caret glyphs (`▾`) or `class="hint"` in the markup; the board is built from `zone`s.
+- Banned copy: "Nice work", "never saw it coming", "housekeeping", "Keep this open",
+  "everything else follows" — checked across `js/ui.js`, `js/tutorial.js` and `index.html`.
+- The line is a belt with a chute; face-down cards get a KO stamp; the Equip Area has a folder
+  tab; the coach note is taped.
+- The alarm pointer moves with the value and changes ink at 20 / 40 / 45.
 
 ---
 
@@ -229,11 +233,11 @@ Add to `js/tests/ui.test.mjs`:
 
 | PR | Scope | Exit criterion |
 |---|---|---|
-| 1 | Palette from the cards; delete chips, panel headers, meters, glows; felt texture | rubric items 1, 3, 6 green |
-| 2 | Header as case file; alarm as two tokens + lamp | no `.chip`, no `.alarm-bar` in the DOM |
+| 1 | Palette from the cards; delete chips, panel headers, meters, glows; felt texture; asymmetric board | **done** — no pills, no gradients, no uppercase, no glow, zones instead of panels |
+| 2 | Header as case file; alarm as two tokens + lamp | no `.alarm-bar`, no percentage meter |
 | 3 | Belt, chute, KO stamps, card pickup instead of Play buttons | the line reads as an object, not a grid |
 | 4 | Folder / stack / shredder / teletype log | side zones are objects |
-| 5 | Switches instead of dropdown menus; modal as lifted card + typed slip | no ▾ menus; modal has no generic Close pill |
+| 5 | Switches instead of dropdown menus; modal as lifted card + typed slip | the three menus become flaps/switches (the ▾ carets are already gone) |
 | 6 | Copy sweep + rubric tests | banned-string test passes |
 
 Keep intact through all of it: keyboard access, Escape-to-close, `aria-live` alarm/log,

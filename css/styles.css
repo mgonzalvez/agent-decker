@@ -5,25 +5,27 @@
 @font-face { font-family: 'IBM Plex Mono'; font-weight: 400; src: url('../assets/fonts/IBMPlexMono-400.ttf') format('truetype'); }
 
 :root {
-  --bg: #071019;
-  --bg-2: #0f1a27;
-  --panel: #152234;
-  --panel-2: #1c2c43;
-  --line: #23344d;
-  --ink: #eef4fb;
-  --muted: #8ea3bd;
-  --stealth: #4f8fd6;
-  --fighting: #e0473f;
-  --alarm: #ff5252;
-  --safe: #3fb37f;
-  --warn: #e6b36b;
-  --amber: #e6b36b;
-  --accent: #2f7fa6;
-  --radius: 12px;
+  /* Sampled from the printed cards, not invented: the felt they are printed on,
+     the blue of the Stealth fields, the red ink of the cost circles. */
+  --bg: #0d2033;          /* the table */
+  --bg-2: #12293f;
+  --panel: #16324a;       /* a printed zone lying on the felt */
+  --panel-2: #1d3a55;
+  --line: #2d4f6d;
+  --ink: #e8f1f8;
+  --muted: #90a9c2;
+  --stealth: #3b87bd;
+  --fighting: #c0392b;
+  --alarm: #c0392b;
+  --safe: #4f9a63;
+  --warn: #d99433;
+  --amber: #d99433;
+  --accent: #3b87bd;
+  --radius: 2px;          /* printed objects have square corners */
   --font-display: "Big Shoulders Display", "Helvetica Neue", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --card-w: 140px;
+  --card-w: clamp(118px, 9vw, 140px);
   --card-ratio: 1.4079;
   --card-h: calc(var(--card-w) * var(--card-ratio));
 }
@@ -36,10 +38,8 @@ body {
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.45;
-  background:
-    radial-gradient(1100px 600px at 50% -10%, #17263d, transparent 65%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
   background-color: var(--bg);
+  background-image: url("../assets/ui/felt.svg");
 }
 
 a { color: var(--accent); }
@@ -55,87 +55,69 @@ button { font: inherit; }
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
 }
-.brand-title { font-size: 20px; letter-spacing: .08em; text-transform: uppercase; }
-.brand-sub { display: block; color: var(--muted); font-size: 12px; }
+.brand-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: .02em; }
 
-.mission-banner {
+/* The mission is a slip of paper pinned to the header, not a card in a grid. */
+.mission-slip {
   flex: 1 1 240px;
-  padding: 10px 14px;
+  padding: 9px 14px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
+  border-left: 3px solid var(--warn);
+  border-radius: 0;
+  background: var(--bg-2);
 }
-.mission-name { font-weight: 700; letter-spacing: .04em; }
+.mission-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 .mission-goal { color: var(--muted); font-size: 13px; }
 
+/* The alarm is a printed ruler with a pointer, not a progress bar. */
 .alarm {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 9px 14px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
+  border-radius: 0;
+  background: var(--bg-2);
 }
-.alarm-value { font-size: 22px; font-weight: 700; }
-.alarm-value.hot { color: var(--alarm); animation: alarmPulse 1.2s ease-in-out infinite; }
-@keyframes alarmPulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+.alarm-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
 .alarm.level-mid { border-color: var(--warn); }
 .alarm.level-high, .alarm.level-critical { border-color: var(--alarm); }
 .alarm.level-high .alarm-value, .alarm.level-critical .alarm-value { color: var(--alarm); }
-.alarm.level-high .alarm-bar, .alarm.level-critical .alarm-bar { animation: barFlash 1s ease-in-out infinite; }
-.alarm.level-critical .alarm-bar { animation-duration: .55s; }
-@keyframes barFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); } 50% { box-shadow: 0 0 14px 3px rgba(255, 82, 82, .7); } }
+.alarm-ruler { width: 118px; height: 14px; }
+.ruler-line { stroke: var(--line); stroke-width: 1; }
+.ruler-tick { stroke: var(--muted); stroke-width: 1; }
+.ruler-mark { stroke: var(--safe); stroke-width: 3; }
+.alarm.level-mid .ruler-mark { stroke: var(--warn); }
+.alarm.level-high .ruler-mark, .alarm.level-critical .ruler-mark { stroke: var(--alarm); }
 .slot img { animation: cardIn .22s ease both; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 .alarm-limit { color: var(--muted); font-size: 12px; }
-.alarm-label {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.alarm-danger {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: #fff;
-  background: var(--alarm);
-  padding: 4px 9px;
-  border-radius: 999px;
-  animation: dangerFlash .8s ease-in-out infinite;
-}
-@keyframes dangerFlash { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+.alarm-label { font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--muted); }
+.alarm-danger { font-family: var(--font-mono); font-size: 11px; color: var(--alarm); }
 
 .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .controls button {
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 2px;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: transparent;
   color: var(--ink);
   cursor: pointer;
   font-size: 13px;
 }
-.controls button:hover { background: var(--accent); }
+.controls button:hover { background: var(--panel-2); border-color: var(--ink); }
 .controls select {
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 2px;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: transparent;
   color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  font-size: 13px;
 }
-.controls select:hover { border-color: var(--amber); color: var(--amber); }
+.controls select:hover { border-color: var(--ink); }
 .controls button[disabled] { opacity: .45; cursor: default; }
 .menu { position: relative; }
-.menu button[aria-expanded="true"] { border-color: var(--amber); color: var(--amber); }
+.menu button[aria-expanded="true"] { border-color: var(--ink); background: var(--panel-2); }
 .menu-panel {
   position: absolute;
   top: calc(100% + 8px);
@@ -147,8 +129,8 @@ button { font: inherit; }
   padding: 10px 12px;
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, .5);
+  border-top: 3px solid var(--warn);
+  border-radius: 2px;
   z-index: 30;
 }
 .menu-panel[hidden] { display: none; }
@@ -159,52 +141,76 @@ button { font: inherit; }
   color: var(--ink);
   text-decoration: none;
   font-size: 13px;
-  letter-spacing: .03em;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 2px;
 }
 .menu-panel a:hover, .menu-panel a:focus-visible {
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--ink);
 }
 .menu-panel--sites { min-width: 260px; }
 .seed { color: var(--muted); font-size: 12px; }
 .save-status { color: var(--muted); font-size: 12px; }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .card-face { border: 0; background: none; padding: 0; cursor: pointer; width: 100%; }
 .thumb { height: auto; }
 .thumb-face { border: 0; background: none; padding: 0; cursor: pointer; width: 100%; }
 .thumb img { width: 100%; height: auto; }
 
 /* ---------- board ---------- */
+/* The table is not a symmetric stack of panels: the belt and the agent sit on
+   the left, the wire clipboard hangs beside them. */
 .board {
   display: grid;
-  gap: 20px;
+  grid-template-columns: 1fr 300px;
+  gap: 18px;
   padding: 20px;
-  max-width: 1180px;
+  max-width: 1400px;
   margin: 0 auto;
 }
+.coach { grid-column: 1 / -1; }
+.zone-line, .zone-agent { grid-column: 1; }
+.zone-log { grid-column: 2; grid-row: 1 / span 2; min-width: 0; }
 
 .line-zone {
   display: grid;
-  grid-template-columns: 92px 1fr 92px;
+  grid-template-columns: 92px minmax(0, 1fr) 92px;
   gap: 14px;
   align-items: center;
 }
 
-.line {
+/* The line is a belt: a tray the cards sit on, with an exit chute at the
+   right end where they drop out of the game. */
+.belt {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: #102435;
+  padding: 12px 12px 20px;
+}
+.belt-inner {
   display: grid;
-  grid-template-columns: repeat(6, var(--card-w));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
-  justify-content: center;
+}
+.belt-chute {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warn);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
 }
 
 .slot {
-  width: var(--card-w);
+  width: auto;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #0d1626;
+  border-radius: 2px;
+  background: #16324a;
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -212,25 +218,44 @@ button { font: inherit; }
   cursor: pointer;
   color: var(--ink);
 }
-.slot:hover { border-color: var(--accent); }
+.slot:hover { border-color: var(--ink); }
 .slot-empty {
   background: transparent;
   border: 1px dashed var(--line);
+  border-radius: 0;
   cursor: default;
   min-height: 64px;
-  opacity: .55;
+  opacity: .5;
 }
 .slot-empty .slot-meta { font-size: 10px; }
 .slot img {
   width: 100%;
   height: auto;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 2px;
   border: 1px solid var(--line);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
 }
 .slot-meta { font-size: 12px; color: var(--muted); line-height: 1.35; }
-.face-down img { filter: brightness(.3) contrast(.7); }
+.slot.face-down img { filter: brightness(.3) contrast(.7); }
+
+/* A knocked-out obstacle is stamped, the way the printed game marks a card you
+   have dealt with: red ink, square, slightly offtrue. */
+.slot.face-down { position: relative; }
+.slot.face-down::after {
+  content: "KO";
+  position: absolute;
+  left: 22px;
+  top: 46px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--fighting);
+  border: 2px solid var(--fighting);
+  border-radius: 2px;
+  padding: 2px 8px;
+  transform: rotate(-7deg);
+  opacity: .85;
+}
 
 .stack {
   display: flex;
@@ -239,24 +264,24 @@ button { font: inherit; }
   gap: 6px;
   padding: 10px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 2px;
   background: var(--panel);
 }
-.stack img { width: 62px; border-radius: 6px; }
-.stack-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-.stack-count { font-weight: 700; }
+.stack img { width: 62px; border-radius: 2px; }
+.stack-label { color: var(--muted); font-size: 12px; }
+.stack-count { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 
 /* ---------- play zone ---------- */
 .play-zone {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 18px;
   align-items: start;
 }
 
 .hand-zone {
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: 140px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
@@ -264,7 +289,7 @@ button { font: inherit; }
 
 .deck-panel {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 2px;
   background: var(--panel);
   padding: 12px;
   display: flex;
@@ -273,123 +298,160 @@ button { font: inherit; }
   align-items: center;
   text-align: center;
 }
-.deck-panel img { width: 92px; border-radius: 6px; }
+.deck-panel img { width: 92px; border-radius: 2px; }
 .deck-breakdown { font-size: 11px; color: var(--muted); line-height: 1.5; }
 .deck-note { font-size: 11px; color: var(--muted); }
 
 .turn-panel {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 2px;
   background: var(--panel);
   padding: 12px;
 }
-.resources { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip {
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #0d1626;
-  font-size: 12px;
-  color: var(--muted);
-}
-.chip b { color: var(--ink); }
-.chip-stealth b { color: var(--stealth); }
-.chip-fighting b { color: var(--fighting); }
+/* Resources are counted with the printed glyphs: a blue triangle for Stealth,
+   a red circle for Fighting. No pills, no chips. */
+.resources { display: flex; gap: 16px; flex-wrap: wrap; }
+.counter { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.counter b { font-family: var(--font-display); font-size: 17px; color: var(--ink); }
+.glyph { width: 16px; height: 16px; fill: none; stroke-width: 2; }
+.counter-stealth .glyph { stroke: var(--stealth); }
+.counter-fighting .glyph { stroke: var(--fighting); }
+.counter-acts b { color: var(--warn); }
 .turn-actions { display: flex; gap: 8px; }
 .turn-actions button {
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 2px;
   border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--ink);
-  cursor: pointer;
-}
-.turn-actions button:hover { background: var(--accent); }
-.hint { margin: 0; color: var(--muted); font-size: 12px; flex: 1 1 260px; }
-
-.hand {
-  display: grid;
-  grid-template-columns: repeat(4, 150px);
-  gap: 12px;
-  justify-content: center;
-}
-.hand .card { width: var(--card-w); }
-.card { margin: 0; width: var(--card-w); }
-.card img {
-  width: 100%;
-  display: block;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
-}
-.card figcaption { margin-top: 6px; font-size: 11px; color: var(--muted); text-align: center; }
-.card-goal img { width: var(--card-w); }
-.goal-face { border: 0; background: none; padding: 0; width: 100%; cursor: pointer; }
-.goal-face:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 8px; }
-.play-btn {
-  margin-top: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--panel);
+  background: transparent;
   color: var(--ink);
   cursor: pointer;
   font-size: 13px;
 }
-.play-btn:hover { background: var(--accent); }
+.turn-actions button:hover { background: var(--panel-2); border-color: var(--ink); }
+.turn-actions button:disabled { opacity: .45; }
+
+.hand {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.card { margin: 0; width: 100%; }
+.card img {
+  width: 100%;
+  display: block;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+}
+.card figcaption { margin-top: 6px; font-size: 12px; color: var(--muted); text-align: center; }
+.card-goal img { width: var(--card-w); }
+.goal-face { border: 0; background: none; padding: 0; width: 100%; cursor: pointer; }
+.goal-face:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 2px; }
+/* You do not press a button to play a card; you pick the card up off the table. */
+.play-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 2px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.play-btn:hover { background: var(--warn); border-color: var(--warn); border-style: solid; color: #101820; }
 
 .side { display: grid; gap: 12px; }
 .area {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 2px;
   background: var(--panel);
   padding: 12px;
 }
 .area h2 {
   margin: 0 0 8px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: var(--muted);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
 }
 .area p { margin: 0; color: var(--muted); font-size: 13px; }
-.area-hint { font-size: 11px; margin: 0 0 8px; letter-spacing: .04em; }
 .area-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 8px;
 }
 .thumb {
   width: var(--card-w);
   height: var(--card-h);
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--line);
-  background: #0d1626;
+  background: #0c1a29;
   overflow: hidden;
 }
 .thumb img { width: 100%; height: 100%; object-fit: contain; }
-.use-btn { margin-top: 6px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; font-size: 11px; }
-.use-btn:hover { background: var(--accent); }
+.use-btn { margin-top: 6px; padding: 6px 10px; border-radius: 2px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; font-size: 12px; }
+.use-btn:hover { background: var(--panel-2); border-color: var(--ink); }
 .empty { color: var(--muted); font-size: 12px; margin: 0; }
 
-.log-zone {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  padding: 12px;
+/* ---------- objects: folder, stack, shredder, wire ---------- */
+/* The Equip Area is a folder with a tab; things are filed in it. */
+.area-equip { position: relative; border: 1px solid var(--warn); background: rgba(217, 148, 51, .08); }
+.area-equip::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 12px;
+  width: 74px;
+  height: 6px;
+  background: var(--warn);
+  opacity: .55;
+  border-radius: 2px 2px 0 0;
 }
-.log-zone h2 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+/* The Play Area is a pile you have put down: cards overlap and sit offtrue. */
+.area-play .area-cards { gap: 4px; }
+.area-play .thumb:nth-child(2n) { transform: rotate(1.6deg); }
+.area-play .thumb:nth-child(3n) { transform: rotate(-2.2deg); }
+
+/* The Bin is a shredder: the slot is cut into the top of the box. */
+.area-bin { border-style: dashed; }
+.area-bin .area-cards { gap: 6px; }
+.card-bin img { filter: grayscale(.6) brightness(.8); }
+.card-bin figcaption { text-decoration: line-through; color: var(--muted); }
+
+/* The log is wire copy: monospaced, each line stamped with its turn. */
+.log-zone li { font-family: var(--font-mono); font-size: 11.5px; }
+.log-zone li.log-mission { border-left-color: var(--warn); background: rgba(217, 148, 51, .08); }
+
+/* The coach's note is taped to the table. */
+.coach { position: relative; background: var(--panel); border: 1px solid var(--warn); }
+.coach::before,
+.coach::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  width: 46px;
+  height: 14px;
+  background: rgba(232, 193, 75, .32);
+  border-radius: 1px;
+}
+.coach::before { left: -12px; transform: rotate(-6deg); }
+.coach::after { right: -12px; transform: rotate(6deg); }
+
+.log-zone { padding: 0; }
 .log-zone ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .log-zone li {
-  background: #0d1626;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  border-left: 2px solid var(--line);
+  border-radius: 0;
+  padding: 6px 10px;
   font-size: 12px;
   color: var(--muted);
 }
@@ -409,7 +471,7 @@ button { font: inherit; }
 .modal {
   background: var(--bg-2);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 2px;
   padding: 0;
   max-width: 560px;
   width: 100%;
@@ -433,7 +495,7 @@ button { font: inherit; }
 .modal-choices { padding: 0 16px 16px; }
 .modal h2 { margin: 0; font-size: 18px; }
 .modal p { margin: 0 0 12px; color: var(--muted); font-size: 13px; white-space: pre-line; }
-.modal-card { width: 300px; max-width: 100%; display: block; margin: 0 0 12px; border-radius: 10px; border: 1px solid var(--line); }
+.modal-card { width: 300px; max-width: 100%; display: block; margin: 0 0 12px; border-radius: 2px; border: 1px solid var(--line); }
 /* Zoom: Equip Area, Play Area and the mission card are small on the table, so
    the modal opens wide and the printed card comes up at reading size. */
 .overlay.zoom .modal { max-width: 620px; }
@@ -445,28 +507,25 @@ button { font: inherit; }
   width: 100%;
   margin-top: 8px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 2px;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: transparent;
   color: var(--ink);
   cursor: pointer;
 }
-.choice-btn:hover { background: var(--accent); }
+.choice-btn:hover { background: var(--panel-2); border-color: var(--ink); }
 #modal-close {
   min-height: 40px;
   padding: 10px 16px;
-  border: 1px solid var(--amber);
-  border-radius: 8px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
   background: var(--panel-2);
   color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: .06em;
-  text-transform: uppercase;
+  font-size: 13px;
   flex: 0 0 auto;
 }
-#modal-close:hover { background: var(--amber); color: #0b1420; }
-#modal-close:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+#modal-close:hover { background: var(--ink); color: #0d2033; }
+#modal-close:focus-visible { outline: 2px solid var(--warn); outline-offset: 2px; }
 
 .score-row {
   display: flex;
@@ -474,7 +533,7 @@ button { font: inherit; }
   gap: 10px;
   padding: 7px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--panel);
   font-size: 13px;
   margin-bottom: 6px;
@@ -490,10 +549,12 @@ button { font: inherit; }
   font-size: 12px;
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 1360px) {
   :root { --card-w: 120px; }
   .play-zone { grid-template-columns: 1fr; }
   .side { grid-template-columns: repeat(2, 1fr); }
+  .board { grid-template-columns: 1fr; }
+  .zone-log { grid-column: 1; grid-row: auto; }
   .line-zone { grid-template-columns: 74px 1fr 74px; }
   .hand { grid-template-columns: repeat(4, 118px); }
 }
@@ -503,7 +564,7 @@ button { font: inherit; }
   .board { padding: 14px; gap: 14px; }
   .topbar { padding: 10px 12px; gap: 10px; }
   .brand-title { font-size: 20px; }
-  .mission-banner, .alarm { flex: 1 1 100%; }
+  .mission-slip, .alarm { flex: 1 1 100%; }
   .controls { flex: 1 1 100%; flex-wrap: wrap; }
   .menu { flex: 1 1 150px; }
   .menu-panel { left: 0; right: 0; }
@@ -512,7 +573,7 @@ button { font: inherit; }
   .line-zone { grid-template-columns: 1fr; gap: 10px; }
   .stack { flex-direction: row; gap: 10px; align-items: center; }
   .stack .card-back { width: 48px; }
-  .line {
+  .belt-inner {
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -533,94 +594,43 @@ button { font: inherit; }
 }
 
 
-/* ---------- theme & FX ---------- */
-.brand-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 26px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-.brand-sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; }
-.topbar { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(6px); }
-.mission-banner .mission-name { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .1em; text-transform: uppercase; }
-.mission-banner .mission-goal { font-family: var(--font-mono); font-size: 12px; }
+/* ---------- type ---------- */
+.brand-title { font-family: var(--font-display); font-weight: 700; font-size: 26px; }
+.topbar { position: sticky; top: 0; z-index: 20; }
+.mission-slip .mission-name { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+.stack-label, .deck-note, .deck-breakdown, .seed, .save-status { font-size: 12px; color: var(--muted); }
+.seed, .save-status { font-family: var(--font-mono); font-size: 11px; }
+.slot-meta { font-size: 11px; color: var(--muted); line-height: 1.35; }
+.card figcaption { font-family: var(--font-display); font-weight: 600; font-size: 12px; }
+.area h2 { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
 
-.alarm-bar {
-  position: relative;
-  width: 140px;
-  height: 10px;
-  border-radius: 99px;
-  background: #0d1626;
-  border: 1px solid var(--line);
-  overflow: hidden;
-}
-.alarm-bar::after {
-  position: absolute;
-  inset: 0;
-  content: '';
-  background: repeating-linear-gradient(90deg, transparent 0 calc(20% - 1px), rgba(255, 255, 255, .22) calc(20% - 1px) 20%);
-  pointer-events: none;
-}
-.alarm-fill {
-  display: block;
-  height: 100%;
-  width: 0%;
-  background: var(--safe);
-  transition: width .35s ease, background .35s ease;
-}
-.alarm.level-mid .alarm-fill { background: var(--warn); }
-.alarm.level-high .alarm-fill, .alarm.level-critical .alarm-fill { background: var(--alarm); }
-.alarm-value { font-family: var(--font-mono); font-size: 22px; }
+/* Only the objects you can act on move. Nothing lifts because the pointer
+   happens to be near it. */
+.card-face img, .slot img, .thumb img { box-shadow: 0 3px 8px rgba(0, 0, 0, .3); transition: transform .18s ease, border-color .18s ease; }
+.card-face:hover img, .slot.can-interact:hover img { transform: translateY(-3px); }
+.slot:hover { border-color: var(--ink); }
+.belt-inner .slot:nth-child(2) img { animation-delay: .06s; }
+.belt-inner .slot:nth-child(3) img { animation-delay: .12s; }
+.belt-inner .slot:nth-child(4) img { animation-delay: .18s; }
+.belt-inner .slot:nth-child(5) img { animation-delay: .24s; }
+.belt-inner .slot:nth-child(6) img { animation-delay: .30s; }
 
-.controls button {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-.controls button:hover { border-color: var(--amber); color: var(--amber); }
-
-.stack-label, .slot-meta, .deck-note, .deck-breakdown, .seed, .save-status { font-family: var(--font-mono); font-size: 11px; }
-.card figcaption { font-family: var(--font-display); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; font-size: 12px; }
-.play-btn, .use-btn, .choice-btn {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-.play-btn { background: var(--panel-2); border-color: var(--amber); color: var(--amber); }
-.play-btn:hover { background: var(--amber); color: #0b1420; }
-
-.area h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 14px; }
-.card-face img, .thumb-face img { transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
-.card-face:hover img, .thumb-face:hover img { transform: translateY(-4px) rotate(-1.2deg); box-shadow: 0 12px 26px rgba(0, 0, 0, .55); }
-.slot { transition: transform .18s ease, border-color .18s ease; }
-.slot:hover { transform: translateY(-3px); border-color: var(--amber); }
-.slot img { box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
-.line .slot:nth-child(2) img { animation-delay: .06s; }
-.line .slot:nth-child(3) img { animation-delay: .12s; }
-.line .slot:nth-child(4) img { animation-delay: .18s; }
-.line .slot:nth-child(5) img { animation-delay: .24s; }
-.line .slot:nth-child(6) img { animation-delay: .30s; }
-
-.card-goal { border-color: var(--amber); background: var(--panel-2); }
-.card-goal figcaption { color: var(--amber); }
-.goal-strip { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.card-goal { border-color: var(--warn); background: var(--panel-2); }
+.card-goal figcaption { color: var(--warn); }
 
 .log-zone li { font-family: var(--font-mono); font-size: 12px; }
-.footer { font-family: var(--font-mono); letter-spacing: .04em; }
+.footer { font-family: var(--font-mono); font-size: 12px; }
 
-/* ---------- training run coach ---------- */
+/* ---------- the coach is a note pinned to the table ---------- */
 .coach {
   display: flex;
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
   padding: 12px 16px;
-  border: 1px solid var(--amber);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, #1a2842, #131f30);
+  border: 1px solid var(--warn);
+  border-radius: 2px;
+  background: var(--panel-2);
   margin-bottom: 14px;
 }
 /* The author display rule beats the UA [hidden] rule, so the coach would
@@ -628,40 +638,35 @@ button { font: inherit; }
 .coach[hidden] { display: none; }
 .coach-badge {
   font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--amber);
-  border: 1px solid var(--amber);
+  font-size: 12px;
+  color: var(--warn);
+  border: 1px solid var(--warn);
   padding: 6px 10px;
-  border-radius: 99px;
+  border-radius: 2px;
 }
-.coach-body h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 16px; margin: 0 0 4px; }
+.coach-body h2 { font-family: var(--font-display); font-weight: 700; font-size: 16px; margin: 0 0 4px; }
 .coach-body p { margin: 0; font-family: var(--font-mono); font-size: 12.5px; }
-.coach-actions button { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
-.slot.tut-disarm { border-color: var(--stealth); box-shadow: 0 0 0 2px rgba(79, 143, 214, .35); }
-.slot.tut-knock { border-color: var(--alarm); box-shadow: 0 0 0 2px rgba(255, 82, 82, .35); }
-.slot.tut-exit { animation: exitGlow 2.4s ease-in-out infinite; }
-@keyframes exitGlow { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+.coach-actions button { font-size: 12px; }
+
+/* Teaching marks are printed in ink, not glowing. */
+.slot.tut-disarm { border-color: var(--stealth); outline: 2px solid var(--stealth); outline-offset: -1px; }
+.slot.tut-knock { border-color: var(--alarm); outline: 2px solid var(--alarm); outline-offset: -1px; }
+.slot.tut-exit { border-color: var(--alarm); }
 button:disabled { opacity: .45; cursor: not-allowed; }
-@media (prefers-reduced-motion: reduce) { .slot.tut-exit { animation: none; } }
 
 /* ---------- how to play: six short screens ---------- */
 .help-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .help-tab {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: .06em;
-  text-transform: uppercase;
+  font-size: 12px;
   padding: 7px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  border-radius: 2px;
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
 }
-.help-tab:hover { color: var(--ink); }
-.help-tab.is-active { border-color: var(--amber); color: var(--amber); background: var(--panel-2); }
+.help-tab:hover { color: var(--ink); border-color: var(--ink); }
+.help-tab.is-active { border-color: var(--warn); color: var(--warn); background: var(--panel-2); }
 .help-lede { margin: 0 0 10px; color: var(--ink); font-size: 13.5px; }
 .help-steps { margin: 0; padding: 0; list-style: none; }
 .help-steps li {
@@ -669,7 +674,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   padding: 9px 11px;
   border: 1px solid var(--line);
   border-left: 3px solid var(--accent);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--panel);
   font-size: 13px;
   color: var(--muted);
@@ -680,116 +685,67 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .help-link, .help-flowchart a {
   display: inline-block;
   margin-top: 8px;
-  color: var(--amber);
+  color: var(--warn);
   font-family: var(--font-mono);
   font-size: 11.5px;
 }
 .help-nav { display: flex; gap: 8px; }
 .help-nav .choice-btn { width: auto; flex: 1; margin-top: 0; }
 
-#end-turn.glow, #mission-check.glow {
-  background: var(--amber);
-  color: #0b1420;
-  border-color: var(--amber);
-  animation: actionGlow 1.6s ease-in-out infinite;
-}
-#mission-check.glow { background: var(--stealth); border-color: var(--stealth); color: #06101c; }
-@keyframes actionGlow {
-  0%, 100% { box-shadow: 0 0 6px 1px rgba(230, 179, 107, .25); }
-  50% { box-shadow: 0 0 20px 5px rgba(230, 179, 107, .75); }
-}
+/* A button is marked ready with ink, not with a glow. */
+#end-turn.is-ready, #mission-check.is-ready { background: var(--warn); border-color: var(--warn); color: #101820; }
+#mission-check.is-ready { background: var(--stealth); border-color: var(--stealth); color: #0d2033; }
 
-.slot.can-interact { border-color: var(--safe); box-shadow: 0 0 0 2px rgba(63, 179, 127, .5), 0 6px 16px rgba(0, 0, 0, .45); }
-.slot.can-interact:hover { box-shadow: 0 0 0 3px rgba(63, 179, 127, .85), 0 12px 26px rgba(0, 0, 0, .55); }
+/* Payable obstacles are outlined in green ink. */
+.slot.can-interact { border-color: var(--safe); outline: 2px solid var(--safe); outline-offset: -1px; }
 .slot.can-interact .slot-meta { color: var(--safe); }
 .slot.face-down .slot-meta, .slot:not(.can-interact) .slot-meta { color: var(--muted); }
-.slot.tut-disarm, .slot.tut-knock { animation: targetPulse 1.5s ease-in-out infinite; }
-@keyframes targetPulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(230, 179, 107, .4); } 50% { box-shadow: 0 0 0 4px rgba(230, 179, 107, .85); } }
 
-/* ---------- dossier panels ---------- */
-.panel {
+/* ---------- zones printed on the felt ---------- */
+/* A zone is an area marked on the felt; the objects inside it are what carry
+   their own material. */
+.zone {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  border-radius: 2px;
   padding: 14px 16px;
 }
-.panel-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 10px;
-  margin-bottom: 12px;
-}
-.panel-title {
-  margin: 0;
+.zone-name {
+  margin: 0 0 12px;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--amber);
+  font-size: 16px;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
 }
-.panel-sub { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+.slot.exiting { border-color: var(--alarm); background: rgba(192, 57, 43, .12); }
 
-.line-zone { position: relative; }
-.line-zone::before {
-  position: absolute;
-  inset: 0;
-  content: '';
-  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 5px);
-  opacity: .35;
-  pointer-events: none;
-}
+.modal { border-top: 2px solid var(--warn); }
+.modal h2 { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--ink); }
 
-.slot.exiting { border-color: rgba(255, 82, 82, .55); background: linear-gradient(90deg, #0d1626, rgba(255, 82, 82, .14)); }
+.area-equip { border: 1px solid var(--warn); border-radius: 2px; background: rgba(217, 148, 51, .08); padding: 10px; }
+.area-equip h2 { color: var(--warn); }
 
-.mission-banner { border-left: 3px solid var(--amber); }
-.chip { font-family: var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
-.chip-stealth { border-color: rgba(79, 143, 214, .6); }
-.chip-fighting { border-color: rgba(224, 71, 63, .6); }
-.log-zone li { border-left: 3px solid var(--amber); border-radius: 6px; background: rgba(230, 179, 107, .07); }
+.equip-note { font-size: 11px; color: var(--warn); margin-top: 6px; }
 
-.signal-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--safe);
-  box-shadow: 0 0 8px rgba(63, 179, 127, .7);
-  animation: signalPulse 2.4s ease-in-out infinite;
-}
-.signal-dot.dot-mid { background: var(--warn); box-shadow: 0 0 10px rgba(230, 179, 107, .8); animation-duration: 1.6s; }
-.signal-dot.dot-high, .signal-dot.dot-critical { background: var(--alarm); box-shadow: 0 0 14px rgba(255, 82, 82, .9); animation-duration: .8s; }
-@keyframes signalPulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-
-.modal { border-top: 3px solid var(--amber); }
-.modal h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
-.footer-stamp { font-family: var(--font-display); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--amber); margin: 0 0 6px; }
-
-.area-equip { border: 1px solid var(--amber); border-radius: var(--radius); background: rgba(230, 179, 107, .08); padding: 10px; }
-.area-equip h2 { color: var(--amber); }
-
-.equip-note { font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: .06em; text-transform: uppercase; margin-top: 6px; }
-
-.log-turn { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 10px; border-bottom: 1px solid rgba(230,179,107,.25); padding-bottom: 4px; }
+/* The log is typed wire copy: each line carries its turn number. */
+.log-turn { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 10px; }
 .log-entry { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: baseline; }
-.log-stamp { font-family: var(--mono); font-size: 11px; color: var(--amber); }
-.log-line { border-left-color: #5f8fa8; }
-.log-mission { border-left-color: var(--safe); }
+.log-stamp { font-family: var(--font-mono); font-size: 11px; color: var(--warn); }
+.log-line { border-left-color: var(--line); }
+.log-mission { border-left-color: var(--warn); }
 
 #equip-area-cards { grid-template-columns: repeat(auto-fill, minmax(var(--card-h), 1fr)); }
 .thumb.goal-card { width: var(--card-h); height: var(--card-w); }
 .thumb.goal-card .thumb-face { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
 .thumb.goal-card img { width: var(--card-w); height: var(--card-h); transform: rotate(-90deg); }
-.thumb.goal-card .thumb-face:hover img { transform: translateY(-3px) rotate(-90deg); }
-.fanfare-head { font-family: var(--font-display); font-size: 20px; color: var(--amber); margin: 0 0 6px; }
+.fanfare-head { font-family: var(--font-display); font-size: 20px; color: var(--warn); margin: 0 0 6px; }
 .fanfare-next { font-weight: 600; color: var(--ink); }
 
 /* ---------- Bin ---------- */
 .area-bin { border-top: 1px dashed var(--line); padding-top: 10px; }
-.area-bin.open { border-top-color: var(--amber); }
-.area-bin h2 b { color: var(--amber); font-family: var(--font-mono); font-size: 12px; }
+.area-bin.open { border-top-color: var(--warn); }
+.area-bin h2 b { color: var(--warn); font-family: var(--font-mono); font-size: 12px; }
 .bin-note { color: var(--muted); font-size: 11px; margin: 8px 0 0; }
 .card-bin { opacity: .55; }
 .card-bin-pick { opacity: 1; }
@@ -798,17 +754,14 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .bin-btn {
   margin-top: 6px;
   padding: 6px 10px;
-  border-radius: 7px;
-  border: 1px solid var(--amber);
+  border-radius: 2px;
+  border: 1px solid var(--warn);
   background: transparent;
-  color: var(--amber);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  color: var(--warn);
+  font-size: 12px;
   cursor: pointer;
 }
-.bin-btn:hover { background: var(--amber); color: var(--paper); }
+.bin-btn:hover { background: var(--warn); color: #101820; }
 #undo[disabled] { opacity: .45; }
 
 /* Payment transparency in the card modal, and context on cards the Bin offers. */

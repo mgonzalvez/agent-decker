@@ -117,7 +117,9 @@ const Table = (function () {
     el.style.transition = 'none';
     el.style.transform = 'translate(' + move.dx + 'px, ' + move.dy + 'px)';
     setTimeout(function () {
-      requestAnimationFrame(function () {
+      // A nested setTimeout rather than requestAnimationFrame: the restore must
+      // happen even when the browser is not painting frames.
+      setTimeout(function () {
         el.style.transition = 'transform ' + duration + 'ms ease-out';
         el.style.transform = 'translate(0, 0)';
       });
@@ -131,7 +133,9 @@ const Table = (function () {
     el.style.opacity = '0';
     el.style.transform = 'translateX(-34px) scale(.92)';
     setTimeout(function () {
-      requestAnimationFrame(function () {
+      // A nested setTimeout rather than requestAnimationFrame: the restore must
+      // happen even when the browser is not painting frames.
+      setTimeout(function () {
         el.style.transition = 'transform ' + duration + 'ms ease-out, opacity ' + duration + 'ms ease-out';
         el.style.opacity = '1';
         el.style.transform = 'translate(0, 0)';
@@ -152,7 +156,9 @@ const Table = (function () {
     clone.style.transition = 'none';
     document.body.appendChild(clone);
     setTimeout(function () {
-      requestAnimationFrame(function () {
+      // A nested setTimeout rather than requestAnimationFrame: the restore must
+      // happen even when the browser is not painting frames.
+      setTimeout(function () {
         clone.style.transition = 'transform ' + duration + 'ms ease-in, opacity ' + duration + 'ms ease-in';
         clone.style.transform = 'translate(-24px, 90px) rotate(-14deg) scale(.8)';
         clone.style.opacity = '0';
@@ -175,7 +181,9 @@ const Table = (function () {
     clone.style.transition = 'none';
     document.body.appendChild(clone);
     setTimeout(function () {
-      requestAnimationFrame(function () {
+      // A nested setTimeout rather than requestAnimationFrame: the restore must
+      // happen even when the browser is not painting frames.
+      setTimeout(function () {
         clone.style.transition = 'transform ' + duration + 'ms ease-in, opacity ' + duration + 'ms ease-in';
         clone.style.transform = 'translateX(120px) rotate(7deg)';
         clone.style.opacity = '0';

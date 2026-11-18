@@ -120,7 +120,11 @@ const UI = (function () {
     const box = document.getElementById(id);
     box.innerHTML = '';
     if (!cards.length) {
-      box.appendChild(el('p', 'empty', 'empty'));
+      const nothing = zone === 'equip' ? 'nothing equipped yet'
+        : zone === 'bin' ? 'nothing binned'
+        : zone === 'play' ? 'nothing played this turn'
+        : 'nothing here';
+      box.appendChild(el('p', 'empty', nothing));
       return;
     }
     cards.forEach(function (card) { box.appendChild(thumb(card, zone)); });
@@ -200,7 +204,8 @@ const UI = (function () {
       }
       const button = el('button', 'play-btn');
       button.type = 'button';
-      button.textContent = 'Play';
+      button.textContent = 'Lift';
+      button.setAttribute('aria-label', 'Play ' + def.name + ' from your hand');
       button.disabled = !allowed('play');
       button.addEventListener('click', function () { playCard(card); });
       fig.appendChild(button);
@@ -264,23 +269,24 @@ const UI = (function () {
       alarmBox.setAttribute('aria-label', 'Alarm level: ' + state.alarm + ' of 50');
     }
     alarmValue.textContent = state.alarm;
-    alarmValue.classList.toggle('hot', state.alarm >= 40);
-    const fill = document.getElementById('alarm-fill');
-    if (fill) fill.style.width = Math.min(100, (state.alarm / 50) * 100) + '%';
-    const dot = document.getElementById('signal-dot');
-    if (dot) dot.className = 'signal-dot dot-' + level;
+    const mark = document.getElementById('alarm-mark');
+    if (mark) {
+      const pos = (Math.min(50, state.alarm) / 50) * 100;
+      mark.setAttribute('x1', pos.toFixed(1));
+      mark.setAttribute('x2', pos.toFixed(1));
+    }
     const danger = document.getElementById('alarm-danger');
     if (danger) danger.hidden = state.alarm < 40;
     const check = document.getElementById('mission-check');
     if (check) {
       check.disabled = !allowed('missionCheck');
-      check.classList.toggle('glow', !check.disabled && Actions.missionCheck(state, registry, missions));
+      check.classList.toggle('is-ready', !check.disabled && Actions.missionCheck(state, registry, missions));
     }
     const end = document.getElementById('end-turn');
     if (end) {
       const outOfMoves = state.hand.length === 0 && state.interactionsLeft === 0 && !state.gameOver;
       end.disabled = !allowed('endTurn');
-      end.classList.toggle('glow', !end.disabled && outOfMoves);
+      end.classList.toggle('is-ready', !end.disabled && outOfMoves);
     }
     document.getElementById('seed').textContent = 'seed: ' + state.seed;
 
@@ -372,10 +378,10 @@ const UI = (function () {
   }
 
   const CHALLENGE = {
-    2: 'Guards and radios everywhere — expect harder obstacles and a line that rearranges itself.',
-    3: 'Doors and rooms: the complex is closing off sections. Your hand grows, but so does the alarm clock.',
-    4: 'Heavy weaponry. Interacting costs more and the watchtower makes its neighbours dearer.',
-    5: 'Everything they have is on the line now. Knock it all out and get out.'
+    2: 'Guards and radios. The belt rearranges itself.',
+    3: 'Doors and rooms. Bigger hand, bigger alarm clock.',
+    4: 'Heavy weapons. Interactions cost more, and the Watchtower makes its neighbours dearer.',
+    5: 'Everything they have is on the belt. Knock it out and get out.'
   };
 
   function renderLog() {
@@ -809,15 +815,15 @@ const UI = (function () {
   function missionFanfare(completed, next) {
     const body = el('div', 'fanfare');
     const reward = registry[completed.goalCardId] && registry[completed.goalCardId].reward;
-    body.appendChild(el('p', 'fanfare-head', 'Mission complete. The complex never saw it coming.'));
-    body.appendChild(el('p', null, 'Nice work, Agent — ' + completed.name + ' is done with the alarm at ' +
+    body.appendChild(el('p', 'fanfare-head', 'Mission closed.'));
+    body.appendChild(el('p', null, completed.name + ' is done. Alarm: ' +
       state.missionAlarms[state.missionAlarms.length - 1] + '.'));
     if (reward) {
       const bonus = reward.resource
         ? ((reward.resource.stealth || 0) + (reward.resource.fighting || 0)) + ' resource' +
           ((reward.resource.stealth || 0) && (reward.resource.fighting || 0) ? 's' : '') + ' every turn'
         : null;
-      body.appendChild(el('p', null, 'Reward: ' + reward.name + (bonus ? ' (' + bonus + ')' : '') + ' — it goes to your Equip Area, where it stays until you use it.'));
+      body.appendChild(el('p', null, 'Reward: ' + reward.name + (bonus ? ' (' + bonus + ')' : '') + '. It stays in the Equip Area until you spend it.'));
     }
     if (next) {
       const newObstacles = (next.obstaclesIntroduced || []).map(function (id) {
@@ -826,7 +832,7 @@ const UI = (function () {
       });
       body.appendChild(el('p', 'fanfare-next', next.name + ' — ' + (registry[next.goalCardId] ? registry[next.goalCardId].goalText : '')));
       if (newObstacles.length) body.appendChild(el('p', null, 'They send in: ' + newObstacles.join(', ') + '.'));
-      body.appendChild(el('p', null, CHALLENGE[next.index] || 'The complex is on alert.'));
+      body.appendChild(el('p', null, CHALLENGE[next.index] || 'More obstacles on the belt.'));
     }
     openOverlay(completed.name + ' complete', body, [{ label: 'Continue', action: function () { closeOverlay(); } }], registry[completed.goalCardId].art[0]);
   }
@@ -933,7 +939,7 @@ const UI = (function () {
     {
       short: 'Goal',
       title: 'Five things to know',
-      lede: 'A run is five missions. Everything else follows from these five rules.',
+      lede: 'Five missions. These are the five rules that matter.',
       points: [
         { label: 'The objective', text: 'Each mission prints a goal, such as 6 Stealth, or 6 Fighting plus a Guard Uniform equipped. You must pay the whole goal in one turn.' },
         { label: 'The alarm', text: 'Two tokens count 0 to 50. Every card that leaves the line adds its printed number. At 50 the complex locks down and the run is over.' },
@@ -979,7 +985,7 @@ const UI = (function () {
     {
       short: 'Gear',
       title: 'Gear, the Bin and Undo',
-      lede: 'The housekeeping that keeps a turn readable.',
+      lede: 'What the small objects on the table do.',
       points: [
         { label: 'KEEP items', text: 'A card with a KEEP icon goes to the Equip Area and stays there. Its once-per-turn bonus fires the moment it is equipped. Spending an item for its effect sends it to the discard; draw it again and you can equip it once more.' },
         { label: 'The Bin', text: 'Waste Room purges any number of cards from your hand, Flammable Barrel up to two from your discard. Binned cards are out of the game for good.' },
