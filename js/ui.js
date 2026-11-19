@@ -162,6 +162,7 @@ const UI = (function () {
       if (mark.disarm === card.uid) extra += ' tut-disarm';
       if (mark.knockOut === card.uid) extra += ' tut-knock';
       if (mark.exiting === card.uid) extra += ' tut-exit';
+      if (isFresh() && radio.transmission.targets.indexOf(card.uid) >= 0) extra += ' radio-mark';
       const payable = canAct && !state.faceDown[card.uid] && Engine.canInteract(state, registry, card).ok;
       if (payable) extra += ' can-interact';
       const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
@@ -186,7 +187,7 @@ const UI = (function () {
     hand.innerHTML = '';
     state.hand.forEach(function (card) {
       const def = defOf(card);
-      const fig = el('figure', 'card');
+      const fig = el('figure', 'card' + (isFresh() && radio.transmission.targets.indexOf(card.uid) >= 0 ? ' radio-mark' : ''));
       fig.setAttribute('data-uid', card.uid);
       const face = el('button', 'card-face');
       face.type = 'button';
@@ -319,6 +320,7 @@ const UI = (function () {
 
     renderBin();
     renderLog();
+    renderRadio();
   }
 
   function renderBin() {
@@ -411,6 +413,157 @@ const UI = (function () {
         log.appendChild(li);
       });
     });
+  }
+
+  /* ---------- homebase radio ---------- */
+  const radio = { link: false, plain: false, fullPlan: false, transmission: null, advice: null, stamp: '', transmitting: false, idle: 'Homebase is on the frequency. Press call when you need it.', timer: null };
+
+  function positionStamp() {
+    return [state.turn, state.alarm, state.missionIndex, state.interactionsLeft,
+      state.line.map(function (c) { return c ? c.uid : '-'; }).join(','),
+      state.hand.map(function (c) { return c.uid; }).join(','),
+      state.resources.stealth, state.resources.fighting].join('|');
+  }
+
+  function isFresh() {
+    return !!radio.transmission && radio.stamp === positionStamp();
+  }
+
+  function renderRadio() {
+    const set = document.getElementById('radio');
+    if (!set) return;
+    set.classList.toggle('is-live', radio.link);
+    set.classList.toggle('is-stale', radio.link && !!radio.transmission && !isFresh());
+    const call = document.getElementById('call-homebase');
+    if (call) {
+      call.disabled = !radio.link || !!state.gameOver;
+      call.textContent = isFresh() ? 'Again' : 'Call Homebase';
+    }
+    const why = document.getElementById('radio-why');
+    if (why) why.disabled = !(radio.link && radio.advice && isFresh());
+    const bars = document.getElementById('radio-signal');
+    if (bars && bars.children) {
+      const lit = radio.transmission && isFresh() ? Math.max(1, Math.round((radio.transmission.signal || 0) * 5)) : 0;
+      bars.children.forEach(function (bar, i) { bar.className = i < lit ? 'lit' : ''; });
+    }
+    const body = document.getElementById('radio-readout');
+    if (body && !radio.transmission) {
+      body.innerHTML = '';
+      body.appendChild(el('span', 'radio-line', radio.idle));
+    }
+  }
+
+  function showTransmission(lines) {
+    const body = document.getElementById('radio-readout');
+    const set = document.getElementById('radio');
+    if (!body) return;
+    body.innerHTML = '';
+    lines.forEach(function (line, i) {
+      const span = el('span', 'radio-line');
+      span.textContent = line;
+      if (span.style) span.style.animationDelay = (0.2 + i * 0.42).toFixed(2) + 's';
+      body.appendChild(span);
+    });
+    if (set) set.classList.add('is-transmitting');
+    radio.transmitting = true;
+    if (typeof Sound !== 'undefined') Sound.play('radioCall');
+    if (radio.timer) clearTimeout(radio.timer);
+    radio.timer = setTimeout(function () {
+      if (set) set.classList.remove('is-transmitting');
+      radio.transmitting = false;
+    }, 600 + lines.length * 420);
+  }
+
+  function callHomebase() {
+    if (!radio.link || !state || state.gameOver) return;
+    if (typeof Advisor === 'undefined' || typeof Radio === 'undefined') return;
+    const advice = Advisor.advise(state, registry, missions);
+    const transmission = Radio.describe(advice, state, registry, missions, { level: radio.fullPlan ? 'full' : 'nudge' });
+    radio.advice = advice;
+    radio.transmission = transmission;
+    radio.stamp = positionStamp();
+    state.log.push({ turn: state.turn, kind: 'homebase', text: 'Homebase consulted — ' + transmission.text.join(' ') });
+    renderLine();
+    renderHand();
+    renderRadio();
+    showTransmission(radio.plain ? transmission.plain : transmission.text);
+  }
+
+  function toggleRadioLink() {
+    radio.link = !radio.link;
+    const button = document.getElementById('radio-link');
+    if (button) button.setAttribute('aria-checked', radio.link ? 'true' : 'false');
+    if (!radio.link) {
+      radio.transmission = null;
+      radio.advice = null;
+      radio.stamp = '';
+      radio.idle = 'Link off. Nobody on the frequency.';
+      if (typeof Sound !== 'undefined') Sound.play('radioOff');
+    } else {
+      radio.idle = 'Homebase is on the frequency. Press call when you need it.';
+    }
+    renderRadio();
+  }
+
+  function toggleRadioPlain() {
+    radio.plain = !radio.plain;
+    const button = document.getElementById('radio-plain');
+    if (button) button.setAttribute('aria-checked', radio.plain ? 'true' : 'false');
+    if (radio.transmission && isFresh()) {
+      showTransmission(radio.plain ? radio.transmission.plain : radio.transmission.text);
+    }
+  }
+
+  function toggleRadioPlan() {
+    radio.fullPlan = !radio.fullPlan;
+    const button = document.getElementById('radio-plan');
+    if (button) button.setAttribute('aria-checked', radio.fullPlan ? 'true' : 'false');
+    if (radio.link) callHomebase();
+  }
+
+  /* "Why?" puts the arithmetic on the table: what the belt is about to pay out,
+     what the goal still needs, and what the second-best line would have cost. */
+  function radioWhy() {
+    if (!radio.advice || !isFresh()) return;
+    const advice = radio.advice;
+    const body = el('div', null);
+    body.appendChild(el('p', null, 'Homebase ranked every legal line of play from this position and took the one with the highest score: mission progress minus alarm, looked four turns ahead.'));
+    const list = el('ul', null);
+    advice.best.actions.forEach(function (action) { list.appendChild(el('li', null, actionText(action))); });
+    body.appendChild(list);
+    const exiting = state.line.filter(Boolean).pop();
+    const exitAlarm = exiting && registry[exiting.defId] ? (registry[exiting.defId].alarm || 0) : 0;
+    body.appendChild(el('p', null, 'Alarm at the end of this line: ' + advice.alarmAfter + ' of 50. The card on the exit right now, ' +
+      (exiting && registry[exiting.defId] ? registry[exiting.defId].name : 'nothing') + ', would have paid ' + exitAlarm + ' if it slid out untouched.'));
+    if (advice.alternative) {
+      body.appendChild(el('p', null, 'The next best line ends at alarm ' + advice.alternative.state.alarm + '. Gap: ' +
+        Math.abs(advice.alarmAfter - advice.alternative.state.alarm) + '. Where the two disagree, Homebase says take the lower number.'));
+    }
+    body.appendChild(el('p', null, 'Homebase never presses a button. It marks the cards it is talking about and leaves the call to you.'));
+    openOverlay('Homebase, explained', body, [{ label: 'Close', action: function () { closeOverlay(); } }], null, true);
+  }
+
+  function actionText(action) {
+    if (action.kind === 'play') return 'Play ' + (action.name || 'card');
+    if (action.kind === 'useItem') return 'Use ' + (action.name || 'equipped item');
+    if (action.kind === 'bin') return 'Bin ' + (action.name || 'card');
+    if (action.kind === 'missionCheck') return 'Mission Check — claim the objective before the refresh';
+    if (action.kind === 'endTurn') return 'End the turn';
+    if (action.kind === 'interact') {
+      const where = ['the exit slot', 'next to the exit', 'the middle of the belt', 'the far end of the belt', 'the left end of the belt'][action.slot] || 'slot ' + (action.slot + 1);
+      if (action.choice === 'disarm') return 'Disarm ' + action.name + ' in ' + where + ' (alarm ' + action.alarm + ', cost ' + costText(action.cost) + ')';
+      if (action.choice === 'knockOut') return 'Knock out ' + action.name + ' in ' + where + ' — it stays, costs no alarm, and its effect is off';
+      if (action.choice === 'knockOutAdjacent') return 'Use ' + action.name + ' to knock out the card beside it';
+    }
+    return action.kind;
+  }
+
+  function costText(cost) {
+    if (!cost) return 'one interaction';
+    if (cost.stealth) return cost.stealth + ' stealth';
+    if (cost.fighting) return cost.fighting + ' fighting';
+    if (cost.either) return cost.either + ' of either';
+    return 'one interaction';
   }
 
   /* ---------- overlays ---------- */
@@ -837,6 +990,16 @@ const UI = (function () {
       body.appendChild(el('p', null, CHALLENGE[next.index] || 'More obstacles on the belt.'));
     }
     openOverlay(completed.name + ' complete', body, [{ label: 'Continue', action: function () { closeOverlay(); } }], registry[completed.goalCardId].art[0]);
+
+    if (radio.link && typeof Radio !== 'undefined') {
+      const alarm = state.missionAlarms[state.missionAlarms.length - 1] || 0;
+      const lines = [Radio.missionEnd(completed, alarm)];
+      if (next) lines.push(Radio.missionBrief(next));
+      lines.push('Over.');
+      radio.transmission = null;
+      radio.stamp = '';
+      showTransmission(lines);
+    }
   }
 
   function endTurn() {
@@ -863,6 +1026,14 @@ const UI = (function () {
 
   function start(seed) {
     undoStack = [];
+    radio.link = false;
+    radio.plain = false;
+    radio.fullPlan = false;
+    radio.transmission = null;
+    radio.advice = null;
+    radio.stamp = '';
+    radio.transmitting = false;
+    if (radio.timer) clearTimeout(radio.timer);
     const fromUrl = typeof window !== 'undefined' && window.location
       ? Number(new URLSearchParams(window.location.search).get('seed'))
       : 0;
@@ -928,7 +1099,7 @@ const UI = (function () {
     setSwitch('sound-toggle', Sound.toggle());
   }
 
-  /* How to play is six short screens rather than one wall of text: the player
+  /* How to play is seven short screens rather than one wall of text: the player
      reads one idea at a time, and the turn flowchart gets its own screen so it
      can be sized to the window instead of dominating it. */
   const HELP = [
@@ -987,6 +1158,18 @@ const UI = (function () {
         { label: 'The Bin', text: 'Waste Room purges any number of cards from your hand, Flammable Barrel up to two from your discard. Binned cards are out of the game for good.' },
         { label: 'Undo', text: 'Undo in the top bar (or Ctrl+Z) rewinds any move you made this turn. It cannot rewind a finished turn.' },
         { label: 'Training run', text: 'The coach only gates the first mission. Exit training at any time to play the real campaign from the same board.' }
+      ]
+    },
+    {
+      short: 'Radio',
+      title: 'Homebase radio',
+      lede: 'An optional advisor in a field set under the draw deck.',
+      points: [
+        { label: 'Link', text: 'Flip the Link switch and the set is live. Press Call Homebase, or the C key, and the Colonel reads the position and sends back a line of play.' },
+        { label: 'He never plays for you', text: 'Homebase chalk-outlines the cards it is talking about. Every button is still yours to press.' },
+        { label: 'Plain and Full plan', text: 'Plain swaps the radio slang for the printed terms. Full plan spells out the whole turn instead of the one move that matters.' },
+        { label: 'Why?', text: 'Opens the ranked options, the alarm each one ends at, and the second-best line. Advice goes stale the moment the board changes, so call again after any move.' },
+        { label: 'It is a crutch, on purpose', text: 'The Colonel is a heuristic, not a solved game. He is good at keeping the alarm down and closing missions; he is not a guarantee.' }
       ]
     },
     {
@@ -1076,6 +1259,10 @@ const UI = (function () {
       event.preventDefault();
       undo();
     }
+    if (event.key.toLowerCase() === 'c' && !helpOpen && radio.link && !radio.transmitting &&
+        !(event.target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName))) {
+      callHomebase();
+    }
   });
 
   /* Hardware, not menus: each toggle is a drawn switch whose lever is the
@@ -1111,6 +1298,11 @@ const UI = (function () {
   if (document.getElementById('music-toggle')) document.getElementById('music-toggle').addEventListener('click', toggleMusic);
   if (document.getElementById('fast-table')) document.getElementById('fast-table').addEventListener('click', toggleFastTable);
   if (document.getElementById('quick-hands')) document.getElementById('quick-hands').addEventListener('click', toggleQuickHands);
+  if (document.getElementById('radio-link')) document.getElementById('radio-link').addEventListener('click', toggleRadioLink);
+  if (document.getElementById('radio-plain')) document.getElementById('radio-plain').addEventListener('click', toggleRadioPlain);
+  if (document.getElementById('radio-plan')) document.getElementById('radio-plan').addEventListener('click', toggleRadioPlan);
+  if (document.getElementById('radio-why')) document.getElementById('radio-why').addEventListener('click', radioWhy);
+  if (document.getElementById('call-homebase')) document.getElementById('call-homebase').addEventListener('click', callHomebase);
   if (document.getElementById('music-track')) {
     const select = document.getElementById('music-track');
     let saved = null;

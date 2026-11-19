@@ -389,6 +389,14 @@ const Sound = (function () {
     noiseHit(ctx, at, 0.3, 'bandpass', 1300, 0.04);
   }
 
+  /* Homebase radio: a two-tone handshake, then a hiss of open carrier. */
+  function chirp(at) {
+    const ctx = ensureContext();
+    if (!ctx) return;
+    [880, 1320].forEach(function (f, i) { tone(f, 0.06, 'square', 0.05, at + i * 0.09); });
+    noiseHit(ctx, at + 0.2, 0.35, 'bandpass', 900, 0.03);
+  }
+
   function clang(at) {
     const ctx = ensureContext();
     if (!ctx) return;
@@ -934,6 +942,11 @@ const Sound = (function () {
       snore(now);
     } else if (name === 'hiss') {
       hiss(now);
+    } else if (name === 'radioCall') {
+      chirp(now);
+    } else if (name === 'radioOff') {
+      tone(330, 0.08, 'square', 0.04);
+      tone(165, 0.12, 'square', 0.03, 0.06);
     } else if (name === 'clang') {
       clang(now);
     } else if (name === 'clank') {

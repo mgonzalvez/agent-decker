@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=44" />
-  <link rel="stylesheet" href="css/styles.css?v=44" />
+  <link rel="icon" href="assets/favicon.png?v=45" />
+  <link rel="stylesheet" href="css/styles.css?v=45" />
 </head>
 <body>
   <header class="topbar">
@@ -143,15 +143,77 @@
       <h2 class="zone-name">The Agent</h2>
       <div class="play-zone">
         <div class="hand-zone">
-          <div class="deck-panel">
-            <div class="deck-box">
-              <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
-              <span class="deck-flap" aria-hidden="true"></span>
+          <div class="left-rail">
+            <div class="deck-panel">
+              <div class="deck-box">
+                <img class="card-back" src="assets/cards/back.jpg" alt="Your draw deck" />
+                <span class="deck-flap" aria-hidden="true"></span>
+              </div>
+              <span class="stack-label">Draw deck</span>
+              <span class="stack-count" id="player-deck-count">0</span>
+              <span class="deck-breakdown" id="player-deck-breakdown">—</span>
+              <span class="deck-note">hand <b id="player-hand-count">0</b>, discard <b id="player-discard-count">0</b></span>
             </div>
-            <span class="stack-label">Draw deck</span>
-            <span class="stack-count" id="player-deck-count">0</span>
-            <span class="deck-breakdown" id="player-deck-breakdown">—</span>
-            <span class="deck-note">hand <b id="player-hand-count">0</b>, discard <b id="player-discard-count">0</b></span>
+
+            <div class="radio-set" id="radio">
+              <div class="radio-head">
+                <span class="radio-model">TR-9 field set</span>
+                <span class="radio-frequency" id="radio-frequency">CH 4 · HOMEBASE</span>
+              </div>
+              <div class="radio-screen" id="radio-screen">
+                <svg class="colonel" id="colonel" viewBox="0 0 120 104" role="img" aria-hidden="true">
+                  <defs>
+                    <pattern id="crt-scan" width="3" height="3" patternUnits="userSpaceOnUse">
+                      <rect x="0" y="0" width="3" height="1" fill="rgba(0, 0, 0, .38)"/>
+                    </pattern>
+                    <pattern id="crt-static" width="7" height="7" patternUnits="userSpaceOnUse">
+                      <rect x="0" y="1" width="1" height="1" fill="rgba(232, 241, 248, .22)"/>
+                      <rect x="4" y="5" width="1" height="1" fill="rgba(232, 241, 248, .14)"/>
+                    </pattern>
+                  </defs>
+                  <rect class="screen-field" x="0" y="0" width="120" height="104"/>
+                  <g class="bust">
+                    <path class="shoulders" d="M2 104 L24 76 L96 76 L118 104 Z"/>
+                    <path class="collar" d="M42 76 L60 92 L78 76"/>
+                    <path class="tie" d="M57 78 L63 78 L61 99 L59 99 Z"/>
+                    <path class="neck" d="M51 60 L69 60 L69 78 L51 78 Z"/>
+                    <ellipse class="head" cx="60" cy="40" rx="23" ry="26"/>
+                    <path class="hair" d="M36 36 Q44 12 60 12 Q76 12 84 36 L84 42 L78 34 L60 25 L42 34 L36 42 Z"/>
+                    <path class="ear" d="M36 40 q-6 5 0 10 q6 -3 0 -10"/>
+                    <path class="ear" d="M84 40 q6 5 0 10 q-6 -3 0 -10"/>
+                    <path class="brow" d="M43 32 h13 M64 32 h13"/>
+                    <path class="nose" d="M59 36 l4 11 l-5 3"/>
+                    <g class="mouth">
+                      <path class="mouth-closed" d="M49 57 h22"/>
+                      <path class="mouth-mid" d="M49 54 q11 8 22 0 q-11 5 -22 0 Z"/>
+                      <path class="mouth-open" d="M48 52 q12 13 24 0 q-12 6 -24 0 Z"/>
+                    </g>
+                  </g>
+                  <rect class="radio-static" x="0" y="0" width="120" height="104" fill="url(#crt-static)"/>
+                  <rect class="radio-scanlines" x="0" y="0" width="120" height="104" fill="url(#crt-scan)"/>
+                </svg>
+              </div>
+              <div class="radio-readout" id="radio-readout" aria-live="polite">
+                <p class="radio-line">Homebase is on the frequency. Press call when you need it.</p>
+              </div>
+              <div class="radio-controls">
+                <button id="radio-link" type="button" class="switch" role="switch" aria-checked="false" title="Radio link: homebase advisory">
+                  <span class="switch-label">Link</span>
+                  <span class="switch-lever" aria-hidden="true"></span>
+                </button>
+                <button id="call-homebase" type="button" disabled>Call Homebase</button>
+                <button id="radio-why" type="button" disabled>Why?</button>
+                <button id="radio-plain" type="button" class="switch" role="switch" aria-checked="false" title="Plain language instead of radio slang">
+                  <span class="switch-label">Plain</span>
+                  <span class="switch-lever" aria-hidden="true"></span>
+                </button>
+                <button id="radio-plan" type="button" class="switch" role="switch" aria-checked="false" title="Full turn plan instead of the single key move">
+                  <span class="switch-label">Full plan</span>
+                  <span class="switch-lever" aria-hidden="true"></span>
+                </button>
+                <span class="signal" id="radio-signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+              </div>
+            </div>
           </div>
 
           <div class="hand-column">
@@ -239,14 +301,16 @@
     </nav>
   </footer>
 
-  <script src="js/state.js?v=44"></script>
-  <script src="js/engine.js?v=44"></script>
-  <script src="js/actions.js?v=44"></script>
-  <script src="js/save.js?v=44"></script>
-  <script src="js/audio.js?v=44"></script>
-  <script src="js/table.js?v=44"></script>
-  <script src="js/tutorial.js?v=44"></script>
-  <script src="js/ui.js?v=44"></script>
-  <script src="js/main.js?v=44"></script>
+  <script src="js/state.js?v=45"></script>
+  <script src="js/engine.js?v=45"></script>
+  <script src="js/actions.js?v=45"></script>
+  <script src="js/advisor.js?v=45"></script>
+  <script src="js/radio.js?v=45"></script>
+  <script src="js/save.js?v=45"></script>
+  <script src="js/audio.js?v=45"></script>
+  <script src="js/table.js?v=45"></script>
+  <script src="js/tutorial.js?v=45"></script>
+  <script src="js/ui.js?v=45"></script>
+  <script src="js/main.js?v=45"></script>
 </body>
 </html>

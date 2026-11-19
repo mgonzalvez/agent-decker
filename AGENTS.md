@@ -51,6 +51,7 @@ guide: what is true *now* and how to change it.
 index.html             the game
 css/styles.css
 js/  state.js engine.js actions.js ui.js table.js audio.js tutorial.js save.js main.js
+     advisor.js radio.js   (homebase radio: the brain and the voice)
      data/ cards.json missions.json effects-notes.md
      tests/ *.test.mjs
 assets/ cards/ (54 crops + back.jpg) fonts/ ui/ favicon.png
@@ -63,7 +64,7 @@ PLAN.md  AGENTS.md  README.md
 ## Conventions
 
 - **No frameworks, no build step, no `package.json`.** Vanilla HTML/CSS/JS, committed files only.
-  `node --test js/tests/*.test.mjs` is the whole toolchain (152 tests).
+  `node --test js/tests/*.test.mjs` is the whole toolchain (184 tests).
 - **`engine.js` is pure:** state in → new state out. No DOM, no `Math.random` (injectable seeded RNG).
   The UI reads state; it never mutates rules.
 - **Data-driven cards.** A new effect = a descriptor in `cards.json` + one handler in the engine.
@@ -92,7 +93,15 @@ PLAN.md  AGENTS.md  README.md
   muted by default, toggles in the top bar. `js/audio/render.mjs` + `js/data/score.json` render the
   score offline in Node for measuring before wiring it in.
 - **Training run** (`js/tutorial.js`): fixed-seed guided mission with a coach that gates each action;
-  **How to play** is six short screens plus the turn flowchart.
+  **How to play** is seven short screens plus the turn flowchart.
+- **Homebase radio** (`js/advisor.js` + `js/radio.js`, wired in `ui.js`): a field set under the
+  draw deck. `Link` keys the set up, `Call Homebase` (or `C`) runs the beam search over every
+  legal line of play for the position and transmits the best one; `Plain` swaps the slang for
+  the printed mechanics, `Full plan` spells out the whole turn instead of the decisive move.
+  The Colonel never presses a button — he chalk-marks the cards he is talking about. Advice goes
+  stale the instant the position changes. `Why?` opens the plan and its arithmetic in the zoom
+  modal. Tuning bench: `node js/tests/advisor-sweep.mjs`; head-to-head vs casual play:
+  `node js/tests/advisor-baseline.mjs`. Design record: `docs/radio-advisor-spec.md`.
 - **Persistence:** `js/save.js` saves to localStorage after every move and keeps best scores.
 - **Zoom:** Equip Area, Play Area and the current mission card open at reading size
   (`UI.openZoom`, `overlay.zoom`).

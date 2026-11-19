@@ -245,3 +245,29 @@ test('completing a mission ends the turn instead of handing out a second interac
   assert.strictEqual(after.rules.interactionLimit, 1, 'Mission One rewards no extra interaction');
   assert.strictEqual(after.interactionsLeft, 1, 'the allowance is a fresh turn\'s, not a top-up');
 });
+
+test('completing a mission with a hole in the line does not deal phantom obstacles', () => {
+  /* Disarming leaves an empty slot. If the mission is checked in the same turn, the
+     empty slots must not be shuffled into the obstacle deck as if they were cards. */
+  let state = fresh(501);
+  state.interactionsLeft = 6;
+  state.discard.push(...state.hand.splice(1));   /* keep one card, park the rest */
+  state.resources = { stealth: 8, fighting: 4 };
+  /* Put an affordable obstacle in the line without duplicating a card. */
+  const fromDeck = state.obstacleDeck.find((c) => c.defId === 'obs_security_camera');
+  if (fromDeck) {
+    state.obstacleDeck = state.obstacleDeck.filter((c) => c.uid !== fromDeck.uid);
+    if (state.line[5]) state.discard.push(state.line[5]);
+    state.line[5] = fromDeck;
+  }
+  const camera = state.line.find((c) => c && c.defId === 'obs_security_camera');
+  assert.ok(camera, 'fixture needs a security camera in the line');
+  state = Engine.interact(state, camera.uid, 'disarm', registry, {});
+  assert.ok(state.line.some((c) => c === null), 'disarming should leave a hole');
+  assert.ok(Engine.goalSatisfied(state, registry, missions), 'fixture should be ready to check the mission');
+  const after = Engine.completeMission(state, registry, missions);
+  assert.notStrictEqual(after.gameOver, 'time', 'the new mission did not start');
+  assert.ok(lineCards(after).length === 6, 'the new line is full');
+  assert.ok(after.obstacleDeck.every(Boolean), 'no empty slots got shuffled into the obstacle deck');
+  assert.strictEqual(AgentDecker.checkInvariants(after, registry).length, 0, 'state invariants hold');
+});

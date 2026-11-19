@@ -883,7 +883,7 @@ const Engine = (function () {
     });
 
     event(s, 'mission', { missionIndex: s.missionIndex, reward: goalCard ? goalCard.uid : null });
-    s.obstacleDeck = shuffleInPlace(s.obstacleDeck.concat(s.obstacleDiscard, s.line), s);
+    s.obstacleDeck = shuffleInPlace(s.obstacleDeck.concat(s.obstacleDiscard, lineCards(s)), s);
     s.obstacleDiscard = [];
     s.line = [];
     dealLine(s, registry, 6);

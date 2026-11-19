@@ -65,7 +65,8 @@ const ids = [
   'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
   'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
   'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit'
+  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit',
+  'radio', 'radio-screen', 'radio-readout', 'radio-link', 'call-homebase', 'radio-plain', 'radio-plan', 'radio-why', 'radio-signal', 'colonel', 'radio-frequency'
 ];
 const map = {};
 ids.forEach((id) => { map[id] = new El('div'); });
@@ -117,6 +118,8 @@ globalThis.Sound = {
 globalThis.AgentDecker = require('../state.js');
 globalThis.Engine = require('../engine.js');
 globalThis.Actions = require('../actions.js');
+globalThis.Advisor = require('../advisor.js');
+globalThis.Radio = require('../radio.js');
 globalThis.Tutorial = require('../tutorial.js');
 globalThis.Table = require('../table.js');
 const UI = require('../ui.js');
@@ -554,8 +557,8 @@ test('the stylesheet is not a dashboard: no pills, no meters, no glows, no gradi
   assert.ok(!css.includes('text-transform: uppercase'), 'blanket uppercase labels crept back in');
   assert.ok(!/\.chip/.test(css), 'chip/pill components are back');
   assert.ok(!/signal-dot|alarm-bar|alarm-fill/.test(css), 'the meter furniture is back');
-  assert.ok((css.match(/@keyframes/g) || []).length <= 2, 'too much ambient animation');
-  assert.ok(!css.includes('infinite'), 'nothing should pulse for ambience');
+  assert.ok((css.match(/@keyframes/g) || []).length <= 3, 'too much ambient animation');
+  assert.ok(!/animation:[^;]*infinite/.test(css), 'nothing runs forever: every animation is tied to an event and finite');
 });
 
 test('the markup is zones on a table, not a stack of generic panels', () => {
@@ -732,7 +735,7 @@ test('exit training actually hides the coach panel', () => {
   assert.ok(!map['end-turn'].disabled, 'and it stops gating the turn');
 });
 
-test('How to play is six screens, not one wall of text', () => {
+test('How to play is seven screens, not one wall of text', () => {
   UI.init(cardDefs, missions, 42);
   map['how-to-play'].click();
   assert.strictEqual(map['overlay'].hidden, false);
@@ -741,7 +744,7 @@ test('How to play is six screens, not one wall of text', () => {
   const help = map['modal-body'].children[0];
   const tabs = help.children.find(function (c) { return c.className === 'help-tabs'; });
   assert.ok(tabs, 'the help opens with a strip of screens');
-  assert.strictEqual(tabs.children.length, 6, 'there are six screens');
+  assert.strictEqual(tabs.children.length, 7, 'there are seven screens');
   assert.strictEqual(tabs.children.filter(function (c) { return c.className.indexOf('is-active') >= 0; }).length, 1,
     'exactly one screen is marked active');
   assert.ok(textOf(help).indexOf('locks down') >= 0, 'the first screen explains how the run ends');
@@ -755,10 +758,7 @@ test('How to play is six screens, not one wall of text', () => {
   const steps = map['modal-body'].children[0].children.find(function (c) { return c.className === 'help-steps'; });
   assert.ok(steps.children.length >= 4, 'each step of the turn is its own line');
 
-  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
-  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
-  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
-  fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
+  for (let i = 0; i < 6; i++) fire('keydown', { key: 'ArrowRight', preventDefault: function () {} });
   const last = map['modal-body'].children[0].children.find(function (c) { return c.className === 'help-flowchart'; });
   assert.ok(last, 'the last screen is the flowchart, on its own');
   assert.ok(last.children.some(function (c) { return c.tag === 'img' && c.src.indexOf('AgentDecker_turn_flowchart.svg') >= 0; }));
@@ -793,4 +793,84 @@ test('the coach’s Why? opens the screen that explains the step it is asking fo
 
   UI.showHelp(3);
   assert.ok(map['modal-title'].textContent.indexOf('conveyor') >= 0, 'screens can be opened by number too');
+});
+
+/* ---------- homebase radio ---------- */
+
+test('the radio set is bolted under the draw deck, not floating in a panel', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  assert.ok(html.indexOf('class="deck-panel"') < html.indexOf('class="radio-set"'), 'the set sits below the deck');
+  assert.ok(/class="left-rail"[\s\S]{0,400}class="deck-panel"/.test(html), 'the deck and the radio share one rail');
+  assert.ok(/\.radio-set\s*\{[^}]*border-radius:\s*2px/.test(css), 'the case has square corners like the rest of the table');
+  assert.ok(/id="colonel"/.test(html) && /mouth-open/.test(html), 'the portrait has mouths to animate');
+  assert.ok(/class="radio-screen"/.test(html), 'the portrait lives behind a screen');
+});
+
+test('Homebase is silent until the link switch is on', () => {
+  UI.init(cardDefs, missions, 11);
+  assert.ok(map['call-homebase'].disabled, 'no link, no call');
+  map['radio-link'].click();
+  assert.strictEqual(map['radio-link']['aria-checked'], 'true', 'the lever announces itself');
+  assert.ok(!map['call-homebase'].disabled, 'the call button wakes up');
+  assert.ok(map['radio']['_classes'].has('is-live'), 'the set is lit');
+});
+
+test('a call transmits in lines and chalks the cards it means', () => {
+  UI.init(cardDefs, missions, 11);
+  map['radio-link'].click();
+  map['call-homebase'].click();
+  const lines = map['radio-readout'].children;
+  assert.ok(lines.length >= 2, 'the transmission is more than a grunt');
+  assert.strictEqual(lines[lines.length - 1].textContent, 'Over.', 'every transmission signs off');
+  assert.ok(lines.every((line) => line.textContent.length <= 110), 'no line is a paragraph');
+  assert.ok(playedSounds.includes('radioCall'), 'the set chirps when it keys up');
+  assert.ok(map['radio']['_classes'].has('is-transmitting'), 'the mouth moves while it is on the air');
+  const chalked = map.hand.children.concat(map.line.children)
+    .filter((node) => (node.className || '').includes('radio-mark'));
+  assert.ok(chalked.length >= 1, 'the cards under discussion are marked');
+  assert.ok(!map['radio-why'].disabled, 'the reasoning is one click away');
+});
+
+test('the Plain switch trades the slang for the mechanics', () => {
+  UI.init(cardDefs, missions, 11);
+  map['radio-link'].click();
+  map['radio-plain'].click();
+  map['call-homebase'].click();
+  assert.strictEqual(map['radio-plain']['aria-checked'], 'true');
+  const lines = map['radio-readout'].children.map((line) => line.textContent);
+  assert.ok(lines.some((line) => /Disarm|Knock out|Mission Check|Play |End Turn/.test(line)),
+    'plain register names the actual buttons');
+});
+
+test('a second call on the same position says Again and does not repeat the brief', () => {
+  UI.init(cardDefs, missions, 11);
+  map['radio-link'].click();
+  map['call-homebase'].click();
+  assert.strictEqual(map['call-homebase'].textContent, 'Again', 'nothing changed, so nothing new to say');
+  const first = map['radio-readout'].children.map((line) => line.textContent).join('|');
+  map['call-homebase'].click();
+  const second = map['radio-readout'].children.map((line) => line.textContent).join('|');
+  assert.strictEqual(first, second, 'the same position gets the same advice');
+});
+
+test('the Colonel only speaks when asked: no advice lands on the board without a call', () => {
+  UI.init(cardDefs, missions, 11);
+  const anyMark = map.hand.children.concat(map.line.children)
+    .filter((node) => (node.className || '').includes('radio-mark'));
+  assert.strictEqual(anyMark.length, 0, 'with the link off, nothing is chalked');
+  assert.ok(map['radio-readout'].children.length === 1, 'the readout shows the idle line');
+});
+
+test('the Colonel is explained in How to Play and answers the C key', () => {
+  const js = readFileSync(new URL('../ui.js', import.meta.url), 'utf8');
+  assert.ok(/short: 'Radio'/.test(js), 'How to Play has a screen about the radio');
+  UI.init(cardDefs, missions, 21);
+  map['modal-close'].click();
+  map['radio-link'].click();
+  fire('keydown', { key: 'c' });
+  assert.ok(map['radio-readout'].children.length > 1, 'the keyboard keys the set up');
+  UI.init(cardDefs, missions, 21);
+  fire('keydown', { key: 'c' });
+  assert.strictEqual(map['radio-readout'].children.length, 1, 'with the link off, C says nothing');
 });

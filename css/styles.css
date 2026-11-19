@@ -368,11 +368,12 @@ button { font: inherit; }
 
 .hand-zone {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
   min-width: 0;
 }
+.left-rail { display: grid; gap: 12px; min-width: 0; }
 .hand-column { display: grid; gap: 12px; min-width: 0; }
 
 .deck-panel {
@@ -389,6 +390,114 @@ button { font: inherit; }
 .deck-panel img { width: 92px; border-radius: 2px; }
 .deck-breakdown { font-size: 11px; color: var(--muted); line-height: 1.5; }
 .deck-note { font-size: 11px; color: var(--muted); }
+
+/* ---------- homebase radio ---------- */
+/* A field radio on the felt, not a panel. Steel case, CRT screen, a switch on the
+   front and one big call button. Square corners, printed ink, no glow. */
+.radio-set {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: #121d28;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+.radio-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.radio-model { font-family: var(--font-display); font-weight: 700; font-size: 12px; color: var(--ink); }
+.radio-frequency { color: var(--warn); }
+
+.radio-screen {
+  position: relative;
+  border: 1px solid #24384c;
+  border-radius: 2px;
+  background: #081017;
+  min-height: 120px;
+}
+.radio-screen .colonel { display: block; width: 100%; height: 132px; }
+.colonel .screen-field { fill: #0b1620; }
+.colonel .shoulders, .colonel .neck { fill: #2c3f52; }
+.colonel .head, .colonel .ear { fill: #4a6579; }
+.colonel .hair { fill: #22303c; }
+.colonel .collar { fill: none; stroke: #1b2731; stroke-width: 2; }
+.colonel .tie { fill: #1b2731; }
+.colonel .brow, .colonel .nose { fill: none; stroke: #16232d; stroke-width: 2; stroke-linecap: round; }
+.colonel .mouth path { fill: #0b1620; stroke: #16232d; stroke-width: 1.5; opacity: 0; }
+.colonel .mouth-closed { fill: none; stroke-width: 2; }
+.radio-set:not(.is-transmitting) .mouth-closed { opacity: .85; }
+.radio-set.is-transmitting .mouth path { animation: speak .54s steps(1) 9; }
+.radio-set.is-transmitting .mouth-mid { animation-delay: .18s; }
+.radio-set.is-transmitting .mouth-open { animation-delay: .36s; }
+@keyframes speak {
+  0%, 32% { opacity: .9; }
+  33%, 99% { opacity: 0; }
+  100% { opacity: .9; }
+}
+
+.radio-scanlines { opacity: .55; }
+.radio-static { opacity: .45; }
+.radio-set:not(.is-live) .colonel .bust { opacity: .25; }
+.radio-set:not(.is-live) .radio-static, .radio-set:not(.is-live) .radio-scanlines { opacity: .12; }
+.radio-set:not(.is-live) .radio-screen { background: #060b11; }
+
+.radio-readout {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: #0b1620;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 8px;
+  min-height: 54px;
+}
+.radio-line { display: block; margin-bottom: 5px; }
+.radio-set.is-transmitting .radio-line {
+  animation: typeIn .42s steps(24) both;
+}
+@keyframes typeIn {
+  from { clip-path: inset(0 100% 0 0); opacity: .5; }
+  to { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+.radio-set.is-stale .radio-readout { color: var(--muted); }
+
+.radio-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.radio-controls #call-homebase {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.radio-controls #call-homebase:hover:not(:disabled) { border-color: var(--warn); color: var(--warn); }
+.radio-controls #call-homebase:disabled { opacity: .55; }
+.radio-controls #radio-why {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.radio-controls #radio-why:hover:not(:disabled) { color: var(--ink); border-color: var(--ink); }
+.radio-controls #radio-why:disabled { opacity: .45; }
+/* Chalk mark on the cards the transmission is about. */
+.slot.radio-mark, .card.radio-mark { outline: 2px dashed var(--warn); outline-offset: 3px; }
+.signal { display: flex; gap: 3px; margin-left: auto; }
+.signal i { width: 5px; height: 14px; background: #24384c; border-radius: 1px; }
+.signal i.lit { background: var(--warn); }
+.radio-set.is-stale .signal i { background: #1b2731; }
 
 .turn-panel {
   display: flex;
@@ -653,6 +762,8 @@ button { font: inherit; }
   .side { grid-template-columns: repeat(2, 1fr); }
   .line-zone { grid-template-columns: 74px 1fr 74px; }
   .hand { grid-template-columns: repeat(4, 118px); }
+  .radio-screen { min-height: 104px; }
+  .radio-screen .colonel { height: 108px; }
 }
 
 @media (max-width: 720px) {

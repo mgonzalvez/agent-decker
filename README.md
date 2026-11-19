@@ -17,13 +17,15 @@ HTML/CSS/JS served by GitHub Pages.
 
 ```bash
 python3 -m http.server 8000      # open http://127.0.0.1:8000
-node --test js/tests/*.test.mjs  # 157 tests: rules, invariants, campaign, UI, audio, table animation
+node --test js/tests/*.test.mjs  # 185 tests: rules, invariants, campaign, UI, audio, table animation, the advisor
 ```
 
 - `?seed=12345` gives a reproducible shuffle; **Replay this seed** re-runs the same game.
 - The game auto-saves to `localStorage` after every move, so refreshing resumes it.
 - **Learn → Training run** is a guided first mission (fixed seed) with a coach that gates each step.
 - **Undo** (or Ctrl+Z) rewinds any move made in the current turn.
+- **Homebase radio** (under the draw deck): flip **Link**, press **Call Homebase** or the **C** key, and the Colonel
+  reads the position and suggests a line of play. He marks the cards he means; he never presses a button for you.
 
 ## The turn, in five steps
 
