@@ -163,6 +163,7 @@ const UI = (function () {
       if (mark.knockOut === card.uid) extra += ' tut-knock';
       if (mark.exiting === card.uid) extra += ' tut-exit';
       if (isFresh() && radio.transmission.targets.indexOf(card.uid) >= 0) extra += ' radio-mark';
+      if (isFresh() && (radio.transmission.altTargets || []).indexOf(card.uid) >= 0) extra += ' radio-mark-alt';
       const payable = canAct && !state.faceDown[card.uid] && Engine.canInteract(state, registry, card).ok;
       if (payable) extra += ' can-interact';
       const slot = el('button', 'slot' + (state.faceDown[card.uid] ? ' face-down' : '') + extra);
@@ -527,10 +528,16 @@ const UI = (function () {
     if (!radio.advice || !isFresh()) return;
     const advice = radio.advice;
     const body = el('div', null);
-    body.appendChild(el('p', null, 'Homebase ranked every legal line of play from this position and took the one with the highest score: mission progress minus alarm, looked four turns ahead.'));
+    body.appendChild(el('p', null, 'Homebase ranked every legal line of play from this position and took the one with the highest score: mission progress minus alarm, looked four turns ahead. The hand plays itself — the decision is the belt.'));
+    const belt = advice.best.actions.filter(function (action) { return action.kind === 'interact'; });
+    const hand = advice.best.actions.filter(function (action) { return action.kind !== 'interact' && action.kind !== 'endTurn' && action.kind !== 'missionCheck'; });
     const list = el('ul', null);
-    advice.best.actions.forEach(function (action) { list.appendChild(el('li', null, actionText(action))); });
+    belt.forEach(function (action) { list.appendChild(el('li', null, actionText(action))); });
+    if (hand.length) list.appendChild(el('li', null, 'Play ' + hand.map(function (a) { return a.name || 'card'; }).join(', ') + ' — the order does not matter, and unspent resources evaporate at the refresh.'));
     body.appendChild(list);
+    if (advice.left && advice.left.length) {
+      body.appendChild(el('p', null, 'Left face up on the belt: ' + advice.left.map(function (r) { return r.name + ' (' + (r.slot + 1) + ', alarm ' + r.alarm + ')'; }).join(', ') + '. Homebase spent the interaction budget elsewhere.'));
+    }
     const exiting = state.line.filter(Boolean).pop();
     const exitAlarm = exiting && registry[exiting.defId] ? (registry[exiting.defId].alarm || 0) : 0;
     body.appendChild(el('p', null, 'Alarm at the end of this line: ' + advice.alarmAfter + ' of 50. The card on the exit right now, ' +

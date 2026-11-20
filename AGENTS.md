@@ -95,10 +95,13 @@ PLAN.md  AGENTS.md  README.md
 - **Training run** (`js/tutorial.js`): fixed-seed guided mission with a coach that gates each action;
   **How to play** is seven short screens plus the turn flowchart.
 - **Homebase radio** (`js/advisor.js` + `js/radio.js`, wired in `ui.js`): a field set under the
-  draw deck. `Link` keys the set up, `Call Homebase` (or `C`) runs the beam search over every
-  legal line of play for the position and transmits the best one; `Plain` swaps the slang for
-  the printed mechanics, `Full plan` spells out the whole turn instead of the decisive move.
-  The Colonel never presses a button — he chalk-marks the cards he is talking about. Advice goes
+  draw deck, with a hand-drawn CRT portrait of the Colonel (flat tonal planes, no outlines, in the
+  key of the table — `docs/ui-art-direction.md`). `Link` keys the set up, `Call Homebase` (or `C`)
+  runs the beam search over every legal line of play for the position and transmits the best one.
+  The advice is about the belt, never the hand: the Colonel names the obstacles in reach, the one he
+  wants, and what he leaves running. `Plain` swaps the slang for the printed mechanics, `Full plan`
+  names both belt moves instead of one. The Colonel never presses a button — he chalk-marks the
+  cards he is talking about (solid on the pick, dashed on the ones left running). Advice goes
   stale the instant the position changes. `Why?` opens the plan and its arithmetic in the zoom
   modal. Tuning bench: `node js/tests/advisor-sweep.mjs`; head-to-head vs casual play:
   `node js/tests/advisor-baseline.mjs`. Design record: `docs/radio-advisor-spec.md`.

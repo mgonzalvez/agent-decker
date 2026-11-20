@@ -452,7 +452,7 @@ const Advisor = (function () {
       payments.forEach(function (itemUid) {
         ['disarm', 'knockOut'].forEach(function (choice) {
           acts.push({
-            kind: 'interact', uid: card.uid, choice: choice, itemUid: itemUid, slot: i,
+            kind: 'interact', uid: card.uid, defId: card.defId, choice: choice, itemUid: itemUid, slot: i,
             name: def.name, type: def.obstacleType, alarm: def.alarm || 0,
             cost: check.parts, canPayResources: check.canPayResources
           });
@@ -462,7 +462,7 @@ const Advisor = (function () {
         [state.line[i - 1], state.line[i + 1]].forEach(function (n) {
           if (n && !state.faceDown[n.uid]) {
             acts.push({
-              kind: 'interact', uid: card.uid, choice: 'knockOutAdjacent', targetUid: n.uid,
+              kind: 'interact', uid: card.uid, defId: card.defId, choice: 'knockOutAdjacent', targetUid: n.uid,
               slot: i, name: def.name, type: def.obstacleType, alarm: def.alarm || 0,
               cost: check.parts, canPayResources: check.canPayResources
             });
@@ -585,6 +585,35 @@ const Advisor = (function () {
     return frontier;
   }
 
+  /* Every obstacle the agent could touch this turn, with the price of each way in.
+     This is the decision list: the Colonel's job is to talk about these, not about the
+     hand, which plays itself. `plan` is passed because playing the hand can make an
+     obstacle affordable that was not affordable a moment earlier. */
+  function reachableObstacles(state, registry, plan) {
+    plan = plan || [];
+    const out = [];
+    state.line.forEach(function (card, i) {
+      if (!card) return;
+      let afford = false;
+      try { afford = !!globalThis.Engine.canInteract(state, registry, card).ok; } catch (err) { afford = false; }
+      const inPlan = plan.some(function (a) { return a.kind === 'interact' && (a.uid === card.uid || a.targetUid === card.uid); });
+      if (!afford && !inPlan) return;
+      const def = registry[card.defId];
+      out.push({
+        uid: card.uid,
+        defId: card.defId,
+        name: def.name,
+        type: def.obstacleType,
+        slot: i,
+        alarm: def.alarm || 0,
+        exitsNext: i === LINE_SIZE - 1,
+        affordable: afford,
+        hasReward: !!(def.reward && (def.reward.resource || def.reward.effect))
+      });
+    });
+    return out;
+  }
+
   function signature(actions) {
     return actions.map(function (a) {
       return a.kind + ':' + (a.uid || '') + ':' + (a.choice || '') + ':' + (a.targetUid || '');
@@ -615,15 +644,33 @@ const Advisor = (function () {
       if (Math.abs(p.total - best.total) > 4) { alternative = p; break; }
     }
 
-    const targets = [];
+    /* The decision point is after the hand is played: that is when the resources exist,
+       so "in reach" must be measured on that position, not on the one before it. */
+    let decision = state;
     best.first.forEach(function (a) {
-      if (a.kind === 'interact' || a.kind === 'play') targets.push(a.uid);
+      if (a.kind === 'play' || a.kind === 'useItem' || a.kind === 'bin') decision = applyAction(decision, a, registry, missions);
     });
+    const reached = reachableObstacles(decision, registry, best.first);
+    const targets = [];
+    const adjacency = [];
+    best.first.forEach(function (a) {
+      if (a.kind !== 'interact') return;
+      targets.push(a.uid);
+      if (a.targetUid) adjacency.push(a.targetUid);   /* a knock-out next door takes the neighbour down */
+    });
+    const handled = new Set(targets.concat(adjacency));
+    /* The ones homebase deliberately leaves face up on the belt. They are part of the answer:
+       the turn is a choice between these cards, and the player should see the forgone ones. */
+    const left = reached.filter(function (r) { return !handled.has(r.uid); });
 
     return {
       best: { actions: best.first, state: best.state, score: best.total },
       alternative: alternative ? { actions: alternative.first, state: alternative.state, score: alternative.total } : null,
       targets: targets,
+      reached: reached,
+      left: left,
+      adjacency: adjacency,
+      interactionsLeft: decision.interactionsLeft,
       confidence: distinct.length > 1 ? Math.max(0, Math.min(1, (best.total - distinct[1].total) / 120)) : 1,
       alarmAfter: best.state.alarm,
       exposureAfter: exposure(best.state, registry),
@@ -641,7 +688,8 @@ const Advisor = (function () {
 
   return {
     advise, legalActions, applyAction, searchPlans, turnPlans, horizonScore, evaluate, exposure,
-    beltJammed, goalProfile, goalProgress, goalYield, poolPotential, goalShortfall, cardValue, WEIGHTS
+    reachableObstacles, beltJammed, goalProfile, goalProgress, goalYield, poolPotential, goalShortfall,
+    cardValue, WEIGHTS
   };
 })();
 

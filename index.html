@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent Decker — solo deckbuilding</title>
   <meta name="description" content="Play the five-mission Agent Decker campaign in your browser. An unofficial, static implementation of the solo deckbuilding game by Manuel Correia (CC BY-NC 4.0)." />
-  <link rel="icon" href="assets/favicon.png?v=45" />
-  <link rel="stylesheet" href="css/styles.css?v=45" />
+  <link rel="icon" href="assets/favicon.png?v=46" />
+  <link rel="stylesheet" href="css/styles.css?v=46" />
 </head>
 <body>
   <header class="topbar">
@@ -161,36 +161,78 @@
                 <span class="radio-frequency" id="radio-frequency">CH 4 · HOMEBASE</span>
               </div>
               <div class="radio-screen" id="radio-screen">
-                <svg class="colonel" id="colonel" viewBox="0 0 120 104" role="img" aria-hidden="true">
+                <svg class="colonel" id="colonel" viewBox="0 0 150 104" role="img" aria-hidden="true">
                   <defs>
                     <pattern id="crt-scan" width="3" height="3" patternUnits="userSpaceOnUse">
-                      <rect x="0" y="0" width="3" height="1" fill="rgba(0, 0, 0, .38)"/>
+                      <rect x="0" y="0" width="3" height="1" fill="rgba(0, 0, 0, .34)"/>
                     </pattern>
-                    <pattern id="crt-static" width="7" height="7" patternUnits="userSpaceOnUse">
-                      <rect x="0" y="1" width="1" height="1" fill="rgba(232, 241, 248, .22)"/>
-                      <rect x="4" y="5" width="1" height="1" fill="rgba(232, 241, 248, .14)"/>
+                    <pattern id="crt-static" width="4" height="4" patternUnits="userSpaceOnUse">
+                      <rect x="0" y="0" width="1" height="1" fill="rgba(232, 241, 248, .13)"/>
+                      <rect x="2" y="2" width="1" height="1" fill="rgba(232, 241, 248, .07)"/>
                     </pattern>
                   </defs>
-                  <rect class="screen-field" x="0" y="0" width="120" height="104"/>
+                  <rect class="screen-field" x="0" y="0" width="150" height="104"/>
+                  <!-- The Colonel: an officer in three-quarter light, read as tonal planes
+                     rather than outlines, the way the printed card art reads. -->
                   <g class="bust">
-                    <path class="shoulders" d="M2 104 L24 76 L96 76 L118 104 Z"/>
-                    <path class="collar" d="M42 76 L60 92 L78 76"/>
-                    <path class="tie" d="M57 78 L63 78 L61 99 L59 99 Z"/>
-                    <path class="neck" d="M51 60 L69 60 L69 78 L51 78 Z"/>
-                    <ellipse class="head" cx="60" cy="40" rx="23" ry="26"/>
-                    <path class="hair" d="M36 36 Q44 12 60 12 Q76 12 84 36 L84 42 L78 34 L60 25 L42 34 L36 42 Z"/>
-                    <path class="ear" d="M36 40 q-6 5 0 10 q6 -3 0 -10"/>
-                    <path class="ear" d="M84 40 q6 5 0 10 q-6 -3 0 -10"/>
-                    <path class="brow" d="M43 32 h13 M64 32 h13"/>
-                    <path class="nose" d="M59 36 l4 11 l-5 3"/>
+                    <!-- uniform: shoulders, lit plane, shadow plane -->
+                    <path class="shoulders" d="M2 104 L24 76 L50 70 L70 69 L90 70 L116 76 L148 104 Z"/>
+                    <path class="shoulder-lit" d="M2 104 L24 76 L50 70 L56 86 L28 104 Z"/>
+                    <path class="shoulder-shadow" d="M88 70 L116 76 L148 104 L90 104 Z"/>
+                    <path class="neck" d="M61 62 L79 62 L79 77 L61 77 Z"/>
+                    <path class="neck-shadow" d="M61 62 L79 62 L77 68 L63 68 Z"/>
+                    <path class="lapel" d="M61 70 L70 71 L65 88 L55 79 Z"/>
+                    <path class="lapel-lit" d="M79 70 L70 71 L75 88 L85 79 Z"/>
+                    <path class="tie" d="M68 73 L71 73 L70 92 L68 92 Z"/>
+                    <!-- head: mid tone, then the plane the lamp catches, then the plane it does not.
+                         The jaw tapers to the left: he is turned three-quarters to it. -->
+                    <path class="head" d="M52 38 C52 22 61 12 71 12 C81 12 90 22 90 38 C90 51 86 58 78 64 L68 67 L60 63 C54 58 52 50 52 38 Z"/>
+                    <path class="face-lit" d="M52 38 C52 22 61 12 71 12 L69 66 L60 63 C54 58 52 50 52 38 Z"/>
+                    <path class="face-mid" d="M66 14 C70 16 73 22 73 32 C73 45 71 55 68 64 L69 66 L66 14 Z"/>
+                    <path class="face-shadow" d="M71 12 C81 12 90 22 90 38 C90 51 86 58 78 64 L70 66 L71 12 Z"/>
+                    <!-- peaked cap -->
+                    <path class="cap" d="M45 30 C45 14 58 6 71 6 C84 6 97 14 97 30 Z"/>
+                    <path class="cap-lit" d="M52 11 C60 7 66 6 71 6 C77 6 84 9 89 13 L76 16 L60 15 Z"/>
+                    <path class="cap-band" d="M46 27 L96 27 L96 31 L46 31 Z"/>
+                    <path class="cap-visor" d="M49 31 L93 31 L90 38 L52 38 Z"/>
+                    <path class="cap-badge" d="M71 12 L75 17 L71 22 L67 17 Z"/>
+                    <path class="brim-shadow" d="M52 38 L90 38 L88 43 L54 43 Z"/>
+                    <path class="ear" d="M52 42 q-6 6 0 11 q6 -5 0 -11"/>
+                    <path class="temple" d="M52 40 L56 40 L55 47 L52 45 Z"/>
+                    <!-- face -->
+                    <path class="brow" d="M53 43 L66 42"/>
+                    <path class="brow" d="M74 42 L85 43"/>
+                    <ellipse class="eye" cx="59" cy="46" rx="5.4" ry="2.7"/>
+                    <ellipse class="eye" cx="80" cy="46" rx="5.4" ry="2.7"/>
+                    <path class="lid" d="M54 44 L64 44"/>
+                    <path class="lid-shadow" d="M75 44 L85 44"/>
+                    <path class="nose-shadow" d="M70 41 L74 41 L75 52 L70 54 L68 52 Z"/>
+                    <path class="nose-lit" d="M66 40 L70 40 L70 50 L68 51 Z"/>
+                    <path class="cheek-shadow" d="M76 49 C83 51 85 55 81 59 L76 57 Z"/>
+                    <path class="moustache" d="M59 54 L80 54 L78 57 L61 57 Z"/>
                     <g class="mouth">
-                      <path class="mouth-closed" d="M49 57 h22"/>
-                      <path class="mouth-mid" d="M49 54 q11 8 22 0 q-11 5 -22 0 Z"/>
-                      <path class="mouth-open" d="M48 52 q12 13 24 0 q-12 6 -24 0 Z"/>
+                      <path class="mouth-closed" d="M61 58 L77 58"/>
+                      <path class="mouth-mid" d="M61 57 L77 57 L75 60 L63 60 Z"/>
+                      <path class="mouth-open" d="M60 56 L78 56 L75 61 L63 61 Z"/>
                     </g>
+                    <path class="chin" d="M63 60 L75 60 L71 64 L67 64 Z"/>
+                    <!-- headset: band over the cap, boom mic at the mouth -->
+                    <path class="headset" d="M45 24 C42 32 43 42 49 47"/>
+                    <path class="headset" d="M49 47 C46 54 48 60 54 63"/>
+                    <ellipse class="mic" cx="56" cy="64" rx="3.6" ry="2.4"/>
+                    <!-- rank -->
+                    <path class="epaulette" d="M28 77 L50 70 L52 75 L30 82 Z"/>
+                    <path class="epaulette-shadow" d="M88 70 L110 77 L108 82 L86 75 Z"/>
+                    <path class="chevron" d="M32 79 L37 77 L42 79"/>
+                    <path class="chevron" d="M34 81 L39 79 L44 81"/>
+                    <!-- the light source: a rim along the left silhouette -->
+                    <path class="rim" d="M2 104 L24 76 L50 70 L61 69"/>
+                    <path class="rim" d="M45 30 C45 14 58 6 71 6"/>
+                    <path class="rim" d="M52 38 C52 22 61 12 71 6"/>
                   </g>
-                  <rect class="radio-static" x="0" y="0" width="120" height="104" fill="url(#crt-static)"/>
-                  <rect class="radio-scanlines" x="0" y="0" width="120" height="104" fill="url(#crt-scan)"/>
+                  <path class="signal-trace" d="M8 96 L15 96 L18 90 L21 101 L24 92 L27 96 L44 96"/>
+                  <rect class="radio-static" x="0" y="0" width="150" height="104" fill="url(#crt-static)"/>
+                  <rect class="radio-scanlines" x="0" y="0" width="150" height="104" fill="url(#crt-scan)"/>
                 </svg>
               </div>
               <div class="radio-readout" id="radio-readout" aria-live="polite">
@@ -207,7 +249,7 @@
                   <span class="switch-label">Plain</span>
                   <span class="switch-lever" aria-hidden="true"></span>
                 </button>
-                <button id="radio-plan" type="button" class="switch" role="switch" aria-checked="false" title="Full turn plan instead of the single key move">
+                <button id="radio-plan" type="button" class="switch" role="switch" aria-checked="false" title="Every belt move homebase wants, not just the key one">
                   <span class="switch-label">Full plan</span>
                   <span class="switch-lever" aria-hidden="true"></span>
                 </button>
@@ -301,16 +343,16 @@
     </nav>
   </footer>
 
-  <script src="js/state.js?v=45"></script>
-  <script src="js/engine.js?v=45"></script>
-  <script src="js/actions.js?v=45"></script>
-  <script src="js/advisor.js?v=45"></script>
-  <script src="js/radio.js?v=45"></script>
-  <script src="js/save.js?v=45"></script>
-  <script src="js/audio.js?v=45"></script>
-  <script src="js/table.js?v=45"></script>
-  <script src="js/tutorial.js?v=45"></script>
-  <script src="js/ui.js?v=45"></script>
-  <script src="js/main.js?v=45"></script>
+  <script src="js/state.js?v=46"></script>
+  <script src="js/engine.js?v=46"></script>
+  <script src="js/actions.js?v=46"></script>
+  <script src="js/advisor.js?v=46"></script>
+  <script src="js/radio.js?v=46"></script>
+  <script src="js/save.js?v=46"></script>
+  <script src="js/audio.js?v=46"></script>
+  <script src="js/table.js?v=46"></script>
+  <script src="js/tutorial.js?v=46"></script>
+  <script src="js/ui.js?v=46"></script>
+  <script src="js/main.js?v=46"></script>
 </body>
 </html>

@@ -121,6 +121,16 @@ Playing a card is free and unspent resources evaporate at refresh, so the plan a
 the whole hand first. The real decision — the only one worth radio chatter about — is which
 obstacle to spend the interaction on.
 
+`Advisor.advise()` also returns the decision list in the shape the Colonel speaks from:
+
+- `reached` — every obstacle the agent can touch this turn, with `slot`, `alarm`, `exitsNext` and
+  whether the hand can pay for it.
+- `targets` — the obstacles the plan interacts with, in order. These are the chalked cards.
+- `left` — the obstacles it deliberately leaves running, and therefore on the alarm meter.
+- `adjacency` — cards taken down by a knock-out next door.
+
+Every reachable obstacle is in one of the three, so nothing on the belt is silently ignored.
+
 ### Candidate enumeration (all legal, from the real engine)
 
 1. **Play hand cards.** Every card, including the option variants the engine needs
@@ -162,14 +172,13 @@ the player (Plan Ahead, Foresight, Just The Thing).
 
 ## 5. The voice: `js/radio.js` (built)
 
-The advisor emits a record:
+### The belt, not the hand
 
-```json
-{ "action": "interact", "choice": "knockOut",
-  "target": { "defId": "obs_security_camera", "type": "equipment", "slot": 5, "alarm": 8 },
-  "cost": { "stealth": 2, "fighting": 0, "flexible": 0 },
-  "confidence": 0.52 }
-```
+Player cards are played every turn whether the player thinks about them or not, so the Colonel
+does not read them out. He talks about the obstacles: how many are in reach, how many
+interactions there are, which one he wants, and what that leaves running. One sentence covers
+the hand ("Cash the hand first. It is free, and what is left burns at the refresh"). Chalk
+follows the same rule: solid on the recommended obstacle, dashed on the ones left face up.
 
 The voice layer renders it from a lexicon that converts internal names into field language:
 

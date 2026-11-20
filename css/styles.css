@@ -422,27 +422,58 @@ button { font: inherit; }
   min-height: 120px;
 }
 .radio-screen .colonel { display: block; width: 100%; height: 132px; }
-.colonel .screen-field { fill: #0b1620; }
-.colonel .shoulders, .colonel .neck { fill: #2c3f52; }
-.colonel .head, .colonel .ear { fill: #4a6579; }
-.colonel .hair { fill: #22303c; }
-.colonel .collar { fill: none; stroke: #1b2731; stroke-width: 2; }
-.colonel .tie { fill: #1b2731; }
-.colonel .brow, .colonel .nose { fill: none; stroke: #16232d; stroke-width: 2; stroke-linecap: round; }
-.colonel .mouth path { fill: #0b1620; stroke: #16232d; stroke-width: 1.5; opacity: 0; }
-.colonel .mouth-closed { fill: none; stroke-width: 2; }
-.radio-set:not(.is-transmitting) .mouth-closed { opacity: .85; }
+/* The portrait is built from flat tonal planes in the key of the table: no outlines,
+   no glow, no washes of colour. Three tones for the face, one for the uniform, one rim light. */
+.colonel .screen-field { fill: #081119; }
+.colonel .shoulders { fill: #16232c; }
+.colonel .shoulder-lit { fill: #33475a; }
+.colonel .shoulder-shadow { fill: #0d161d; }
+.colonel .neck { fill: #24333f; }
+.colonel .neck-shadow { fill: #0d161d; }
+.colonel .lapel { fill: #0d161d; }
+.colonel .lapel-lit { fill: #16232c; }
+.colonel .tie { fill: #081119; }
+.colonel .head { fill: #2b3e4b; }
+.colonel .face-lit { fill: #8ea6b8; }
+.colonel .face-mid { fill: #4d6679; opacity: .75; }
+.colonel .face-shadow { fill: #101b23; }
+.colonel .cap { fill: #1b2833; }
+.colonel .cap-lit { fill: #33475a; }
+.colonel .cap-band { fill: #0d161d; }
+.colonel .cap-visor { fill: #081119; }
+.colonel .cap-badge { fill: #a8bccb; }
+.colonel .brim-shadow { fill: #0f1a22; }
+.colonel .ear, .colonel .temple { fill: #33475a; }
+.colonel .brow { fill: none; stroke: #081119; stroke-width: 2.4; stroke-linecap: round; }
+.colonel .eye { fill: #081119; }
+.colonel .lid { fill: none; stroke: #d5e3ec; stroke-width: 1.4; opacity: .8; }
+.colonel .lid-shadow { fill: none; stroke: #6b8493; stroke-width: 1.2; opacity: .7; }
+.colonel .nose-shadow { fill: #101b23; }
+.colonel .nose-lit { fill: #a8bccb; }
+.colonel .cheek-shadow, .colonel .moustache { fill: #0f1a22; }
+.colonel .chin { fill: #101b23; }
+.colonel .headset { fill: none; stroke: #0d161d; stroke-width: 2.2; }
+.colonel .mic { fill: #0d161d; }
+.colonel .epaulette { fill: #33475a; }
+.colonel .epaulette-shadow { fill: #0d161d; }
+.colonel .chevron { fill: none; stroke: #d5e3ec; stroke-width: 1.3; opacity: .5; }
+.colonel .rim { fill: none; stroke: #c9d9e4; stroke-width: 1.5; opacity: .3; }
+.colonel .signal-trace { fill: none; stroke: #33475a; stroke-width: 1.4; opacity: .55; }
+.colonel .mouth path { fill: #081119; stroke: #081119; stroke-width: 1.5; opacity: 0; }
+.colonel .mouth-closed { fill: none; stroke-width: 1.8; }
+.radio-set:not(.is-transmitting) .mouth-closed { opacity: .9; }
 .radio-set.is-transmitting .mouth path { animation: speak .54s steps(1) 9; }
 .radio-set.is-transmitting .mouth-mid { animation-delay: .18s; }
 .radio-set.is-transmitting .mouth-open { animation-delay: .36s; }
+.radio-set.is-transmitting .signal-trace { stroke: #6f8ea0; opacity: .95; stroke-dasharray: 3 4; }
 @keyframes speak {
   0%, 32% { opacity: .9; }
   33%, 99% { opacity: 0; }
   100% { opacity: .9; }
 }
 
-.radio-scanlines { opacity: .55; }
-.radio-static { opacity: .45; }
+.radio-scanlines { opacity: .5; }
+.radio-static { opacity: .35; }
 .radio-set:not(.is-live) .colonel .bust { opacity: .25; }
 .radio-set:not(.is-live) .radio-static, .radio-set:not(.is-live) .radio-scanlines { opacity: .12; }
 .radio-set:not(.is-live) .radio-screen { background: #060b11; }
@@ -492,8 +523,9 @@ button { font: inherit; }
 }
 .radio-controls #radio-why:hover:not(:disabled) { color: var(--ink); border-color: var(--ink); }
 .radio-controls #radio-why:disabled { opacity: .45; }
-/* Chalk mark on the cards the transmission is about. */
-.slot.radio-mark, .card.radio-mark { outline: 2px dashed var(--warn); outline-offset: 3px; }
+/* Chalk marks: the move homebase recommends, and the ones it is talking you out of. */
+.slot.radio-mark, .card.radio-mark { outline: 2px solid var(--warn); outline-offset: 3px; }
+.slot.radio-mark-alt, .card.radio-mark-alt { outline: 1px dashed #4a6172; outline-offset: 3px; }
 .signal { display: flex; gap: 3px; margin-left: auto; }
 .signal i { width: 5px; height: 14px; background: #24384c; border-radius: 1px; }
 .signal i.lit { background: var(--warn); }

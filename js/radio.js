@@ -4,10 +4,15 @@
    No DOM, no rules engine, no randomness. The brain decides what to do; this layer
    decides how homebase says it.
 
+   The Colonel talks about the belt. The hand plays itself — every card in it is played
+   each turn and unspent resources evaporate, so reading the hand out loud is noise. The
+   only real decision is which obstacle to spend the interaction on, and what that leaves
+   face up on the conveyor. Every suggestion is tied to a card uid so the UI can light up
+   the belt.
+
    Two registers are generated from the same record:
      radio - thematic, clipped, spy-radio. Never uses printed rules vocabulary.
-     plain - the same advice in mechanics the rules use, for players who want it.
-   Every suggestion is tied to the card uid so the UI can light up the belt. */
+     plain - the same advice in mechanics the rules use, for players who want it. */
 const Radio = (function () {
   /* Printed name -> field language. The Colonel does not say "C.C.T.V. Room Door". */
   const FIELD_NAME = {
@@ -43,15 +48,17 @@ const Radio = (function () {
     obs_hawk: 'the hawk'
   };
 
-  /* Slot -> where the agent would look. Slot 5 is the exit chute. */
+  /* Slot -> where the agent would look. Slot 5 is the exit chute, slot 0 the entry end. */
   const POSITION = [
-    'just came in, far left',
+    'far left',
     'second from the left',
     'left of centre',
     'right of centre',
     'closing on the exit',
     'at the exit chute'
   ];
+
+  const NUMBER = ['none', 'one', 'two', 'three', 'four', 'five', 'six'];
 
   const OPENER = ['Agent.', 'Homebase.', 'Listen.', 'Report.', 'Agent, focus.'];
 
@@ -94,35 +101,27 @@ const Radio = (function () {
     return null;
   }
 
-  function playLine(action, def) {
-    const r = def.reward && def.reward.resource;
-    if (r && (r.stealth || r.fighting)) {
-      const bits = [];
-      if (r.stealth) bits.push(r.stealth + ' Stealth');
-      if (r.fighting) bits.push(r.fighting + ' Fighting');
-      return { radio: 'Use ' + def.name + '. That is ' + bits.join(' and ') + '.', plain: 'Play ' + def.name + ' for ' + bits.join(' and ') + '.' };
-    }
-    return { radio: 'Use ' + def.name + '.', plain: 'Play ' + def.name + '.' };
-  }
   function interactLine(action, def, state) {
     const where = position(action.slot);
     const name = fieldName(def.id, def);
     const pay = resourceText(action);
+    const at = where ? ', ' + where : '';
     if (action.choice === 'knockOut') {
+      const why = action.slot === 5 ? 'Face up at the chute, it pays out on the way.' : 'It stays, and raises nothing on the way out.';
       return {
-        radio: 'Take ' + name + ' ' + where + ' down. It raises nothing on the way out.',
+        radio: 'Take down ' + name + at + '. ' + why + ' Cost ' + pay + '.',
         plain: 'Interact with ' + def.name + ' (slot ' + (action.slot + 1) + ') and Knock Out. Cost: ' + pay + '.'
       };
     }
     if (action.choice === 'knockOutAdjacent') {
       return {
-        radio: 'Use ' + name + ' ' + where + ' to put the card beside it down.',
+        radio: 'Use ' + name + at + ' to put the card beside it down. Cost ' + pay + '.',
         plain: 'Interact with ' + def.name + ' (slot ' + (action.slot + 1) + ') to Knock Out the adjacent card. Cost: ' + pay + '.'
       };
     }
     const bonus = rewardText(def);
     return {
-      radio: 'Disarm ' + name + ' ' + where + '. ' + (bonus ? bonus.charAt(0).toUpperCase() + bonus.slice(1) + '.' : 'Nothing behind it, but it is off the belt.'),
+      radio: 'Disarm ' + name + at + '. ' + (bonus ? bonus.charAt(0).toUpperCase() + bonus.slice(1) + '.' : 'Nothing behind it, but it is off the belt.') + ' Cost ' + pay + '.',
       plain: 'Interact with ' + def.name + ' (slot ' + (action.slot + 1) + ') and Disarm. Cost: ' + pay + '.'
     };
   }
@@ -132,42 +131,68 @@ const Radio = (function () {
     const lines = [];
     const plain = [];
     const targets = [];
+    const altTargets = [];
 
+    const plan = advice.best.actions;
+    const beltMoves = plan.filter(function (a) { return a.kind === 'interact'; });
+    const housekeeping = plan.filter(function (a) { return a.kind === 'useItem' || a.kind === 'bin'; });
+    const reached = advice.reached || [];
+    const left = advice.left || [];
+    const moves = state.interactionsLeft || 1;
     const warning = dangerNote(state, registry);
-    lines.push(warning || OPENER[state.turn % OPENER.length]);
-    if (warning) plain.push(warning);
+    if (warning) { lines.push(warning); plain.push(warning); }
+    else lines.push(OPENER[state.turn % OPENER.length]);
 
-    /* Group the card plays into one sentence: the agent does not need a line per card. */
-    const plays = advice.best.actions.filter(function (a) { return a.kind === 'play' || a.kind === 'useItem' || a.kind === 'bin'; });
-    if (level === 'full') plays.forEach(function (a) { targets.push(a.uid); });
-    if (plays.length && level === 'full') {
-      const names = plays.map(function (a) { return a.name.toLowerCase(); });
-      const total = plays.reduce(function (sum, a) { return sum + (a.stealth || 0) + (a.fighting || 0); }, 0);
-      lines.push('Use ' + names.join(', ') + (total ? '. That gives you something to work with.' : '.'));
-      plain.push('Play ' + names.join(', ') + '.');
-    } else if (plays.length) {
-      lines.push('Cash the hand first, then work the belt.');
-      plain.push('Play the cards in hand, then interact.');
+    if (plan.some(function (a) { return a.kind === 'play'; })) {
+      lines.push('Cash the hand first. It is free, and what is left burns at the refresh.');
+      plain.push('Play every card in hand before spending an interaction.');
     }
 
-    advice.best.actions.forEach(function (action) {
-      if (action.kind === 'play' || action.kind === 'useItem' || action.kind === 'bin' || action.kind === 'endTurn') return;
-      if (action.kind === 'missionCheck') {
-        lines.push('That is the objective. Claim it before the refresh takes it away.');
-        plain.push('Mission Check: the goal is satisfied with what you have this turn.');
-        return;
-      }
+    /* Name the choice before the answer, when there is one. */
+    if (reached.length > 1 && beltMoves.length <= 2) {
+      lines.push('The belt offers ' + reached.length + ' of them; you have ' + (NUMBER[moves] || moves) + (moves === 1 ? ' move' : ' moves') + '.');
+      plain.push('Reachable: ' + reached.map(function (r) { return r.name + ' (slot ' + (r.slot + 1) + ')'; }).join(', ') + '. Interactions left: ' + moves + '.');
+    }
+
+    const shown = level === 'full' ? beltMoves.slice(0, 2) : beltMoves.slice(0, 1);
+    shown.forEach(function (action) {
       const def = findDef(registry, action.uid);
       const line = interactLine(action, def, state);
       lines.push(line.radio);
       plain.push(line.plain);
       targets.push(action.uid);
     });
-
-    if (!advice.best.actions.some(function (a) { return a.kind !== 'endTurn'; })) {
-      lines.push('Nothing worth doing. Hold the line and let the belt run.');
-      plain.push('No beneficial action this turn; end the turn.');
+    if (beltMoves.length > shown.length) {
+      lines.push('Then the rest of the belt, in the order homebase named it.');
+      plain.push('Then the remaining interactions in the order given.');
     }
+
+    if (housekeeping.length) {
+      const names = housekeeping.map(function (a) { return (a.name || 'that card').toLowerCase(); });
+      lines.push('Clear ' + names.join(' and ') + ' out of the game.');
+      plain.push(housekeeping.map(function (a) { return a.kind === 'bin' ? 'Bin ' + a.name : 'Use equipped ' + a.name; }).join('; ') + '.');
+    }
+
+    if (plan.some(function (a) { return a.kind === 'missionCheck'; })) {
+      lines.push('That is the objective. Claim it before the refresh takes it.');
+      plain.push('Mission Check: the goal is satisfied with what you have this turn.');
+    }
+
+    if (!beltMoves.length && !plan.some(function (a) { return a.kind === 'missionCheck'; })) {
+      lines.push('Nothing on the belt is worth a move. Hold the line and let it run.');
+      plain.push('No beneficial interaction this turn; end the turn.');
+    }
+
+    if (left.length) {
+      const worth = left.slice().sort(function (a, b) { return b.alarm - a.alarm; })[0];
+      lines.push('Homebase leaves ' + (left.length > 1
+        ? left.length + ' cards running — ' + fieldName(worth.defId) + ' among them, worth ' + worth.alarm + ' on the way out.'
+        : fieldName(worth.defId) + (worth.alarm ? ' — it costs ' + worth.alarm + ' on the way out.' : ' — nothing behind it.')));
+      plain.push('Left face up on the belt: ' + left.map(function (r) { return r.name; }).join(', ') + '.');
+    }
+    /* Chalk on everything the transmission is *not* recommending: the ones left running,
+       and the ones taken down by an adjacent knock-out. */
+    (left.map(function (r) { return r.uid; }).concat(advice.adjacency || [])).forEach(function (uid) { altTargets.push(uid); });
 
     /* The trade-off. If the only way to finish the mission is to let something expensive
        walk out of the belt, say so plainly and give the numbers. */
@@ -187,6 +212,8 @@ const Radio = (function () {
       text: lines,
       plain: plain,
       targets: targets,
+      altTargets: altTargets,
+      reached: reached.map(function (r) { return r.uid; }),
       tone: state.alarm >= 40 ? 'critical' : state.alarm >= 25 ? 'elevated' : 'steady',
       signal: advice.confidence
     };

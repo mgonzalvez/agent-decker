@@ -531,6 +531,25 @@ test('the Fast table switch turns the animation layer off', () => {
   assert.strictEqual(Table.isFast(), false, 'fast table off again');
 });
 
+test('the Colonel is a drawn portrait, not clip art', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const svg = (html.match(/<svg class="colonel"[\s\S]*?<\/svg>/) || [''])[0];
+  assert.ok(svg, 'the radio has a portrait');
+  ['shoulders', 'shoulder-lit', 'shoulder-shadow', 'lapel', 'face-lit', 'face-shadow', 'cap', 'headset', 'mic', 'chevron', 'rim',
+   'mouth-closed', 'mouth-mid', 'mouth-open'].forEach(function (part) {
+    assert.ok(svg.indexOf('class="' + part + '"') >= 0, 'the portrait is missing ' + part);
+  });
+  assert.ok(!/<circle/.test(svg), 'no cartoon circles: the face is built from tonal planes');
+  assert.ok(svg.indexOf('<g class="bust">') >= 0, 'the uniform is a set of planes, not a contour line');
+  assert.ok(/viewBox="0 0 150 104"/.test(svg), 'the portrait is framed');
+  const css = readFileSync(new URL('../../css/styles.css', import.meta.url), 'utf8');
+  ['shoulders', 'lapel', 'face-lit', 'cap', 'head', 'tie'].forEach(function (part) {
+    assert.ok(css.indexOf('.colonel .' + part + ' { fill: #') >= 0, part + ' is a flat fill in the key of the table');
+  });
+  assert.ok(css.indexOf('@keyframes speak') >= 0, 'the mouth has a speech cycle tied to the transmission');
+  assert.ok(css.indexOf('prefers-reduced-motion') >= 0, 'the portrait stills when the player asks for stillness');
+});
+
 test('line cards carry their uid so the table layer can track them', () => {
   const line = map['line'];
   assert.ok(line.children.some(function (c) { return c['data-uid']; }), 'line slots are addressable by uid');
@@ -826,9 +845,13 @@ test('a call transmits in lines and chalks the cards it means', () => {
   assert.ok(lines.every((line) => line.textContent.length <= 110), 'no line is a paragraph');
   assert.ok(playedSounds.includes('radioCall'), 'the set chirps when it keys up');
   assert.ok(map['radio']['_classes'].has('is-transmitting'), 'the mouth moves while it is on the air');
-  const chalked = map.hand.children.concat(map.line.children)
-    .filter((node) => (node.className || '').includes('radio-mark'));
-  assert.ok(chalked.length >= 1, 'the cards under discussion are marked');
+  const chalked = map.line.children.filter((node) => (node.className || '').includes('radio-mark'));
+  assert.ok(chalked.length >= 1, 'the belt carries the marks');
+  assert.ok(!map.hand.children.some((node) => (node.className || '').includes('radio-mark')),
+    'the hand is never chalked: player cards are not a decision');
+  const beltWords = ['belt', 'chute', 'Disarm', 'down'];
+  const copy = lines.map((line) => line.textContent).join(' ');
+  assert.ok(beltWords.some((w) => copy.includes(w)), 'the transmission is about the belt: ' + copy);
   assert.ok(!map['radio-why'].disabled, 'the reasoning is one click away');
 });
 

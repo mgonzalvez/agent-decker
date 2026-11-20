@@ -149,3 +149,31 @@ test('the search is fast enough to run on a button press', () => {
   Advisor.advise(state, registry, missions);
   assert.ok(Date.now() - start < 400, 'advice took too long for an interactive control');
 });
+
+test('the advisor reports every obstacle the agent can actually reach', () => {
+  for (let seed = 1; seed < 20; seed++) {
+    const state = fresh(seed * 53 + 17);
+    const reached = Advisor.reachableObstacles(state, registry);
+    const expected = state.line.filter(Boolean).filter((card) => {
+      try { return Engine.canInteract(state, registry, card).ok; } catch (err) { return false; }
+    }).map((card) => card.uid);
+    assert.deepStrictEqual(reached.map((r) => r.uid), expected, 'reachability list disagrees with the engine');
+    reached.forEach((r) => {
+      assert.ok(typeof r.alarm === 'number' && r.slot >= 0 && r.slot < 6, 'reachability entry is malformed: ' + JSON.stringify(r));
+    });
+  }
+});
+
+test('the plan never recommends more interactions than the agent has', () => {
+  for (let seed = 1; seed < 20; seed++) {
+    const state = fresh(seed * 61 + 7);
+    const advice = Advisor.advise(state, registry, missions);
+    const beltMoves = advice.best.actions.filter((a) => a.kind === 'interact');
+    assert.ok(beltMoves.length <= (state.interactionsLeft || 1),
+      'plan spends ' + beltMoves.length + ' interactions with only ' + state.interactionsLeft + ' available');
+    assert.ok(advice.targets.length === beltMoves.length, 'targets should be exactly the belt moves');
+    assert.ok(!advice.targets.some((uid) => advice.left.some((r) => r.uid === uid)), 'a card cannot be both taken and left');
+    const covered = new Set(advice.targets.concat((advice.left || []).map((r) => r.uid), advice.adjacency || []));
+    advice.reached.forEach((r) => assert.ok(covered.has(r.uid), 'homebase said nothing about ' + r.uid));
+  }
+});
