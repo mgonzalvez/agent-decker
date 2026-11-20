@@ -60,7 +60,7 @@ Legend: **OK** = implemented and matches the print · **FIXED** = wrong before t
 | Radio Tower | When Radio Tower appears, slide all person cards all the way next to it | every face-up person slides toward the tower and stops as close as it can get, never crossing it | **FIXED** |
 | Siren | When discarded, place every card in the line on the Obstacles Discard. Only raise the alarm for the Siren | on exit: line → obstacles discard, alarm only for the Siren; a **face-down** Siren does nothing (knocked-out cards ignore their effects) | **FIXED** |
 | Inspector | At the Line Scroll, Inspector flips the last card in the line face up. "When appears" effects activate | flip happens before the exit, so the flipped card does raise its alarm; appearance effect re-runs | OK **[I]** — see Q7 |
-| Dormitory | At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do | if the card at the exit is face-down the conveyor is **jammed**: nothing exits, no alarm; extra slides are blocked by a face-down card | **FIXED** — it used to remove the rightmost face-up card regardless |
+| Dormitory | At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do | the card at the end of the line **always** leaves (silently if it is face-down); a face-down card holds its slot and parks everything behind it | **FIXED (designer ruling, 2026-11-20)** — it used to stop the whole conveyor when the exit card was knocked out |
 | Sniper | Sniper can't be interacted with unless it's the only person in the line | counts face-up persons only (face-down cards ignore their type) | OK |
 | Watchtower | Increases the cost of adjacent cards by 2 | +2 to each face-up neighbour, in the resource type that card's cost is printed in | OK **[I]** — see Q12 |
 | Flammable Barrel | When you interact with Flammable Barrel, knock out the cards that are **adjacent** to it | both neighbours of the barrel are knocked out, using the slots captured **before** the barrel leaves the line; free of the interaction limit | **FIXED** — disarming used to knock out the wrong card |
@@ -95,7 +95,7 @@ Source: the BGE clarifications thread by rkonigsberg (with gr9yfox and the desig
 | Flammable Barrel's two knock-outs | Free; the barrel is the only interaction spent. | OK |
 | Clumsy Guard | A choice: interact with Clumsy Guard itself for 8 Fighting, **or** pay 8 Fighting to knock out an adjacent card for nothing. | OK |
 | Items acquired mid-turn | Their once-per-turn resources apply **immediately** (Map, Guard Uniform, Prisoner). | **FIXED** |
-| Knocked-out cards at the Line Scroll | They are still discarded ("Add the last card in the line to the obstacles discard") but raise **no** alarm. Dormitory is the exception: while it is face-up, face-down cards do not slide at all. | OK |
+| Knocked-out cards at the Line Scroll | They are still discarded ("Add the last card in the line to the obstacles discard") but raise **no** alarm. Dormitory is the exception to the *sliding*, never to the exit: while it is face-up, face-down cards do not slide, but the last card in the line always leaves. | OK |
 | Mission objectives | "Get 6 stealth" = play 6 stealth from hand to the Play Area. Objectives do **not** count against the interaction limit, and resources spent on obstacles cannot double-count toward the goal. | OK |
 | Bin | Purges any number of cards from the **hand** only; Bin itself is already in the Play Area, so it cannot bin itself. | OK |
 | Empty draw pile | Whenever a draw cannot be satisfied, shuffle the discard into the deck and draw the remainder. | OK |
@@ -111,8 +111,22 @@ Source: the BGE clarifications thread by rkonigsberg (with gr9yfox and the desig
 - At the Line Scroll the **rightmost occupied** card is discarded (alarm unless it is face-down), then every card
   slides one place right into any hole. Refill happens at Card Refresh and enters at the **left** end.
 - Adjacency (Watchtower +2, Clumsy Guard, Guard Dog) is measured in slots, so a hole breaks adjacency.
-- Dormitory (face-up in the line) means face-down cards do not slide: if one is sitting at the exit the conveyor is
-  jammed and nothing is discarded that scroll. Knock it out or disarm it and the effect stops.
+- Dormitory (face-up in the line) means face-down cards do not slide: they hold their slot, so anything behind
+  them is stuck, but the card at the end of the line always leaves. Disarm or knock out the Dormitory and the
+  whole stretch starts moving again.
 
 Confirmed rulings that this pass settled: Dormitory's effect only applies while it is in the line and face up; a
 Patrolling Guard that is already at the exit does leave the line on its extra step and raises its alarm.
+
+## 6. Designer playtest report (2026-11-20)
+
+Manuel Correia played the build and reported six things. What happened to each:
+
+| Report | Finding | Fix |
+|---|---|---|
+| Mission 4: the line stopped scrolling at the end of a turn, even after Retrace Steps | Dormitory was face-up with a knocked-out card at the exit. The engine read "face-down cards don't slide" as "nothing leaves the line", which is a softlock: a knocked-out card can never be interacted with again. | The exit card always goes to the obstacles discard (silently if face-down). Face-down cards still refuse to slide, so they park the stretch behind them. `js/engine.js lineScroll()` |
+| Training Run: "Exit training" does not get you out of it | The coach's own board overwrote the campaign save, so leaving training left you on the practice board with no way back. | The training run is never written to the resume slot; the board you were on is held and restored by **Back to my campaign**. |
+| After Mission 3 the banner still showed Mission One's goal | Not reproducible in this build (the mission slip and the coach both re-render on completion). A regression test now covers it. | `js/tests/ui.test.mjs` |
+| Yard Door / Throw a Rock: "Play this card" did nothing | The choice overlay was built after a "nothing to choose" guard that looked at the draw deck. With an empty deck the engine threw and the click silently failed. | The "X or Y" choice is asked before any pool is built, and only the options that are actually possible are offered. |
+| Resume after a reboot kept the resources but reset the hand and the alarm | The save slot could hold a stale state: a finished game was never cleared, and a state from an older build was resumed unchecked. | Game over clears the resume slot; loaded states are validated (shape + every card id resolves in the current registry) before they are restored; the save note names the mission and turn restored. |
+| Naming: "use Chloroform", not "use Infimary" | Half the UI named a card by its obstacle half even in the agent's hands. | Belt = obstacle name (Yard Door). Hand, Play Area, Equip Area, Bin, deck totals, the log and the radio = the top-half name (Throw a Rock). `Engine.agentName()` / `UI.itemName()` |

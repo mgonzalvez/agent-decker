@@ -30,7 +30,6 @@ const Advisor = (function () {
     alarm: 12,                 /* every alarm point is a score point, paid for good */
     exposure: 7,               /* alarm still live on the belt, weighted by urgency */
     urgency: [1.0, 0.72, 0.5, 0.36, 0.26, 0.18],   /* slots from the exit chute */
-    jam: 45,                   /* Dormitory + a face-down card at the exit: belt stops dead */
     sirenGift: 14,             /* Siren on the belt sweeps the line clean when she exits */
     inflation: 0.15,           /* Watchtower making its neighbours cost more */
     hand: 5,                   /* what the hand in front of you can produce */
@@ -102,21 +101,31 @@ const Advisor = (function () {
     return sum;
   }
 
-  /* Dormitory says face-down cards do not slide. If the card at the exit is face down
-     while the Dormitory is face up, nothing ever leaves the belt and the mission stalls. */
-  function beltJammed(state, registry) {
+  /* Dormitory says face-down cards do not slide. The belt still turns — the card
+     at the chute always leaves — but a face-down card in front of face-up cards
+     parks everything behind it, so those cards never reach the exit. */
+  function beltStalled(state, registry) {
     let dorm = false;
-    let exit = null;
+    let exit = -1;
     for (let i = state.line.length - 1; i >= 0; i--) {
       const card = state.line[i];
       if (!card) continue;
-      if (!exit) exit = card;
+      if (exit < 0) exit = i;
       if (!state.faceDown[card.uid]) {
         const e = registry[card.defId].effect;
         if (e && e.type === 'faceDownCardsDoNotScroll') dorm = true;
       }
     }
-    return dorm && exit && state.faceDown[exit.uid];
+    if (!dorm || exit < 0) return false;
+    for (let i = 0; i < exit; i++) {
+      const card = state.line[i];
+      if (!card || !state.faceDown[card.uid]) continue;
+      for (let j = 0; j < i; j++) {
+        const behind = state.line[j];
+        if (behind && !state.faceDown[behind.uid]) return true;
+      }
+    }
+    return false;
   }
 
   function sirenOnBelt(state, registry) {
@@ -247,7 +256,6 @@ const Advisor = (function () {
     parts.missions = (state.missionAlarms || []).length * WEIGHTS.missionComplete;
     if (state.gameOver === 'campaignComplete') parts.missions += WEIGHTS.missionComplete;
     parts.exposure = -exposure(state, registry);
-    parts.jam = beltJammed(state, registry) ? -WEIGHTS.jam : 0;
     parts.siren = sirenOnBelt(state, registry) ? WEIGHTS.sirenGift : 0;
     parts.inflation = -adjacentInflation(state, registry);
     parts.resource = (state.resources.stealth + state.resources.fighting) * WEIGHTS.resource;
@@ -360,7 +368,7 @@ const Advisor = (function () {
       let next = null;
       try { next = globalThis.Engine.playCard(s, card.uid, registry, playOptions(s, registry, card, goal)); } catch (err) { break; }
       if (!next) break;
-      acts.push({ kind: 'play', uid: card.uid, name: registry[card.defId].name, options: playOptions(s, registry, card, goal) });
+      acts.push({ kind: 'play', uid: card.uid, name: globalThis.Engine.agentName(registry[card.defId]), options: playOptions(s, registry, card, goal) });
       s = next;
     }
     return { state: s, acts: acts };
@@ -439,7 +447,7 @@ const Advisor = (function () {
     state.hand.forEach(function (card) {
       const def = registry[card.defId];
       playVariants(state, registry, card, goal).forEach(function (options) {
-        acts.push({ kind: 'play', uid: card.uid, name: def.name, options: options });
+        acts.push({ kind: 'play', uid: card.uid, name: globalThis.Engine.agentName(def), options: options });
       });
     });
 
@@ -474,13 +482,13 @@ const Advisor = (function () {
     state.equip.forEach(function (card) {
       const def = registry[card.defId];
       const e = def.reward && def.reward.effect;
-      if (e && e.type === 'usedCardToObstacleDiscard') acts.push({ kind: 'useItem', uid: card.uid, name: def.name });
+      if (e && e.type === 'usedCardToObstacleDiscard') acts.push({ kind: 'useItem', uid: card.uid, name: globalThis.Engine.agentName(def) });
     });
 
     if (state.bin && state.bin.remaining !== 0) {
       const zone = state.bin.source === 'discard' ? state.discard : state.hand;
       zone.forEach(function (card) {
-        acts.push({ kind: 'bin', uid: card.uid, name: registry[card.defId].name });
+        acts.push({ kind: 'bin', uid: card.uid, name: globalThis.Engine.agentName(registry[card.defId]) });
       });
     }
 
@@ -688,7 +696,7 @@ const Advisor = (function () {
 
   return {
     advise, legalActions, applyAction, searchPlans, turnPlans, horizonScore, evaluate, exposure,
-    reachableObstacles, beltJammed, goalProfile, goalProgress, goalYield, poolPotential, goalShortfall,
+    reachableObstacles, beltStalled, goalProfile, goalProgress, goalYield, poolPotential, goalShortfall,
     cardValue, WEIGHTS
   };
 })();

@@ -13,6 +13,16 @@ const Engine = (function () {
     return registry[card.defId];
   }
 
+  /* Every card in the game is printed with two names: the obstacle it is on the
+     belt (bottom half of the front) and the thing the agent gets from it (the top
+     half). While a card sits on the belt it is the obstacle; once it is in the
+     agent's deck it is the item. The designer's wording, so the log and the
+     board always agree with what the player is reading. */
+  function agentName(def) {
+    if (!def || def.isGoal) return def ? def.name : 'card';
+    return (def.reward && def.reward.name) ? def.reward.name : def.name;
+  }
+
   function rand(state) {
     state.rngState = (state.rngState * 1664525 + 1013904223) >>> 0;
     return state.rngState / 4294967296;
@@ -58,7 +68,7 @@ const Engine = (function () {
     state.sources = state.sources || [];
     state.sources.push({
       uid: source ? source.uid : null,
-      name: source ? source.name : 'resources',
+      name: source ? agentName(source) : 'resources',
       stealth: stealth,
       fighting: fighting
     });
@@ -279,7 +289,7 @@ const Engine = (function () {
     fireEquipPassive(state, registry, card);
     if (state.rules.quickHands) {
       state.interactionsLeft += 1;
-      log(state, 'agent', 'Quick Hands — ' + def(card, registry).name + ' equipped, +1 interaction');
+      log(state, 'agent', 'Quick Hands — ' + agentName(def(card, registry)) + ' equipped, +1 interaction');
     }
   }
 
@@ -323,7 +333,7 @@ const Engine = (function () {
     if (state.passives[card.uid]) return;
     state.passives[card.uid] = true;
     addResource(state, d.reward.resource, d);
-    log(state, 'agent', d.name + ' equipped — ' + resourceText(d.reward.resource));
+    log(state, 'agent', agentName(d) + ' equipped — ' + resourceText(d.reward.resource));
   }
 
   function applyEquipPassives(state, registry) {
@@ -446,12 +456,12 @@ const Engine = (function () {
         /* Printed as "X or Y" — the player must pick one of them. */
         if (options.choice === 'resource') {
           addResource(s, d.reward.resource, d);
-          log(s, 'agent', d.name + ' — ' + resourceText(d.reward.resource));
+          log(s, 'agent', agentName(d) + ' — ' + resourceText(d.reward.resource));
         } else if (options.choice === 'draw') {
           drawToHand(s, registry, e.n);
-          log(s, 'agent', d.name + ' — drew ' + e.n + ' card' + (e.n === 1 ? '' : 's') + ' instead of the resource');
+          log(s, 'agent', agentName(d) + ' — drew ' + e.n + ' card' + (e.n === 1 ? '' : 's') + ' instead of the resource');
         } else {
-          throw new Error(d.name + ' needs a choice: ' + resourceText(d.reward.resource) + ' or draw ' + e.n + ' card' + (e.n === 1 ? '' : 's'));
+          throw new Error(agentName(d) + ' needs a choice: ' + resourceText(d.reward.resource) + ' or draw ' + e.n + ' card' + (e.n === 1 ? '' : 's'));
         }
       } else {
         addResource(s, d.reward.resource, d);
@@ -471,7 +481,7 @@ const Engine = (function () {
           /* The purge is interactive: playing the card opens the Bin, and the
              player then bins as many cards as they want, one click at a time. */
           s.bin = { source: e.source === 'discard' ? 'discard' : 'hand', remaining: e.max === null ? -1 : e.max };
-          log(s, 'agent', d.name + ' — ' + (e.max === null
+          log(s, 'agent', agentName(d) + ' — ' + (e.max === null
             ? 'the Bin is open: purge as many cards as you like'
             : 'the Bin is open: purge up to ' + e.max + ' cards from your ' + e.source));
         } else if (e.type === 'discardToHand') {
@@ -500,7 +510,7 @@ const Engine = (function () {
             const slot = s.line.findIndex(function (c) { return !c; });
             s.line[slot < 0 ? 0 : slot] = target;
             event(s, 'moveCard', { card: target.uid, from: from, to: slot < 0 ? 0 : slot, reason: def(card, registry).name });
-            log(s, 'agent', def(card, registry).name + ' drags ' + def(target, registry).name + ' to the back of the line');
+            log(s, 'agent', agentName(def(card, registry)) + ' drags ' + def(target, registry).name + ' to the back of the line');
           }
         } else if (e.type === 'reshuffleObstacleDiscardIntoDeck') {
           s.obstacleDeck = shuffleInPlace(s.obstacleDeck.concat(s.obstacleDiscard), s);
@@ -534,7 +544,7 @@ const Engine = (function () {
           if (kept) {
             enterHand(s, registry, kept);
             event(s, 'draw', { card: kept.uid, from: 'deck' });
-            log(s, 'agent', d.name + ' — kept ' + def(kept, registry).name + ' from the top of the deck');
+            log(s, 'agent', agentName(d) + ' — kept ' + def(kept, registry).name + ' from the top of the deck');
           }
         } else if (e.type === 'swapDeckAndDiscard') {
           const t = s.deck;
@@ -556,7 +566,7 @@ const Engine = (function () {
       event(s, 'play', { card: card.uid, to: 'playArea' });
     }
 
-    log(s, 'agent', 'played ' + d.name + ' (' + (d.reward && d.reward.resource ? resourceText(d.reward.resource) : d.reward ? d.reward.name : 'no resource') + ')');
+    log(s, 'agent', 'played ' + agentName(d) + ' (' + (d.reward && d.reward.resource ? resourceText(d.reward.resource) : d.reward ? d.reward.name : 'no resource') + ')');
     return s;
   }
 
@@ -702,21 +712,18 @@ const Engine = (function () {
 
     if (rightmostIndex(s) < 0) return s;
     const stasis = hasFaceDownStasis(s, registry);
-    /* Line Scroll discards the last card of the line. A knocked-out card raises
-       no alarm on the way out (rules: "they won't raise the alarm during the
-       Line Scroll"), and Dormitory — the only card that says face-down cards
-       don't slide — keeps them in the line entirely. */
-    let exitingIndex = rightmostIndex(s);
-    if (stasis && s.faceDown[s.line[exitingIndex].uid]) {
-      log(s, 'line', 'the Dormitory jams the conveyor — the card at the exit is knocked out, so nothing slides');
-      return s;
-    }
-
+    /* Line Scroll always takes the last card of the line into the obstacles
+       discard. A knocked-out card still leaves — it just raises no alarm (rules:
+       "they won't raise the alarm during the Line Scroll"). Dormitory's "facedown
+       cards don't slide to the right" holds face-down cards in place; it never
+       stops the exit, so the conveyor can never jam. */
+    const exitingIndex = rightmostIndex(s);
     const exiting = s.line[exitingIndex];
     s.line[exitingIndex] = null;
     const shifted = [];
     for (let i = exitingIndex - 1; i >= 0; i--) {
       if (!s.line[i]) continue;
+      if (stasis && s.faceDown[s.line[i].uid]) continue;
       if (!s.line[i + 1]) {
         s.line[i + 1] = s.line[i];
         s.line[i] = null;
@@ -818,7 +825,7 @@ const Engine = (function () {
     if (s.bin.remaining > 0) s.bin.remaining -= 1;
     s.removed.push({ uid: card.uid, defId: card.defId });
     event(s, 'bin', { card: card.uid });
-    log(s, 'agent', def(card, registry).name + ' goes in the Bin — out of the game for good');
+    log(s, 'agent', agentName(def(card, registry)) + ' goes in the Bin — out of the game for good');
     return s;
   }
 
@@ -927,17 +934,17 @@ const Engine = (function () {
     if (!card) throw new Error('item is not equipped: ' + uid);
     const d = def(card, registry);
     const e = d.reward && d.reward.effect;
-    if (!e || e.type !== 'usedCardToObstacleDiscard') throw new Error(d.name + ' has no use action');
+    if (!e || e.type !== 'usedCardToObstacleDiscard') throw new Error(agentName(d) + ' has no use action');
     addResource(s, d.reward.resource, d);
     removeFrom(s, 'equip', card.uid);
     s.obstacleDiscard.push(card);
     event(s, 'play', { card: card.uid, to: 'obstacleDiscard' });
-    log(s, 'agent', 'used ' + d.name + ' — ' + (d.reward.resource ? resourceText(d.reward.resource) + ', and ' : '') + 'it goes to the obstacles discard');
+    log(s, 'agent', 'used ' + agentName(d) + ' — ' + (d.reward.resource ? resourceText(d.reward.resource) + ', and ' : '') + 'it goes to the obstacles discard');
     return s;
   }
 
   return {
-    clone, def, effectiveCost, costBreakdown, canAfford, canInteract, paymentOptions, goalSatisfied,
+    clone, def, agentName, effectiveCost, costBreakdown, canAfford, canInteract, paymentOptions, goalSatisfied,
     playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem, binCard,
     dealLine, event
   };

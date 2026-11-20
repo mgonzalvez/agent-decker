@@ -132,15 +132,23 @@ test('urgency weighting: the belt is scored by distance to the chute', () => {
     'an alarm card at the exit must weigh more than the same card at the far end');
 });
 
-test('a Dormitory with a face-down card at the exit is flagged as a jam', () => {
+test('a Dormitory with a face-down card in front of face-up cards reads as a stalled belt', () => {
   const state = stateWith({
+    line: [{ uid: 'obs_guard_0', defId: 'obs_guard' }, { uid: 'obs_guard_1', defId: 'obs_guard' },
+      { uid: 'obs_dormitory_0', defId: 'obs_dormitory' },
+      { uid: 'obs_guard_2', defId: 'obs_guard' }, null,
+      { uid: 'obs_security_camera_0', defId: 'obs_security_camera' }],
+    faceDown: { 'obs_guard_2': true }
+  });
+  assert.ok(Advisor.beltStalled(state, registry), 'the belt behind the parked card is frozen');
+  const notStalled = stateWith({ line: line(['obs_dormitory', 'obs_guard']) });
+  assert.ok(!Advisor.beltStalled(notStalled, registry), 'a live belt is not stalled');
+  const exitOnly = stateWith({
     line: [null, null, null, { uid: 'obs_dormitory_0', defId: 'obs_dormitory' }, null,
       { uid: 'obs_guard_0', defId: 'obs_guard' }],
     faceDown: { 'obs_guard_0': true }
   });
-  assert.ok(Advisor.beltJammed(state, registry), 'the belt should read as jammed');
-  const notJammed = stateWith({ line: line(['obs_dormitory', 'obs_guard']) });
-  assert.ok(!Advisor.beltJammed(notJammed, registry), 'a live belt is not jammed');
+  assert.ok(!Advisor.beltStalled(exitOnly, registry), 'a knocked-out card at the chute does not stop the belt');
 });
 
 test('the search is fast enough to run on a button press', () => {

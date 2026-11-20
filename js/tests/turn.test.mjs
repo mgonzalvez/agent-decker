@@ -427,7 +427,7 @@ test('disarming a card leaves a hole in the conveyor, and the hole travels right
   assertClean(state);
 });
 
-test('Dormitory holds face-down cards in the line, and only while it is in the line', () => {
+test('Dormitory parks face-down cards, but the card at the exit always leaves', () => {
   let state = placeInLine(fresh(76), [
     { uid: 'obs_guard_0', defId: 'obs_guard' },
     { uid: 'obs_dormitory_0', defId: 'obs_dormitory' },
@@ -435,16 +435,37 @@ test('Dormitory holds face-down cards in the line, and only while it is in the l
   ]);
   state.faceDown['obs_yard_door_0'] = true;
   state = Engine.lineScroll(state, registry);
-  assert.ok(lineCards(state).some(function (c) { return c.uid === 'obs_yard_door_0'; }), 'the Dormitory holds the knocked-out card in the line');
-  assert.strictEqual(state.obstacleDiscard.length, 0, 'nothing exits while the exit is blocked');
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_yard_door_0'; }), 'the card at the end of the belt exits, knocked out or not');
+  assert.strictEqual(state.alarm, 0, 'a knocked-out card raises no alarm on the way out');
   assertClean(state);
 
+  /* With Dormitory face up, a face-down card holds its slot and everything
+     behind it is stuck — the belt turns, but that stretch of it never moves. */
+  state = placeInLine(fresh(76), [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_dormitory_0', defId: 'obs_dormitory' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_guard_1', defId: 'obs_guard' },
+    { uid: 'obs_security_camera_0', defId: 'obs_security_camera' }
+  ]);
+  state.faceDown['obs_yard_door_0'] = true;
+  state = Engine.lineScroll(state, registry);
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_security_camera_0'; }), 'the card at the exit still goes');
+  assert.strictEqual(state.alarm, registry.obs_security_camera.alarm, 'and it raises its alarm');
+  const parked = state.line.findIndex(function (c) { return c && c.uid === 'obs_yard_door_0'; });
+  assert.ok(parked > 0, 'the parked card stays where it is');
+  assert.ok(state.line.slice(0, parked).some(function (c) { return c && c.uid === 'obs_guard_0'; }), 'the guard behind it cannot get past');
+  assertClean(state);
+
+  /* Disarm the Dormitory and the stretch of belt starts moving again. */
   state.interactionsLeft = 1;
   state.resources = { stealth: 0, fighting: 16 };
   state = Engine.interact(state, 'obs_dormitory_0', 'disarm', registry);
   state = Engine.lineScroll(state, registry);
-  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_yard_door_0'; }), 'with the Dormitory gone the knocked-out card slides out');
-  assert.strictEqual(state.alarm, 0, 'but it still raises no alarm');
+  const freed = state.line.findIndex(function (c) { return c && c.uid === 'obs_yard_door_0'; });
+  assert.ok(freed > 3, 'without the Dormitory the parked card slides toward the chute');
+  state = Engine.lineScroll(state, registry);
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_yard_door_0'; }), 'and it leaves the line on the next scroll');
   assertClean(state);
 });
 
@@ -853,22 +874,24 @@ test('a face-up Siren dumping the line raises the alarm for itself only', () => 
   assert.strictEqual(state.alarm, registry.obs_siren.alarm, 'only the Siren raises the alarm');
 });
 
-test('Dormitory jams the conveyor when the card at the exit is knocked out', () => {
+test('Dormitory parks the belt instead of jamming it', () => {
   let state = fresh(12);
   state.line = [
     { uid: 'obs_guard_0', defId: 'obs_guard' },
-    { uid: 'obs_dormitory_0', defId: 'obs_dormitory' },
     { uid: 'obs_guard_1', defId: 'obs_guard' },
+    { uid: 'obs_dormitory_0', defId: 'obs_dormitory' },
     { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
     { uid: 'obs_guard_2', defId: 'obs_guard' },
     { uid: 'obs_security_camera_0', defId: 'obs_security_camera' }
   ];
-  state.faceDown.obs_security_camera_0 = true;
+  state.faceDown.obs_yard_door_0 = true;
   state.obstacleDeck = [];
   state.obstacleDiscard = [];
   state = Engine.lineScroll(state, registry);
-  assert.strictEqual(lineCards(state).length, 6, 'nothing leaves the line');
-  assert.strictEqual(state.alarm, 0, 'no alarm is raised');
+  assert.strictEqual(lineCards(state).length, 5, 'the card at the exit leaves the line');
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_security_camera_0'; }), 'it goes to the obstacles discard');
+  assert.strictEqual(state.alarm, registry.obs_security_camera.alarm, 'a face-up exit card still raises its alarm');
+  assert.ok(state.line.some(function (c) { return c && c.uid === 'obs_guard_0'; }), 'the cards behind the parked card never reach the chute');
 });
 
 test('a mission goal printed as Fighting cannot be paid with Stealth', () => {

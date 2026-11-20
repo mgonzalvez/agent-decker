@@ -1,134 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
-
-class El {
-  constructor(tag) {
-    this.tag = tag;
-    this.className = '';
-    this.textContent = '';
-    this.children = [];
-    this.src = '';
-    this.alt = '';
-    this.type = '';
-    this.hidden = false;
-    this.style = {};
-    this.listeners = {};
-    this._classes = new Set();
-    this.classList = {
-      toggle: (name, on) => { if (on === undefined || on) this._classes.add(name); else this._classes.delete(name); },
-      add: (name) => this._classes.add(name),
-      remove: (name) => this._classes.delete(name),
-      contains: (name) => this._classes.has(name)
-    };
-  }
-  appendChild(child) {
-    this.children.push(child);
-    return child;
-  }
-  set innerHTML(value) {
-    if (value === '') this.children = [];
-  }
-  get innerHTML() {
-    return '';
-  }
-  addEventListener(type, fn) {
-    this.listeners[type] = fn;
-  }
-  setAttribute(name, value) {
-    this[name] = value;
-  }
-  click() {
-    if (this.listeners.click) this.listeners.click();
-  }
-  querySelector(selector) {
-    const wanted = selector.replace('.', '');
-    const direct = this.children.find((c) => c.className === wanted || c.tag === selector);
-    if (direct) return direct;
-    for (const child of this.children) {
-      const deeper = child.querySelector && child.querySelector(selector);
-      if (deeper) return deeper;
-    }
-    return null;
-  }
-}
-
-function textOf(node) {
-  return (node.textContent || '') + ' ' + (node.children || []).map(textOf).join(' ');
-}
-
-const ids = [
-  'mission-banner', 'alarm', 'alarm-label', 'alarm-value', 'alarm-mark', 'alarm-danger', 'seed', 'new-game', 'how-to-play',
-  'goal-card', 'goal-card-face', 'obstacle-deck', 'obstacle-deck-count', 'obstacle-discard-count',
-  'player-deck-count', 'player-discard-count', 'player-hand-count', 'player-deck-breakdown', 'line', 'hand',
-  'play-area', 'play-area-cards', 'equip-area', 'equip-area-cards', 'log',
-  'res-stealth', 'res-fighting', 'interactions-left', 'turn-number',
-  'mission-check', 'end-turn', 'overlay', 'modal', 'modal-title', 'modal-body',
-  'modal-choices', 'modal-close', 'save-status', 'about', 'sound-toggle', 'music-toggle', 'music-track', 'replay-seed', 'quick-hands', 'fast-table', 'bin', 'bin-count', 'bin-cards', 'bin-note', 'undo', 'training-run', 'coach', 'coach-title', 'coach-text', 'coach-how', 'coach-exit',
-  'radio', 'radio-screen', 'radio-readout', 'radio-link', 'call-homebase', 'radio-plain', 'radio-plan', 'radio-why', 'radio-signal', 'colonel', 'radio-frequency'
-];
-const map = {};
-ids.forEach((id) => { map[id] = new El('div'); });
-map['mission-banner'].appendChild(new El('span')).className = 'mission-name';
-map['mission-banner'].appendChild(new El('span')).className = 'mission-goal';
-map['goal-card-face'] = new El('button');
-map['goal-card-face'].className = 'goal-face';
-map['goal-card'].appendChild(map['goal-card-face']).appendChild(new El('img'));
-map['goal-card'].appendChild(new El('figcaption'));
-
-globalThis.document = {
-  createElement: (tag) => new El(tag),
-  getElementById: (id) => map[id],
-  querySelector: (selector) => {
-    const parts = selector.split(' ');
-    let node = map[parts[0].replace('#', '')];
-    for (let i = 1; i < parts.length && node; i++) node = node.querySelector(parts[i]);
-    return node || null;
-  },
-  addEventListener: (type, fn) => { documentListeners[type] = fn; }
-};
-
-const documentListeners = {};
-function fire(type, event) {
-  if (documentListeners[type]) documentListeners[type](event);
-}
-
-const require = createRequire(import.meta.url);
-globalThis.__storage = {
-  items: {},
-  getItem(key) { return this.items[key] === undefined ? null : this.items[key]; },
-  setItem(key, value) { this.items[key] = String(value); },
-  removeItem(key) { delete this.items[key]; }
-};
-globalThis.localStorage = globalThis.__storage;
-globalThis.Save = require('../save.js');
-const playedSounds = [];
-let chosenTrack = 'nightline';
-globalThis.Sound = {
-  play: function (name) { playedSounds.push(name); },
-  toggle: function () { return true; },
-  toggleMusic: function () { return true; },
-  setTension: function () {},
-  isMuted: function () { return false; },
-  tracks: function () { return [{ id: 'nightline' }, { id: 'waltz' }]; },
-  setTrack: function (id) { chosenTrack = id; return id; },
-  currentTrack: function () { return chosenTrack; }
-};
-globalThis.AgentDecker = require('../state.js');
-globalThis.Engine = require('../engine.js');
-globalThis.Actions = require('../actions.js');
-globalThis.Advisor = require('../advisor.js');
-globalThis.Radio = require('../radio.js');
-globalThis.Tutorial = require('../tutorial.js');
-globalThis.Table = require('../table.js');
-const UI = require('../ui.js');
-
-function lineCards(state) { return (state.line || []).filter(Boolean); }
-
-const cardDefs = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url))).cards;
-const missions = JSON.parse(readFileSync(new URL('../data/missions.json', import.meta.url))).missions;
-const registry = globalThis.AgentDecker.buildRegistry(cardDefs);
+import { map, textOf, fire, UI, cardDefs, missions, registry, lineCards, playedSounds } from './harness.mjs';
 
 test('the alarm counter reports its level and the ruler pointer tracks the value', () => {
   UI.init(cardDefs, missions, 42);
@@ -896,4 +769,106 @@ test('the Colonel is explained in How to Play and answers the C key', () => {
   UI.init(cardDefs, missions, 21);
   fire('keydown', { key: 'c' });
   assert.strictEqual(map['radio-readout'].children.length, 1, 'with the link off, C says nothing');
+});
+
+/* --- designer bug reports (2026-11-20) ------------------------------------- */
+
+test('a Yard Door with an empty draw deck still plays: the choice comes first', () => {
+  UI.init(cardDefs, missions, 4);
+  const state = UI.getState();
+  state.hand = [{ uid: 'obs_yard_door_0', defId: 'obs_yard_door' }];
+  state.deck = [];
+  state.discard = [];
+  UI.setState(state);
+  const button = map['hand'].children[0].children.find((b) => b.className === 'play-btn');
+  button.click();
+  const labels = map['modal-choices'].children.map((b) => b.textContent);
+  assert.ok(labels.some((l) => l.indexOf('Take 1 Fighting') >= 0), 'Throw a Rock offers its Fighting');
+  assert.ok(!labels.some((l) => l.indexOf('Draw 1 card') >= 0), 'with nothing left to draw the draw is not offered');
+  map['modal-choices'].children.find((b) => b.textContent.indexOf('Take 1 Fighting') >= 0).click();
+  const after = UI.getState();
+  assert.strictEqual(after.resources.fighting, 1, 'the resource is paid');
+  assert.strictEqual(after.hand.length, 0, 'the card left the hand');
+});
+
+test('the hand and the Equip Area read the top half of the card, the belt the bottom half', () => {
+  UI.init(cardDefs, missions, 4);
+  const state = UI.getState();
+  state.hand = [{ uid: 'obs_yard_door_0', defId: 'obs_yard_door' }, { uid: 'obs_infimary_0', defId: 'obs_infimary' }];
+  UI.setState(state);
+  const captions = map['hand'].children.map((fig) => fig.children.find((c) => c.tag === 'figcaption').textContent);
+  assert.deepStrictEqual(captions, ['Throw a Rock', 'Chloroform'], 'the agent calls the card by the thing it got');
+  const label = map['hand'].children[0].children.find((b) => b.className === 'play-btn')['aria-label'];
+  assert.strictEqual(label, 'Play Throw a Rock from your hand');
+  map['hand'].children[0].children.find((b) => b.className === 'play-btn').click();
+  map['modal-choices'].children.find((b) => b.textContent.indexOf('Take 1 Fighting') >= 0).click();
+  const played = UI.getState().log.slice(-1)[0].text;
+  assert.ok(played.indexOf('Throw a Rock') >= 0, 'the mission log uses the item name: ' + played);
+  const belt = UI.getState().line.filter(Boolean)[0];
+  assert.ok(textOf(map['line']).indexOf(registry[belt.defId].name) >= 0, 'the belt still names the obstacle');
+});
+
+test('the training run never overwrites the campaign, and Exit training gives it back', () => {
+  UI.init(cardDefs, missions, 42);
+  map['hand'].children[0].children.find((b) => b.className === 'play-btn').click();
+  const left = JSON.parse(JSON.stringify(UI.getState()));
+  assert.ok(globalThis.Save.loadGame(), 'the campaign was saved before the coach started');
+  map['training-run'].click();
+  assert.strictEqual(UI.getState().seed, 19, 'the coach runs on its own fixed board');
+  assert.ok(UI.getState().tutorial, 'the coach is on');
+  assert.ok(map['coach-exit'].textContent === 'Back to my campaign', 'the exit says where it goes');
+  assert.strictEqual(globalThis.Save.loadGame().state.seed, 42, 'the training run does not clobber the save');
+  map['coach-exit'].click();
+  const back = UI.getState();
+  assert.strictEqual(back.seed, 42, 'Exit training returns to the board you left');
+  assert.ok(!back.tutorial, 'and the coach is off');
+  assert.strictEqual(map['coach'].hidden, true, 'the coach panel is gone');
+  assert.strictEqual(back.playArea.length, left.playArea.length, 'the position is exactly as it was');
+});
+
+test('the mission slip and the coach follow the mission the agent is on', () => {
+  UI.init(cardDefs, missions, 42);
+  map['training-run'].click();
+  const state = UI.getState();
+  state.resources = { stealth: 6, fighting: 0 };
+  state.sources = [];
+  UI.setState(state);
+  map['mission-check'].click();
+  assert.strictEqual(UI.getState().missionIndex, 1, 'Mission One is closed');
+  assert.strictEqual(map['mission-banner'].querySelector('.mission-name').textContent, 'Mission Two');
+  assert.strictEqual(map['mission-banner'].querySelector('.mission-goal').textContent, 'Goal: Get 6 Fighting & the Guard Uniform');
+  assert.strictEqual(map['mission-banner'].querySelector('.mission-letter').textContent, 'C');
+  const coach = map['coach-title'].textContent + ' ' + map['coach-text'].textContent;
+  assert.ok(coach.indexOf('Mission One is a warm-up') < 0, 'the coach stops quoting a mission that is done');
+  assert.ok(coach.indexOf('Training complete') >= 0, 'it tells the agent the training is over');
+  assert.ok(!map['coach'].hidden, 'the coach is still on the board during the training run');
+});
+
+test('a game over clears the resume slot so a dead run cannot come back', () => {
+  UI.init(cardDefs, missions, 31);
+  const state = UI.getState();
+  state.alarm = 49;
+  state.line = [null, null, null, null, null, { uid: 'obs_guard_0', defId: 'obs_guard' }];
+  UI.setState(state);
+  map['end-turn'].click();
+  assert.strictEqual(UI.getState().gameOver, 'alarm', 'the alarm hit fifty');
+  assert.strictEqual(globalThis.Save.loadGame(), null, 'nothing is left to resume');
+});
+
+test('a resume restores the whole position, not just part of it', () => {
+  UI.init(cardDefs, missions, 71);
+  const state = UI.getState();
+  state.alarm = 23;
+  state.resources = { stealth: 7, fighting: 12 };
+  state.sources = [{ uid: 'obs_guard_0', name: 'Guard', stealth: 0, fighting: 2 }];
+  state.hand = [{ uid: 'obs_hide_0', defId: 'start_hide' }];
+  UI.setState(state);
+  UI.init(cardDefs, missions);
+  const back = UI.getState();
+  assert.strictEqual(back.alarm, 23, 'the alarm comes back where it was');
+  assert.strictEqual(back.resources.stealth, 7, 'so do the resources');
+  assert.strictEqual(back.resources.fighting, 12);
+  assert.strictEqual(back.hand.length, 1, 'and the hand is the hand you had');
+  assert.strictEqual(String(map['alarm-value'].textContent), '23');
+  assert.strictEqual(String(map['res-stealth'].textContent), '7');
 });

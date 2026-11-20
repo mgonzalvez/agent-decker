@@ -30,7 +30,11 @@ guide: what is true *now* and how to change it.
 - **Alarm:** 0–50, resets each mission. **50 = game over.**
 - **The Line:** six slots, conveyor. A disarmed card leaves a hole; cards slide right to fill holes;
   new obstacles enter at the left at Card Refresh. Adjacency is measured in slots, so a hole breaks
-  it. The line is dealt from the right.
+  it. The line is dealt from the right. The card at the exit **always** leaves (silently if knocked
+  out) — Dormitory stops face-down cards from sliding, it never jams the belt.
+- **Two names, one card:** the belt calls a card the obstacle (Yard Door), the agent's side calls it the
+  top-half item (Throw a Rock). `Engine.agentName()` and `UI.itemName()` are the only places that choose
+  which name is spoken.
 - **Interact:** pay the printed cost → **Disarm** (to the Play Area, or the Equip Area if it has a
   KEEP icon) or **Knock Out** (face down in place: no alarm, type and effect ignored). 1 interaction
   per turn initially; mission rewards raise the limit.
@@ -64,7 +68,7 @@ PLAN.md  AGENTS.md  README.md
 ## Conventions
 
 - **No frameworks, no build step, no `package.json`.** Vanilla HTML/CSS/JS, committed files only.
-  `node --test js/tests/*.test.mjs` is the whole toolchain (184 tests).
+  `node --test js/tests/*.test.mjs` is the whole toolchain (195 tests).
 - **`engine.js` is pure:** state in → new state out. No DOM, no `Math.random` (injectable seeded RNG).
   The UI reads state; it never mutates rules.
 - **Data-driven cards.** A new effect = a descriptor in `cards.json` + one handler in the engine.

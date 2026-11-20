@@ -248,7 +248,7 @@ const Radio = (function () {
   function dangerNote(state, registry) {
     if (state.alarm >= 50) return 'Alarm is at fifty. That is the end of the line, agent.';
     if (state.alarm >= 40) return 'Alarm is ' + state.alarm + '. One more mistake and homebase loses you.';
-    if (globalThis.Advisor.beltJammed(state, registry)) return 'The belt is jammed. Nothing is moving. Sort that out first.';
+    if (globalThis.Advisor.beltStalled(state, registry)) return 'Dormitory has the belt locked. A knocked-out card is parked in front of the line and nothing behind it is moving.';
     return null;
   }
 

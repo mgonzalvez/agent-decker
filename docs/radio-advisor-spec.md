@@ -155,7 +155,6 @@ they can be swept without touching logic:
 | `missionComplete` | Banked missions. Completing one ends the turn, so the belt never scrolls. |
 | `alarm` | Every alarm point, banked or current, is a score point. |
 | `exposure` | Alarm still live on the belt, weighted by distance to the chute (1.0 at the exit, 0.18 at the far end). Face-down cards contribute nothing. |
-| `jam` | Dormitory face up with a face-down card at the exit: the belt stops and the mission stalls. |
 | `sirenGift` | The Siren dumps the whole line to the discard with alarm only for herself. Leaving her on the belt is a feature, not a threat. |
 | `inflation` | Watchtower makes its neighbours cost 2 more. |
 | `pool` | Goal resources the deck can realistically produce in a hand (average quality × hand size). Pruning junk with the Bin raises it. This is the term that makes the agent build a deck instead of only mopping the belt. |

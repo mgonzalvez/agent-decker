@@ -91,7 +91,7 @@ These are the calls the engine makes where the printed rules are silent. Flagged
 - **[I] Mission 3 goal.** Checked as `hand.length >= 7` at Mission Check.
 - **[I] Keycard / Chloroform / E.M.P. (`discardToInteract`).** "Place <item> in your discard to interact with a person/equipment" is read as: the item **replaces the resource cost** of one interaction with a matching obstacle type (the interaction is still Disarm or Knock Out, and still consumes the turn's interaction). The item moves Equip Area → discard immediately. Requires a designer check: the printed wording could instead mean "in addition to paying the cost".
 - **[I] Inspector (`flipLastLineCardFaceUp`).** The flip happens **before** the exiting card leaves the line, so a knocked-out card that Inspector flips face up *does* raise its alarm on exit — that is the only reading that makes the effect do anything. "'When appears' effects activate" is implemented as re-running the card's appearance effect.
-- **[I] Dormitory (`faceDownCardsDoNotScroll`). "At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do." Implemented as: while Dormitory is face-up in the line, the card that leaves the line is the **rightmost face-up** card; face-down cards hold their position. Without this, knocked-out cards would leave the line and Mission 5 ("knock out the six cards in the line") would be unwinnable with only three interactions per turn. **(Revised 2026-11-15: see §10 — the conveyor now jams when the card at the exit is face-down, and an extra slide is blocked if a face-down card sits in its way.)**
+- **[I] Dormitory (`faceDownCardsDoNotScroll`). "At the Line Scroll, facedown cards don't slide to the right. Faceup cards still do." Implemented as: while Dormitory is face-up in the line, the card that leaves the line is the **rightmost face-up** card; face-down cards hold their position. Without this, knocked-out cards would leave the line and Mission 5 ("knock out the six cards in the line") would be unwinnable with only three interactions per turn. **(Revised 2026-11-15: see §10 — the conveyor now jams when the card at the exit is face-down, and an extra slide is blocked if a face-down card sits in its way.) (Revised again 2026-11-20, designer ruling: see §11 — the exit never jams.)**
 - **[I] Clumsy Guard (`knockOutAdjacentInsteadOfInteract`).** You pay Clumsy Guard's cost, it stays in the line, and an **adjacent** card is knocked out instead. Only cards orthogonally adjacent in the line are legal targets; the engine rejects anything else.
 - **[I] Hand size.** The "draw four (or five)" rule caps the hand at the *start* of the turn; cards drawn mid-turn (Yard Door, Patrolling Guard, Laser Hall, Siren) can push it higher. The invariant therefore only flags implausibly large hands (> 12), not a hand above the draw size.
 - **[I] Line size during a turn.** Disarming removes a card from the line and the line is only refilled at Card Refresh, so the line can be shorter than 6 mid-turn. The invariant now checks "at most 6", not "exactly 6".
@@ -104,7 +104,7 @@ Full card-by-card table in `docs/card-effect-audit.md`. What changed in the engi
 - **Flammable Barrel** captures the two neighbour slots *before* disarm removes it, so it knocks out the cards that were actually beside it. The knock-outs are free of the interaction limit (Q9).
 - **Patrolling Guard** knocked out face-down loses its extra slide (face-down cards ignore their type and effect).
 - **Siren** knocked out face-down no longer dumps the line on exit.
-- **Dormitory** jams the conveyor: if the card at the exit is face-down nothing leaves the line and no alarm is raised; a face-down card also blocks a Patrolling Guard's extra step.
+- **Dormitory** holds face-down cards in place: a face-down card also blocks a Patrolling Guard's extra step. (It no longer stops the exit — see §11.)
 - **Mission goals are type-specific.** Mission 1 (blue 6) is Stealth, Mission 2 (red 6) is Fighting, Mission 4 (combined glyph, 18) is any mix. Stealth could previously satisfy the Fighting goals.
 - **Plan Ahead** now keeps exactly one of the three scouted cards in hand and puts the other two back in a chosen order.
 - **Optic Camouflage**'s printed 4 Stealth is now granted when the item is used from the Equip Area (Q5).
@@ -113,6 +113,26 @@ Full card-by-card table in `docs/card-effect-audit.md`. What changed in the engi
 **The line is a six-slot conveyor** (`state.line` has six entries; an empty slot is `null`): a disarmed card leaves a hole, the rightmost *occupied* card is discarded at the Line Scroll, everything then slides one place right to fill the hole, and new obstacles enter at the left end at Card Refresh. Adjacency (Watchtower, Clumsy Guard, Guard Dog) is measured in slots, so a hole breaks adjacency. Rulings from the BoardGameGeek clarification thread are recorded in `docs/card-effect-audit.md` §4.
 
 ---
+
+## 11. Designer playtest fixes (2026-11-20)
+
+Manuel Correia played the build and filed six reports. The engine-facing changes:
+
+- **The exit never jams.** "Add the last card in the line to the obstacles discard" is not a slide. The rightmost
+  occupied slot always empties, quietly if the card there is face-down. Dormitory's "facedown cards don't slide"
+  only holds those cards in place, so a face-down card parks the stretch behind it. The old reading — nothing moves
+  at all when the exit card is knocked out — was a softlock in Mission 4, because a knocked-out card can never be
+  interacted with again.
+- **Two names, one card.** On the belt a card is the obstacle (Yard Door); in the agent's hands it is the item
+  printed on the top half (Throw a Rock). `Engine.agentName(def)` and `UI.itemName(def)` are the only places that
+  decide which name is used; nothing else hard-codes a card name.
+- **"X or Y" is always asked before anything else.** A card with an `alternative` reward throws if it is played
+  without a choice. The UI now asks for the choice before looking at the draw deck, and only offers the options
+  that are actually possible (no "draw a card" when the deck and discard are both empty).
+- **The training run is not the game.** A practice board is never written to the resume slot, and `Exit training`
+  restores the campaign position the player stepped away from.
+- **Resume is validated.** A game over clears the resume slot, and a loaded state is only restored if its shape and
+  every card id resolve against the current registry.
 
 *[Cn]* = designer clarification #n from the 2025-09-30 session. See `docs/video-validation.md` for the full validation report.
 

@@ -15,10 +15,19 @@ const UI = (function () {
 
   function defOf(card) { return registry[card.defId]; }
 
-  /* An equipped item is named after the thing it gives you (Infimary carries
-   the Chloroform), which is what the player reads on the card front. */
+  /* A card printed on the belt carries two names: the obstacle it is (bottom half
+     of the front) and the thing the agent gets from it (top half). On the belt we
+     call it the obstacle; in the agent's deck we call it the item. That is how the
+     designer reads the card, so the board should read the same way. */
   function itemName(def) {
+    if (!def || def.isGoal) return def ? def.name : 'card';
     return (def.reward && def.reward.name) ? def.reward.name : def.name;
+  }
+
+  /* On the belt the card is the obstacle; in the agent's hands it is the item. */
+  function zoneLabel(card, zone) {
+    const def = defOf(card);
+    return zone === 'line' ? def.name : itemName(def);
   }
 
   function typeLabel(def) {
@@ -41,6 +50,7 @@ const UI = (function () {
      rewind. Only moves inside the current turn are rewindable. */
   let undoStack = [];
   let openMenus = [];
+  let trainingReturn = null;   /* the campaign board the training run stepped away from */
   const UNDO_LIMIT = 20;
 
   function defIdFromUid(uid) {
@@ -65,7 +75,7 @@ const UI = (function () {
     previous.events = [];
     state = previous;
     if (typeof window !== 'undefined') window.gameState = state;
-    if (typeof Save !== 'undefined') Save.saveGame(state);
+    if (typeof Save !== 'undefined' && !state.tutorial) Save.saveGame(state);
     if (typeof Sound !== 'undefined') Sound.play('undo');
     closeOverlay();
     render();
@@ -76,7 +86,7 @@ const UI = (function () {
   function cardAlt(def) {
     if (def.set === 'starting') return def.name;
     if (def.isGoal) return def.name + ' — goal: ' + def.goalText;
-    return def.name + ' — ' + def.obstacleType + ', cost ' + (def.cost ? (def.cost.either ? def.cost.either + ' any mix' : (def.cost.stealth || 0) + ' stealth / ' + (def.cost.fighting || 0) + ' fighting') : '') + ', alarm ' + def.alarm;
+    return itemName(def) + ' (from the ' + def.name + ') — ' + def.obstacleType + ', cost ' + (def.cost ? (def.cost.either ? def.cost.either + ' any mix' : (def.cost.stealth || 0) + ' stealth / ' + (def.cost.fighting || 0) + ' fighting') : '') + ', alarm ' + def.alarm;
   }
 
   function thumb(card, zone) {
@@ -85,7 +95,7 @@ const UI = (function () {
     div.setAttribute('data-uid', card.uid);
     const face = el('button', 'thumb-face');
     face.type = 'button';
-    face.setAttribute('aria-label', 'Zoom ' + defOf(card).name);
+    face.setAttribute('aria-label', 'Zoom ' + itemName(defOf(card)));
     const img = el('img');
     img.src = defOf(card).art[0];
     img.alt = cardAlt(defOf(card));
@@ -192,14 +202,14 @@ const UI = (function () {
       fig.setAttribute('data-uid', card.uid);
       const face = el('button', 'card-face');
       face.type = 'button';
-      face.setAttribute('aria-label', 'Zoom ' + def.name);
+      face.setAttribute('aria-label', 'Zoom ' + itemName(def));
       const img = el('img');
       img.src = def.art[0];
       img.alt = cardAlt(def);
       face.appendChild(img);
       face.addEventListener('click', function () { openCard(card, 'hand'); });
       fig.appendChild(face);
-      const caption = el('figcaption', null, def.name);
+      const caption = el('figcaption', null, itemName(def));
       fig.appendChild(caption);
       if (state.bin && !state.gameOver) {
         fig.appendChild(el('span', 'card-effect', effectSummary(def)));
@@ -207,7 +217,7 @@ const UI = (function () {
       const button = el('button', 'play-btn');
       button.type = 'button';
       button.textContent = 'Play';
-      button.setAttribute('aria-label', 'Play ' + def.name + ' from your hand');
+      button.setAttribute('aria-label', 'Play ' + itemName(def) + ' from your hand');
       button.disabled = !allowed('play');
       button.addEventListener('click', function () { playCard(card); });
       fig.appendChild(button);
@@ -215,9 +225,9 @@ const UI = (function () {
         const binButton = el('button', 'bin-btn');
         binButton.type = 'button';
         binButton.textContent = 'Bin';
-        binButton.title = 'Remove ' + def.name + ' from the game for good';
+        binButton.title = 'Remove ' + itemName(def) + ' from the game for good';
         binButton.addEventListener('click', function () {
-          apply(Engine.binCard(state, registry, card.uid), def.name + ' binned', 'bin', true);
+          apply(Engine.binCard(state, registry, card.uid), itemName(def) + ' binned', 'bin', true);
         });
         fig.appendChild(binButton);
       }
@@ -228,7 +238,7 @@ const UI = (function () {
   function breakdown(cards) {
     const counts = {};
     cards.forEach(function (card) {
-      const name = defOf(card).name;
+      const name = itemName(defOf(card));
       counts[name] = (counts[name] || 0) + 1;
     });
     return Object.keys(counts).map(function (name) { return name + ' ×' + counts[name]; }).join(' · ') || 'empty';
@@ -245,6 +255,8 @@ const UI = (function () {
     coach.hidden = false;
     document.getElementById('coach-title').textContent = p.title;
     document.getElementById('coach-text').textContent = p.text;
+    const exit = document.getElementById('coach-exit');
+    if (exit) exit.textContent = trainingReturn ? 'Back to my campaign' : 'Exit training';
     if (p.id === 'finished' && !document.getElementById('coach-campaign')) {
       const button = el('button', 'play-btn');
       button.id = 'coach-campaign';
@@ -341,9 +353,9 @@ const UI = (function () {
         const fig = el('figure', 'card card-bin');
         const img = el('img');
         img.src = def.art[0];
-        img.alt = def.name + ' (binned)';
+        img.alt = itemName(def) + ' (binned)';
         fig.appendChild(img);
-        fig.appendChild(el('figcaption', null, def.name));
+        fig.appendChild(el('figcaption', null, itemName(def)));
         cards.appendChild(fig);
       });
     }
@@ -355,15 +367,15 @@ const UI = (function () {
           const fig = el('figure', 'card card-bin card-bin-pick');
           const img = el('img');
           img.src = def.art[0];
-          img.alt = def.name + ' in the discard';
+          img.alt = itemName(def) + ' in the discard';
           fig.appendChild(img);
-          fig.appendChild(el('figcaption', null, def.name));
+          fig.appendChild(el('figcaption', null, itemName(def)));
           fig.appendChild(el('span', 'card-effect', effectSummary(def)));
           const pick = el('button', 'bin-btn');
           pick.type = 'button';
           pick.textContent = 'Bin';
           pick.addEventListener('click', function () {
-            apply(Engine.binCard(state, registry, card.uid), def.name + ' binned', 'bin', true);
+            apply(Engine.binCard(state, registry, card.uid), itemName(def) + ' binned', 'bin', true);
           });
           fig.appendChild(pick);
           cards.appendChild(fig);
@@ -418,6 +430,17 @@ const UI = (function () {
 
   /* ---------- homebase radio ---------- */
   const radio = { link: false, plain: false, fullPlan: false, transmission: null, advice: null, stamp: '', transmitting: false, idle: 'Homebase is on the frequency. Press call when you need it.', timer: null };
+
+  function resetRadio() {
+    radio.link = false;
+    radio.plain = false;
+    radio.fullPlan = false;
+    radio.transmission = null;
+    radio.advice = null;
+    radio.stamp = '';
+    radio.transmitting = false;
+    if (radio.timer) clearTimeout(radio.timer);
+  }
 
   function positionStamp() {
     return [state.turn, state.alarm, state.missionIndex, state.interactionsLeft,
@@ -617,7 +640,7 @@ const UI = (function () {
   function openZoom(def, caption) {
     const body = el('div', 'zoom-detail');
     if (caption) body.appendChild(el('p', 'zoom-caption', caption));
-    openOverlay(def.name, body, [], def.art[0], true);
+    openOverlay(itemName(def), body, [], def.art[0], true);
   }
 
   function areaCaption(def, zone) {
@@ -698,8 +721,14 @@ const UI = (function () {
     updateUndoButton();
 
     if (typeof Save !== 'undefined') {
-      if (state.gameOver) Save.recordScore(state);
-      Save.saveGame(state);
+      if (state.gameOver) {
+        Save.recordScore(state);
+        Save.clearGame();      /* a finished run is never resumable */
+      } else if (!state.tutorial) {
+        /* the practice board is not written to the save slot, so leaving the coach
+           always lands back on the game you were actually playing */
+        Save.saveGame(state);
+      }
     }
     if (typeof Sound !== 'undefined') {
       if (sound) Sound.play(sound);
@@ -708,7 +737,9 @@ const UI = (function () {
       if (state.gameOver && state.gameOver !== 'campaignComplete') Sound.play('gameOver');
     }
 
-    setSaveNote(state.gameOver ? 'game over — nothing saved' : 'game saved locally');
+    setSaveNote(state.gameOver ? 'game over — nothing saved'
+      : state.tutorial ? 'training run — not saved'
+      : 'game saved locally');
     closeOverlay();
     render();
     animateTable(state, before);
@@ -732,7 +763,33 @@ const UI = (function () {
     const def = defOf(card);
     const choice = Actions.needsChoice(def);
     if (!choice) {
-      apply(Actions.play(state, card.uid, registry), def.name + ' played', 'play', true);
+      apply(Actions.play(state, card.uid, registry), itemName(def) + ' played', 'play', true);
+      return;
+    }
+
+    /* "X or Y" printed on the top half: the agent picks one of the two. This does
+       not depend on the draw deck, so it is asked before the pool is built — a
+       Yard Door with an empty deck used to throw and do nothing at all. */
+    if (choice.kind === 'choice') {
+      const picks = [];
+      const res = def.reward.resource;
+      if (res && (res.stealth || res.fighting)) {
+        picks.push({
+          label: 'Take ' + [res.stealth ? res.stealth + ' Stealth' : '', res.fighting ? res.fighting + ' Fighting' : ''].filter(Boolean).join(' + '),
+          action: function () { apply(Actions.play(state, card.uid, registry, { choice: 'resource' }), itemName(def) + ' played', 'play', true); }
+        });
+      }
+      if (def.reward.effect && def.reward.effect.type === 'draw' && (state.deck.length || state.discard.length)) {
+        picks.push({
+          label: 'Draw ' + def.reward.effect.n + ' card' + (def.reward.effect.n === 1 ? '' : 's'),
+          action: function () { apply(Actions.play(state, card.uid, registry, { choice: 'draw' }), itemName(def) + ' played', 'play', true); }
+        });
+      }
+      if (!picks.length) {
+        apply(Actions.play(state, card.uid, registry, { choice: 'resource' }), itemName(def) + ' played', 'play', true);
+        return;
+      }
+      openOverlay(itemName(def), choice.label, picks, def.art[0]);
       return;
     }
 
@@ -744,26 +801,7 @@ const UI = (function () {
       : state.deck.slice(-(choice.n || 5)).reverse();
 
     if (!pool.length) {
-      apply(Actions.play(state, card.uid, registry), def.name + ' played (nothing to choose)', 'play', true);
-      return;
-    }
-
-    if (choice.kind === 'choice') {
-      const picks = [];
-      const res = def.reward.resource;
-      if (res && (res.stealth || res.fighting)) {
-        picks.push({
-          label: 'Take ' + [res.stealth ? res.stealth + ' Stealth' : '', res.fighting ? res.fighting + ' Fighting' : ''].filter(Boolean).join(' + '),
-          action: function () { apply(Actions.play(state, card.uid, registry, { choice: 'resource' }), def.name + ' played', 'play', true); }
-        });
-      }
-      if (def.reward.effect && def.reward.effect.type === 'draw') {
-        picks.push({
-          label: 'Draw ' + def.reward.effect.n + ' card' + (def.reward.effect.n === 1 ? '' : 's'),
-          action: function () { apply(Actions.play(state, card.uid, registry, { choice: 'draw' }), def.name + ' played', 'play', true); }
-        });
-      }
-      openOverlay(def.name, choice.label, picks, def.art[0]);
+      apply(Actions.play(state, card.uid, registry), itemName(def) + ' played (nothing to choose)', 'play', true);
       return;
     }
 
@@ -777,7 +815,7 @@ const UI = (function () {
             ? (keep === c.uid ? ' — kept' : '')
             : (at >= 0 ? ' — position ' + (at + 1) : '');
           return {
-            label: (keep === c.uid ? '✓ ' : '') + defOf(c).name + tag,
+            label: (keep === c.uid ? '✓ ' : '') + itemName(defOf(c)) + tag,
             action: function () {
               if (choice.kind === 'keep') {
                 if (keep === c.uid) keep = null;
@@ -794,19 +832,19 @@ const UI = (function () {
             : (order.length === pool.length ? 'Put them back in this order' : 'Cancel'),
           action: function () {
             if (choice.kind === 'keep') {
-              if (!keep) { apply(Actions.play(state, card.uid, registry), def.name + ' played (nothing kept)', 'play', true); return; }
+              if (!keep) { apply(Actions.play(state, card.uid, registry), itemName(def) + ' played (nothing kept)', 'play', true); return; }
               const rest = pool.filter(function (c) { return c.uid !== keep; });
               const back = order.filter(function (u) { return u !== keep; });
               if (back.length !== rest.length) {
                 rest.forEach(function (c) { if (back.indexOf(c.uid) < 0) back.push(c.uid); });
               }
-              apply(Actions.play(state, card.uid, registry, { keep: keep, order: back }), def.name + ' played', 'play', true);
+              apply(Actions.play(state, card.uid, registry, { keep: keep, order: back }), itemName(def) + ' played', 'play', true);
             } else {
-              apply(Actions.play(state, card.uid, registry, order.length === pool.length ? { order: order } : {}), def.name + ' played', 'play', true);
+              apply(Actions.play(state, card.uid, registry, order.length === pool.length ? { order: order } : {}), itemName(def) + ' played', 'play', true);
             }
           }
         });
-        openOverlay(def.name, choice.label, options);
+        openOverlay(itemName(def), choice.label, options);
       }
       redrawOrder();
       return;
@@ -814,10 +852,10 @@ const UI = (function () {
 
     if (choice.single) {
       const options = pool.map(function (c) {
-        return { label: defOf(c).name, action: function () { apply(Actions.play(state, card.uid, registry, { uid: c.uid }), def.name + ' played', 'play', true); } };
+        return { label: zoneLabel(c, choice.kind), action: function () { apply(Actions.play(state, card.uid, registry, { uid: c.uid }), itemName(def) + ' played', 'play', true); } };
       });
-      options.push({ label: 'Cancel', action: function () { apply(Actions.play(state, card.uid, registry), def.name + ' played', 'play', true); } });
-      openOverlay(def.name, choice.label, options);
+      options.push({ label: 'Cancel', action: function () { apply(Actions.play(state, card.uid, registry), itemName(def) + ' played', 'play', true); } });
+      openOverlay(itemName(def), choice.label, options);
       return;
     }
 
@@ -832,9 +870,9 @@ const UI = (function () {
       });
       options.push({
         label: 'Done',
-        action: function () { apply(Actions.play(state, card.uid, registry, { cards: picked }), def.name + ' played', 'play', true); }
+        action: function () { apply(Actions.play(state, card.uid, registry, { cards: picked }), itemName(def) + ' played', 'play', true); }
       });
-      openOverlay(def.name, choice.label, options);
+      openOverlay(itemName(def), choice.label, options);
     }
 
     function toggle(uid) {
@@ -934,7 +972,7 @@ const UI = (function () {
   function openCard(card, zone) {
     const def = defOf(card);
     if (zone === 'hand') {
-      openOverlay(def.name, describe(def, card), [{ label: 'Play this card', action: function () { playCard(card); } }], def.art[0]);
+      openOverlay(itemName(def), describe(def, card), [{ label: 'Play this card', action: function () { playCard(card); } }], def.art[0]);
       return;
     }
     const check = Engine.canInteract(state, registry, card);
@@ -1015,32 +1053,43 @@ const UI = (function () {
   }
 
   function startTraining() {
+    /* The training run is a practice board with a fixed seed. It never eats the
+       campaign you were playing: the board you stepped away from is kept and
+       restored when you leave the coach. */
+    if (state && !state.tutorial && !state.gameOver) trainingReturn = JSON.parse(JSON.stringify(state));
+    resetRadio();
     undoStack = [];
     state = AgentDecker.createInitialState(Object.keys(registry).map(function (id) { return registry[id]; }), missions, TRAINING_SEED);
     state.tutorial = true;
     if (typeof window !== 'undefined') window.gameState = state;
-    if (typeof Save !== 'undefined') Save.clearGame();
     render();
-    setSaveNote('training run');
+    animateTable(state, {});
+    setSaveNote(trainingReturn ? 'training run — your campaign board is waiting' : 'training run');
   }
 
   function exitTraining() {
     if (!state) return;
-    state.tutorial = false;
+    if (trainingReturn) {
+      state = trainingReturn;
+      trainingReturn = null;
+    } else {
+      state.tutorial = false;
+    }
+    undoStack = [];
+    radio.transmission = null;
+    radio.advice = null;
+    radio.stamp = '';
+    if (radio.timer) clearTimeout(radio.timer);
+    if (typeof window !== 'undefined') window.gameState = state;
+    if (typeof Save !== 'undefined') Save.saveGame(state);
     render();
-    setSaveNote('training off — the real campaign');
+    setSaveNote('back to your campaign');
   }
 
   function start(seed) {
     undoStack = [];
-    radio.link = false;
-    radio.plain = false;
-    radio.fullPlan = false;
-    radio.transmission = null;
-    radio.advice = null;
-    radio.stamp = '';
-    radio.transmitting = false;
-    if (radio.timer) clearTimeout(radio.timer);
+    trainingReturn = null;
+    resetRadio();
     const fromUrl = typeof window !== 'undefined' && window.location
       ? Number(new URLSearchParams(window.location.search).get('seed'))
       : 0;
@@ -1063,16 +1112,27 @@ const UI = (function () {
     } catch (err) { /* storage unavailable */ }
   }
 
+  function resumable(record) {
+    if (!record || !record.state) return null;
+    const s = record.state;
+    if (!s || !Array.isArray(s.line) || !Array.isArray(s.hand) || !Array.isArray(s.deck) ||
+        !Array.isArray(s.obstacleDeck) || !s.resources || typeof s.alarm !== 'number') return null;
+    const cards = s.line.filter(Boolean).concat(s.hand, s.deck, s.discard, s.playArea, s.equip,
+      s.saved || [], s.obstacleDeck, s.obstacleDiscard, s.missionDeck);
+    if (cards.some(function (card) { return !card || !registry[card.defId]; })) return null;
+    return s;
+  }
+
   function init(cardDefs, missionList, seed) {
     registry = AgentDecker.buildRegistry(cardDefs);
     restoreTableSpeed();
     missions = missionList;
-    const saved = typeof Save !== 'undefined' ? Save.loadGame() : null;
-    if (!seed && saved && saved.state) {
-      state = saved.state;
+    const saved = typeof Save !== 'undefined' ? resumable(Save.loadGame()) : null;
+    if (!seed && saved) {
+      state = saved;
       if (typeof window !== 'undefined') window.gameState = state;
       render();
-      setSaveNote('resumed a saved game');
+      setSaveNote('resumed ' + missions[state.missionIndex].name + ', turn ' + state.turn);
     } else {
       start(seed);
     }
@@ -1153,7 +1213,8 @@ const UI = (function () {
         { label: 'Holes stay open', text: 'Disarming a card leaves an empty slot. The cards to its left slide right into the hole at the next Line Scroll.' },
         { label: 'Adjacency is by slot', text: 'Effects that talk about "adjacent" cards use the slots, so a hole breaks the link.' },
         { label: 'Special movers', text: 'Patrolling Guard slides two slots per scroll. Guard Dog slides right until it is next to the first person on its right. Radio Tower pulls every person toward itself.' },
-        { label: 'Dormitory jams it', text: 'While Dormitory is face up, face-down cards do not slide. If one is sitting at the exit, nothing leaves the line that turn and no alarm is raised.' }
+        { label: 'Dormitory parks cards', text: 'While Dormitory is face up, face-down cards do not slide. The card at the exit still leaves the line — silently if it is knocked out — but a face-down card parks everything behind it.' },
+        { label: 'Two names, one card', text: 'Every obstacle card prints the obstacle on the bottom half and the item it gives you on the top half. On the belt it is the obstacle (Yard Door); in your deck it is the item (Throw a Rock).' }
       ]
     },
     {
@@ -1164,7 +1225,7 @@ const UI = (function () {
         { label: 'KEEP items', text: 'A card with a KEEP icon goes to the Equip Area and stays there. Its once-per-turn bonus fires the moment it is equipped. Spending an item for its effect sends it to the discard; draw it again and you can equip it once more.' },
         { label: 'The Bin', text: 'Waste Room purges any number of cards from your hand, Flammable Barrel up to two from your discard. Binned cards are out of the game for good.' },
         { label: 'Undo', text: 'Undo in the top bar (or Ctrl+Z) rewinds any move you made this turn. It cannot rewind a finished turn.' },
-        { label: 'Training run', text: 'The coach only gates the first mission. Exit training at any time to play the real campaign from the same board.' }
+        { label: 'Training run', text: 'The coach gates the first mission only. Training runs on its own board, so "Exit training" puts you back on the game you were playing; the coach never overwrites your saved campaign.' }
       ]
     },
     {
