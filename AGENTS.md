@@ -68,7 +68,7 @@ PLAN.md  AGENTS.md  README.md
 ## Conventions
 
 - **No frameworks, no build step, no `package.json`.** Vanilla HTML/CSS/JS, committed files only.
-  `node --test js/tests/*.test.mjs` is the whole toolchain (195 tests).
+  `node --test js/tests/*.test.mjs` is the whole toolchain (197 tests).
 - **`engine.js` is pure:** state in → new state out. No DOM, no `Math.random` (injectable seeded RNG).
   The UI reads state; it never mutates rules.
 - **Data-driven cards.** A new effect = a descriptor in `cards.json` + one handler in the engine.
@@ -76,6 +76,8 @@ PLAN.md  AGENTS.md  README.md
   cost {stealth, fighting, either}, alarm, keep, reward, effect, sound, missionLetter`.
 - **House rules are opt-in** and documented in `js/data/effects-notes.md`. Never make a deviation the
   default.
+- **Game over is terminal.** `Engine.finished(state)` guards every action, and `refresh`/`endTurn` return an
+  unchanged board once the run is over — no phantom refill on a dead belt.
 - **Cache token:** every asset in `index.html` carries the same `?v=NN`. Bump it when CSS/JS changes;
   a test fails if the tokens disagree.
 - **Credit is mandatory** (CC BY-NC 4.0): "Agent Decker by Manuel Correia — gamesbymanuel.com" in the

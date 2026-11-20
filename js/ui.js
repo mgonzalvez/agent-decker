@@ -113,7 +113,7 @@ const UI = (function () {
       if (effect && effect.type === 'discardToInteract') {
         div.appendChild(el('span', 'equip-note', itemName(d) + ' — works on ' + effect.targetType));
       }
-      if (effect && effect.type === 'usedCardToObstacleDiscard') {
+      if (effect && effect.type === 'usedCardToObstacleDiscard' && !state.gameOver) {
         const button = el('button', 'use-btn');
         button.type = 'button';
         button.textContent = 'Use';
@@ -194,6 +194,7 @@ const UI = (function () {
   }
 
   function renderHand() {
+    const over = !!state.gameOver;
     const hand = document.getElementById('hand');
     hand.innerHTML = '';
     state.hand.forEach(function (card) {
@@ -218,7 +219,7 @@ const UI = (function () {
       button.type = 'button';
       button.textContent = 'Play';
       button.setAttribute('aria-label', 'Play ' + itemName(def) + ' from your hand');
-      button.disabled = !allowed('play');
+      button.disabled = over || !allowed('play');
       button.addEventListener('click', function () { playCard(card); });
       fig.appendChild(button);
       if (state.bin && !state.gameOver) {
@@ -269,6 +270,8 @@ const UI = (function () {
   }
 
   function render() {
+    /* The run is over: nothing on the table is live any more. */
+    const over = !!state.gameOver;
     const mission = missions[state.missionIndex];
     document.querySelector('#mission-banner .mission-name').textContent = mission.name;
     document.querySelector('#mission-banner .mission-goal').textContent = 'Goal: ' + registry[mission.goalCardId].goalText;
@@ -295,13 +298,13 @@ const UI = (function () {
     if (danger) danger.hidden = state.alarm < 40;
     const check = document.getElementById('mission-check');
     if (check) {
-      check.disabled = !allowed('missionCheck');
+      check.disabled = over || !allowed('missionCheck');
       check.classList.toggle('is-ready', !check.disabled && Actions.missionCheck(state, registry, missions));
     }
     const end = document.getElementById('end-turn');
     if (end) {
-      const outOfMoves = state.hand.length === 0 && state.interactionsLeft === 0 && !state.gameOver;
-      end.disabled = !allowed('endTurn');
+      const outOfMoves = state.hand.length === 0 && state.interactionsLeft === 0 && !over;
+      end.disabled = over || !allowed('endTurn');
       end.classList.toggle('is-ready', !end.disabled && outOfMoves);
     }
     document.getElementById('seed').textContent = 'seed: ' + state.seed;
@@ -359,7 +362,7 @@ const UI = (function () {
         cards.appendChild(fig);
       });
     }
-    if (state.bin && state.bin.source === 'discard') {
+    if (state.bin && state.bin.source === 'discard' && !state.gameOver) {
       if (cards) {
         state.discard.forEach(function (card) {
           const def = registry[card.defId];
@@ -760,6 +763,7 @@ const UI = (function () {
 
   /* ---------- actions ---------- */
   function playCard(card) {
+    if (state.gameOver) return;
     const def = defOf(card);
     const choice = Actions.needsChoice(def);
     if (!choice) {
@@ -1001,6 +1005,7 @@ const UI = (function () {
   }
 
   function missionCheck() {
+    if (state.gameOver) return;
     if (!Actions.missionCheck(state, registry, missions)) {
       openOverlay('Mission Check', 'Not yet — the whole goal has to be paid in one turn.', []);
       return;
@@ -1048,6 +1053,7 @@ const UI = (function () {
   }
 
   function endTurn() {
+    if (state.gameOver) return;
     undoStack = [];  /* the turn is spent: yesterday's moves are no longer rewritable */
     apply(Actions.endTurn(state, registry), 'Turn over');
   }

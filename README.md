@@ -17,7 +17,7 @@ HTML/CSS/JS served by GitHub Pages.
 
 ```bash
 python3 -m http.server 8000      # open http://127.0.0.1:8000
-node --test js/tests/*.test.mjs  # 185 tests: rules, invariants, campaign, UI, audio, table animation, the advisor
+node --test js/tests/*.test.mjs  # 197 tests: rules, invariants, campaign, UI, audio, table animation, the advisor
 ```
 
 - `?seed=12345` gives a reproducible shuffle; **Replay this seed** re-runs the same game.

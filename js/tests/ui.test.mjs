@@ -872,3 +872,25 @@ test('a resume restores the whole position, not just part of it', () => {
   assert.strictEqual(String(map['alarm-value'].textContent), '23');
   assert.strictEqual(String(map['res-stealth'].textContent), '7');
 });
+
+test('the board is locked the moment the alarm hits fifty', () => {
+  UI.init(cardDefs, missions, 31);
+  const state = UI.getState();
+  state.alarm = 49;
+  state.line = [null, null, null, null, null, { uid: 'obs_guard_0', defId: 'obs_guard' }];
+  UI.setState(state);
+  map['end-turn'].click();
+  const dead = UI.getState();
+  assert.strictEqual(dead.gameOver, 'alarm', 'the complex locked down');
+  assert.strictEqual(map['alarm-value'].textContent, 50, 'the gauge reads fifty');
+  assert.ok(map['end-turn'].disabled, 'End Turn is disabled');
+  assert.ok(map['mission-check'].disabled, 'so is Mission Check');
+  assert.ok(map['undo'].disabled, 'and Undo');
+  assert.ok(map['hand'].children.every((fig) => fig.children.find((b) => b.className === 'play-btn').disabled),
+    'the hand cannot be played');
+  assert.ok(map['call-homebase'].disabled, 'homebase is off the air');
+  assert.strictEqual(map['modal-title'].textContent, 'Game over', 'the game-over card is on the table');
+  const snapshot = JSON.parse(JSON.stringify(dead));
+  map['end-turn'].click();          /* the fake DOM fires the handler whatever `disabled` says */
+  assert.deepStrictEqual(UI.getState(), snapshot, 'a dead board does not keep scrolling or refilling');
+});

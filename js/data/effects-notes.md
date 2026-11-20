@@ -123,6 +123,10 @@ Manuel Correia played the build and filed six reports. The engine-facing changes
   only holds those cards in place, so a face-down card parks the stretch behind it. The old reading — nothing moves
   at all when the exit card is knocked out — was a softlock in Mission 4, because a knocked-out card can never be
   interacted with again.
+- **Game over is terminal.** `Engine.finished(state)` guards every entry point: play, interact, line scroll,
+  card refresh, end turn, bin, use item, complete mission. `refresh()` used to run after a fatal Line Scroll,
+  dealing six fresh obstacles onto a dead belt and starting another turn — the alarm gauge read 50 while the
+  conveyor kept running. A dead board now has no legal move and the belt does not move.
 - **Two names, one card.** On the belt a card is the obstacle (Yard Door); in the agent's hands it is the item
   printed on the top half (Throw a Rock). `Engine.agentName(def)` and `UI.itemName(def)` are the only places that
   decide which name is used; nothing else hard-codes a card name.

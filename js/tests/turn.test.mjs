@@ -190,6 +190,36 @@ test('the campaign ends in game over when the alarm hits 50', () => {
   assert.strictEqual(state.gameOver, 'alarm');
 });
 
+test('fifty alarm stops the game dead: no refresh, no refill, no next turn', () => {
+  let state = placeInLine(fresh(9), [
+    { uid: 'obs_guard_0', defId: 'obs_guard' },
+    { uid: 'obs_yard_door_0', defId: 'obs_yard_door' },
+    { uid: 'obs_sentry_gun_0', defId: 'obs_sentry_gun' },
+    { uid: 'obs_security_camera_0', defId: 'obs_security_camera' },
+    { uid: 'obs_sleeping_guard_0', defId: 'obs_sleeping_guard' },
+    { uid: 'obs_infimary_0', defId: 'obs_infimary' }
+  ]);
+  state.alarm = 47;
+  const deckBefore = state.obstacleDeck.length;
+  state = Engine.endTurn(state, registry);
+  assert.strictEqual(state.gameOver, 'alarm', 'the complex locked down');
+  assert.strictEqual(state.alarm, 50, 'and the counter is clamped at fifty');
+  assert.strictEqual(state.turn, 1, 'the turn never happened');
+  assert.strictEqual(lineCards(state).length, 5, 'the belt lost the exiting card and was NOT refilled');
+  assert.strictEqual(state.obstacleDeck.length, deckBefore, 'no obstacle was drawn to start a new conveyor');
+  assert.ok(state.obstacleDiscard.some(function (c) { return c.uid === 'obs_infimary_0'; }), 'the card that hit the chute went to the obstacles discard');
+  assert.strictEqual(state.hand.length, 4, 'the hand is not redrawn');
+  assert.throws(() => Engine.playCard(state, state.hand[0].uid, registry), /game is over/);
+  assert.throws(() => Engine.interact(state, 'obs_guard_0', 'disarm', registry), /game is over/);
+  const stillOnTheBelt = state.line.filter(Boolean)[0];
+  assert.strictEqual(Engine.canInteract(state, registry, stillOnTheBelt).ok, false,
+    Engine.canInteract(state, registry, stillOnTheBelt).reason);
+  const again = Engine.endTurn(state, registry);
+  assert.strictEqual(again.turn, 1, 'ending a dead turn does nothing');
+  assert.strictEqual(lineCards(again).length, 5, 'and the belt still does not move');
+  assertClean(state);
+});
+
 /* Put a known set of obstacles in the line without losing a single card:
    the previous line goes back to the Obstacles Deck, the wanted uids are pulled
    out of every zone first. */

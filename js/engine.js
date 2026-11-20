@@ -23,6 +23,13 @@ const Engine = (function () {
     return (def.reward && def.reward.name) ? def.reward.name : def.name;
   }
 
+  /* Once the alarm hits 50, or the line can no longer be filled, the complex is
+     locked down: no further action is legal, and nothing on the table moves.
+     Every entry point checks this, so a stale click cannot keep the belt running. */
+  function finished(state) {
+    return !!state.gameOver;
+  }
+
   function rand(state) {
     state.rngState = (state.rngState * 1664525 + 1013904223) >>> 0;
     return state.rngState / 4294967296;
@@ -234,6 +241,7 @@ const Engine = (function () {
        what the card would cost even when the interaction is not possible. */
     const options = paymentOptions(state, registry, card);
     const no = function (reason) { return { ok: false, reason: reason, items: [], canPayResources: false, parts: options.parts, sources: options.sources }; };
+    if (finished(state)) return no('the complex is locked down — the run is over');
     if (state.faceDown[card.uid]) return no('already knocked out');
     if (state.interactionsLeft <= 0) return no('no interactions left this turn');
     const d = def(card, registry);
@@ -443,6 +451,7 @@ const Engine = (function () {
 
   /* ---------- 1. Use Cards ---------- */
   function playCard(state, uid, registry, options) {
+    if (finished(state)) throw new Error('the game is over (' + state.gameOver + '): ' + uid + ' cannot be played');
     options = options || {};
     const s = clone(state);
     resetEvents(s);
@@ -572,6 +581,7 @@ const Engine = (function () {
 
   /* ---------- 1b. Interact: Disarm / Knock Out ---------- */
   function interact(state, uid, choice, registry, options) {
+    if (finished(state)) throw new Error('the game is over (' + state.gameOver + '): no interaction is possible');
     options = options || {};
     const s = clone(state);
     resetEvents(s);
@@ -707,6 +717,7 @@ const Engine = (function () {
   function lineScroll(state, registry) {
     const s = clone(state);
     resetEvents(s);
+    if (finished(s)) return s;
     if (!s.line.length) return s;
     applyScrollTriggers(s, registry);
 
@@ -776,6 +787,8 @@ const Engine = (function () {
   /* ---------- 4. Card Refresh ---------- */
   function refresh(state, registry) {
     const s = clone(state);
+    /* Dead games do not refresh: no refill, no new hand, no turn. */
+    if (finished(s)) return s;
     if (!s.events) s.events = [];
     s.passives = {};   /* every equipped item pays its once-per-turn bonus again */
     refillLine(s, registry);
@@ -808,13 +821,16 @@ const Engine = (function () {
   }
 
   function endTurn(state, registry) {
+    if (finished(state)) return clone(state);
     const s = refresh(lineScroll(state, registry), registry);
+    if (finished(s)) return s;   /* the alarm hit fifty on the scroll: no refresh, no next turn */
     s.turn += 1;
     return s;
   }
 
   /* Bin: a card the player purges from the game for good. */
   function binCard(state, registry, uid) {
+    if (finished(state)) throw new Error('the game is over: nothing can be binned');
     const s = clone(state);
     resetEvents(s);
     if (!s.bin || s.bin.remaining === 0) throw new Error('the Bin is not open');
@@ -858,6 +874,7 @@ const Engine = (function () {
   }
 
   function completeMission(state, registry, missions) {
+    if (finished(state)) throw new Error('the game is over: no mission can be completed');
     const s = clone(state);
     resetEvents(s);
     const mission = missions[s.missionIndex];
@@ -928,6 +945,7 @@ const Engine = (function () {
 
   /* Deliberately using an equipped item: it leaves the Equip Area for its effect. */
   function useItem(state, uid, registry) {
+    if (finished(state)) throw new Error('the game is over: ' + uid + ' cannot be used');
     const s = clone(state);
     resetEvents(s);
     const card = findZone(s, 'equip', uid);
@@ -944,7 +962,7 @@ const Engine = (function () {
   }
 
   return {
-    clone, def, agentName, effectiveCost, costBreakdown, canAfford, canInteract, paymentOptions, goalSatisfied,
+    clone, def, agentName, finished, effectiveCost, costBreakdown, canAfford, canInteract, paymentOptions, goalSatisfied,
     playCard, interact, lineScroll, refresh, endTurn, completeMission, useItem, binCard,
     dealLine, event
   };
